@@ -13,7 +13,39 @@
     <link href="manifest.json" rel="manifest" />
     <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+        .bg-image {
+            background-image: url('/image/light-blue-3d-abstract-wave-pattern.jpg');
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-size: cover;
+        }
+    </style>
+
+    <script>
+        function showTooltip(index) {
+            const selectedTooltip = document.getElementById(`tooltip${index}`);
+            const isTooltipVisible = selectedTooltip.classList.contains('hidden');
+
+            const tooltips = document.querySelectorAll('[id^="tooltip"]');
+            tooltips.forEach(tooltip => {
+                tooltip.classList.add('hidden');
+            });
+
+            if (isTooltipVisible) {
+                selectedTooltip.classList.remove('hidden');
+            }
+        }
+    </script>
 </head>
+
+
 
 <body>
     <div id="app">
