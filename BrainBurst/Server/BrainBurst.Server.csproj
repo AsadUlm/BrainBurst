@@ -11,7 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Client\BrainBurst.Frontend.Client.csproj" />
+    <ProjectReference Include="..\Client\BrainBurst.Client.csproj" />
+    <ProjectReference Include="..\Shared\BrainBurst.Shared.csproj" />
   </ItemGroup>
 
 
