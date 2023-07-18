@@ -13,6 +13,7 @@
     <link href="manifest.json" rel="manifest" />
     <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
           integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
           crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -28,6 +29,22 @@
         }
     </style>
 
+    <style>
+        .fade-in {
+            animation: fade-in 0.5s ease-in-out forwards;
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+
     <script>
         function showTooltip(index) {
             const selectedTooltip = document.getElementById(`tooltip${index}`);
@@ -40,6 +57,7 @@
 
             if (isTooltipVisible) {
                 selectedTooltip.classList.remove('hidden');
+                selectedTooltip.classList.add('fade-in');
             }
         }
     </script>
