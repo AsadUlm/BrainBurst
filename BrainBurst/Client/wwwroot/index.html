@@ -43,58 +43,21 @@
                 opacity: 1;
             }
         }
-
-        .slideDash {
-            animation-duration: 1s;
+        .toolanim {
+            animation-duration: 2s;
             animation-name: slidein;
-            animation-direction: alternate;
         }
 
         @keyframes slidein {
             from {
-                margin-left: 90%;
-                width: 250%;
+                left: 0px;
             }
 
+            50% {
+                left: 5px !important;
+            }
             to {
-                margin-left: 0%;
-                width: 100%;
-            }
-        }
-
-        .slideProj {
-            animation-duration: 2s;
-            animation-name: slideproj;
-            animation-direction: alternate;
-        }
-
-        @keyframes slideproj {
-            from {
-                margin-left: 90%;
-                width: 250%;
-            }
-
-            to {
-                margin-left: 0%;
-                width: 100%;
-            }
-        }
-
-        .slidestr {
-            animation-duration: 3s;
-            animation-name: slidestr;
-            animation-direction: alternate;
-        }
-
-        @keyframes slidestr {
-            from {
-                margin-left: 90%;
-                width: 250%;
-            }
-
-            to {
-                margin-left: 0%;
-                width: 100%;
+                left: 50px;
             }
         }
     </style>
