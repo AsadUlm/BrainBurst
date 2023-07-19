@@ -30,8 +30,22 @@
     </style>
 
     <style>
+        .toolanim {
+            animation-duration: 1s;
+            animation-name: slidein;
+        }
+
+        @keyframes slidein {
+            from {
+                left: -100px;
+            }
+            to {
+                left: 63px;
+            }
+        }
+
         .fade-in {
-            animation: fade-in 0.3s ease-in-out forwards;
+            animation: fade-in 1s ease-in-out forwards;
         }
 
         @keyframes fade-in {
@@ -41,23 +55,6 @@
 
             to {
                 opacity: 1;
-            }
-        }
-        .toolanim {
-            animation-duration: 2s;
-            animation-name: slidein;
-        }
-
-        @keyframes slidein {
-            from {
-                left: 0px;
-            }
-
-            50% {
-                left: 5px !important;
-            }
-            to {
-                left: 50px;
             }
         }
     </style>
@@ -74,7 +71,6 @@
 
             if (isTooltipVisible) {
                 selectedTooltip.classList.remove('hidden');
-                selectedTooltip.classList.add('fade-in');
             }
         }
     </script>
