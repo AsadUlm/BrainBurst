@@ -1,55 +1,57 @@
 ﻿<div class="flex flex-col h-screen w-16 bg-image">
     <div class="flex flex-col items-center mt-10">
         <button class="flex items-center justify-center h-20 w-full focus:outline-none" onclick="showTooltip(0)">
-            <i class="text-[25px] bx bx-grid-alt bx-tada-hover z-[100]"></i>
-            <div class="absolute left-16 pl-[25px] pr-[40px] top-0 bottom-0 z-[100] bg-image hidden" id="tooltip0">
-                <p>Line 4</p>
-                <p>Line 5</p>
+            <i class="text-[25px] bx bx-grid-alt z-[100] bx-tada-hover" id="icon0"></i>
+            <div class="absolute left-16 pl-[25px] pr-[40px] top-0 bottom-0 z-10 bg-image hidden w-36 toolanim" id="tooltip0">
+                <div class="flex flex-col mt-14 mr-4">
+                <NavLink class="my-6"><span class=" font-[600] text-[15px] hover:text-[#E9CFF1] text-[white] fade-in z-10">Line 4</span></NavLink>
+                <NavLink class="my-6"><span class=" font-[600] text-[15px] hover:text-[#E9CFF1] text-[white] fade-in z-10">Line 4</span></NavLink>
+            </div>
             </div>
         </button>
 
         <button class="flex items-center justify-center h-20 w-full focus:outline-none" onclick="showTooltip(1)">
-            <i class="text-[25px] bx bx-network-chart z-[100]"></i>
-            <div class="absolute left-16 pl-[25px] pr-[40px] top-0 bottom-0 z-10 bg-image hidden toolanim" id="tooltip1">
-                <div class="flex flex-col mt-14">
+            <i class="text-[25px] bx bx-network-chart z-[100] bx-tada-hover" id="icon1"></i>
+            <div class="absolute left-16 top-0 bottom-0 z-10 bg-image hidden w-36 toolanim" id="tooltip1">
+                <div class="flex flex-col mt-14 mr-4">
                     <NavLink class="my-6"><span class=" font-[600] text-[15px] hover:text-[#E9CFF1] text-[white] fade-in z-10">Dashboard</span></NavLink>
                     <NavLink class="my-6" href="fetchdata"><span class="my-6 font-[600] text-[15px] hover:text-[#E9CFF1] text-[white] fade-in z-10">Projects</span></NavLink>
                     <NavLink class="my-6"><span class="my-6 font-[600] text-[15px] hover:text-[#E9CFF1] text-[white] fade-in z-10">Structure</span></NavLink>
                 </div>
-                @*<div class="mb-8 absolute bottom-0">
-                <h5 class="text-[#B0B7C0] text-[12px] font-[500] pb-4">Commercial Requests</h5>
-                <span class="font-[500] text-[15px] mt-8 mb-4 font-[600] hover:text-[#E9CFF1] text-[white]">Marketing</span>
-                <span class="font-[500] text-[15px] my-8 font-[600] hover:text-[#E9CFF1] text-[white]">Business</span>
-                <span class="font-[500] text-[15px] mt-4 font-[600] hover:text-[#E9CFF1] text-[white]">Finances</span>
-                </div>*@
             </div>
         </button>
 
         <button class="flex items-center justify-center h-20 w-full focus:outline-none" onclick="showTooltip(2)">
-            <i class="text-[25px] bx bx-bell z-[100]"></i>
-            <div class="absolute left-16 pl-[25px] pr-[40px] top-0 bottom-0 z-[100] bg-image hidden " id="tooltip2">
-                <p>Line 6</p>
+            <i class="text-[25px] bx bx-bell z-[100] bx-tada-hover"></i>
+            <div class="absolute left-16 pl-[25px] pr-[40px] top-0 bottom-0 z-10 bg-image hidden w-36 toolanim" id="tooltip2">
+                <div class="flex flex-col mt-14 mr-4">
+                <NavLink class="my-6"><span class=" font-[600] text-[15px] hover:text-[#E9CFF1] text-[white] fade-in z-10">Line 6</span></NavLink>
+            </div>
             </div>
         </button>
         <button class="flex items-center justify-center h-20 w-full focus:outline-none" onclick="showTooltip(3)">
-            <i class="text-[25px] bx bx-archive z-[100]"></i>
-            <div class="absolute left-16 pl-[25px] pr-[40px] top-0 bottom-0 z-[100] bg-image hidden" id="tooltip3">
-                <p>Line 1</p>
-                <p>Line 2</p>
-                <p>Line 3</p>
+            <i class="text-[25px] bx bx-archive z-[100] bx-tada-hover"></i>
+            <div class="absolute left-16 top-0 bottom-0 z-10 bg-image hidden w-36 toolanim" id="tooltip3">
+                <div class="flex flex-col mt-14 mr-4">
+                <NavLink class="my-6"><span class=" font-[600] text-[15px] hover:text-[#E9CFF1] text-[white] fade-in z-10">Line 1</span></NavLink>
+                <NavLink class="my-6"><span class=" font-[600] text-[15px] hover:text-[#E9CFF1] text-[white] fade-in z-10">Line 2</span></NavLink>
+                <NavLink class="my-6"><span class=" font-[600] text-[15px] hover:text-[#E9CFF1] text-[white] fade-in z-10">Line 3</span></NavLink>
+            </div>
             </div>
         </button>
         <button class="flex items-center justify-center h-20 w-full focus:outline-none" onclick="showTooltip(4)">
-            <i class="text-[25px] bx bx-edit-alt z-[100]"></i>
-            <div class="absolute left-16 pl-[25px] pr-[40px] top-0 bottom-0 z-[100] bg-image hidden" id="tooltip4">
-                <p>Line 6</p>
+            <i class="text-[25px] bx bx-edit-alt z-[100] bx-tada-hover"></i>
+            <div class="absolute left-16 pl-[25px] pr-[40px] top-0 bottom-0 z-10 bg-image hidden w-36 toolanim" id="tooltip4">
+                <div class="flex flex-col mt-14">
+                <NavLink class="my-6"><span class=" font-[600] text-[15px] hover:text-[#E9CFF1] text-[white] fade-in z-10">Line 6</span></NavLink>
+            </div>
             </div>
         </button>
 
         <div class="mb-4 absolute bottom-0 z-[100]">
             <img class="w-8 h-8 mb-4 rounded-full" src="/image/blank-profile-circle.png" alt="">
             <a href="#" class="flex py-4 ml-[3px]">
-                <i class="bx bx-cog text-white text-[25px]"></i>
+                <i class="bx bx-cog text-white text-[25px] bx-tada-hover"></i>
             </a>
         </div>
     </div>
