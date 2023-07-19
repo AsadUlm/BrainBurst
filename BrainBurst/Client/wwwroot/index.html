@@ -31,7 +31,7 @@
 
     <style>
         .fade-in {
-            animation: fade-in 0.5s ease-in-out forwards;
+            animation: fade-in 0.3s ease-in-out forwards;
         }
 
         @keyframes fade-in {
@@ -41,6 +41,60 @@
 
             to {
                 opacity: 1;
+            }
+        }
+
+        .slideDash {
+            animation-duration: 1s;
+            animation-name: slidein;
+            animation-direction: alternate;
+        }
+
+        @keyframes slidein {
+            from {
+                margin-left: 90%;
+                width: 250%;
+            }
+
+            to {
+                margin-left: 0%;
+                width: 100%;
+            }
+        }
+
+        .slideProj {
+            animation-duration: 2s;
+            animation-name: slideproj;
+            animation-direction: alternate;
+        }
+
+        @keyframes slideproj {
+            from {
+                margin-left: 90%;
+                width: 250%;
+            }
+
+            to {
+                margin-left: 0%;
+                width: 100%;
+            }
+        }
+
+        .slidestr {
+            animation-duration: 3s;
+            animation-name: slidestr;
+            animation-direction: alternate;
+        }
+
+        @keyframes slidestr {
+            from {
+                margin-left: 90%;
+                width: 250%;
+            }
+
+            to {
+                margin-left: 0%;
+                width: 100%;
             }
         }
     </style>
