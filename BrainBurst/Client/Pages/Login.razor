@@ -1,25 +1,76 @@
-﻿@page "/loginnn"
-@using BrainBurst.Domain.Model;
-@using BrainBurst.Service.Logics;
-@inject IApiLogic _apiLogic
-@inject AuthenticationStateProvider _authStateProvider
-@inject NavigationManager _navigationManager
-@inject ILocalStorageService _localStorageService;
+﻿@page "/login"
 
-<div class="row">
-    <div class="col-md-6 offset-md-3">
-        <legend>User Login</legend>
-        <div class="mb-3">
-            <label for="txtEmail" class="form-label">Email</label>
-            <input @bind="loginModel.Email" type="text" class="form-control" id="txtEmail" />
+<div class="h-screen flex justify-center items-center logimg">
+    <form class="w-full max-w-xs flex flex-col form-input" action="">
+        <div class="text-center">
+            <h1 class="text-[30px] mb-12 text-white font-[500]">Log In for BrainBurst</h1>
+        </div>
+        <div class="flex border-b-2 mb-6">
+            <i class='bx bx-envelope text-[20px] mr-4 mb-[5px]' style='color:#fffefe'></i>
+            <input class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
+                   type="email" placeholder="Email ID">
         </div>
 
-        <div class="mb-3">
-            <label for="txtPassword" class="form-label">Password</label>
-            <input @bind="loginModel.Password" type="password" class="form-control" id="txtPassword" />
+        <div class="flex border-b-2 mt-6">
+            <i class='bx bxs-lock text-[20px] mr-4 mb-[6px]' style='color:#fffefe'></i>
+            <input class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
+                   type="password" placeholder="Password">
         </div>
-        <button type="button" @onclick="UserLogin" class="btn btn-primary">Login</button>
-    </div>
+
+
+        @*<div class="flex justify-between my-10">
+            <label class="flex mr-8">
+                <input type="checkbox" class="h-4 w-4 accent-black mt-[2px] focus:outline-none">
+                <span class="text-white text-[14px] ml-3 font-[400]">Remember me</span>
+            </label>
+
+
+            <a href="resign.html" class="italic text-white text-[14px] font-[400]">Forgot Password?</a>
+
+
+        </div>*@
+
+        <a href="#" class="flex justify-center rounded-lg w-full py-3 bg-[#172d42]">
+            <i class='bx bxs-user-check text-[24px] mr-2 text-white'></i>
+            <label class="text-white font-bold">
+                Log in
+            </label>
+        </a>
+
+        <span class="text-center my-4 text-white font-bold">Or</span>
+
+        <button type="button"
+                class="w-full block bg-white hover:bg-gray-100 focus:bg-gray-100 text-gray-900 font-semibold rounded-lg py-3 border border-gray-300">
+            <div class="flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="w-6 h-6"
+                     viewBox="0 0 48 48">
+                    <defs>
+                        <path id="a"
+                              d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z" />
+                    </defs>
+                    <clipPath id="b">
+                        <use xlink:href="#a" overflow="visible" />
+                    </clipPath>
+                    <path clip-path="url(#b)" fill="#FBBC05" d="M0 37V11l17 13z" />
+                    <path clip-path="url(#b)" fill="#EA4335" d="M0 11l17 13 7-6.1L48 14V0H0z" />
+                    <path clip-path="url(#b)" fill="#34A853" d="M0 37l30-23 7.9 1L48 0v48H0z" />
+                    <path clip-path="url(#b)" fill="#4285F4" d="M48 48L17 24l-4-3 35-10z" />
+                </svg>
+                <span class="ml-4">
+                    Log in
+                    with
+                    Google
+                </span>
+            </div>
+        </button>
+
+        <div class="flex justify-between mt-8">
+            <p class="text-white font-[400]">Don't have an account?</p>
+            <a href="signup.html" class="font-[400] text-white">Sign Up</a>
+        </div>
+
+
+    </form>
 </div>
 
 @code {

@@ -10,6 +10,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BrainBurst.Shared", "BrainBurst\Shared\BrainBurst.Shared.csproj", "{2CB1E7FA-7180-45A4-83A4-24E1EFB29619}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BrainBurst.Domain", "BrainBurst.Domain\BrainBurst.Domain.csproj", "{C726D8A0-EB28-4A88-BA8E-5E44569243D5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BrainBurst,Repository", "BrainBurst,Repository\BrainBurst,Repository.csproj", "{699D376B-C24E-41B0-8BD1-C5BDFE62F082}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BrainBurst.Service", "BrainBurst.Service\BrainBurst.Service.csproj", "{56CCC49A-F354-4812-9A16-EB30FF8E7A78}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BrainBurst.Domain", "BrainBurst.Domain\BrainBurst.Domain.csproj", "{C726D8A0-EB28-4A88-BA8E-5E44569243D5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BrainBurst.Service", "BrainBurst.Service\BrainBurst.Service.csproj", "{56CCC49A-F354-4812-9A16-EB30FF8E7A78}"
 EndProject
