@@ -20,7 +20,7 @@
                    type="email" placeholder="Email ID">
         </div>
 
-        <div class="flex border-b-2 mt-6">
+        <div class="flex border-b-2 mt-6 mb-10">
             <i class='bx bxs-lock text-[20px] mr-4 mb-[6px]' style='color:#fffefe'></i>
             <input @bind="loginModel.Password" class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
                    type="password" placeholder="Password">
@@ -85,7 +85,7 @@
 @code {
     private LoginModel loginModel = new LoginModel();
     private bool ShowErrors;
-    private string Error = "";    
+    private string Error = "sjut ";    
 
     private async Task UserLogin()
     {
