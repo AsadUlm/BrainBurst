@@ -5,8 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BrainBurst.Server.Repository
 {
     public class BrainBrustDBContext : IdentityDbContext
-    {
-        public DbSet<User> User { get; set; }
+    {        
         public BrainBrustDBContext(DbContextOptions<BrainBrustDBContext> options) : base(options)
         {
             Database.Migrate();
