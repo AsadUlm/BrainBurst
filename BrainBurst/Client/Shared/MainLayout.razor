@@ -1,14 +1,35 @@
 ﻿@inherits LayoutComponentBase
 
+
 <div class="min-h-screen">
     <div class="flex">
         <div class="bg-gray-900 text-white">
-            <NavMenu />
+            <AuthorizeView>
+                <Authorized>
+                    <NavMenu />
+                </Authorized>
+            </AuthorizeView>
         </div>
         <div class="w-full z-0">
+            <AuthorizeView>
+                <Authorized>
+                    <p>Hello</p>
+                    <button @onclick="LogOut">Log out</button>
+                </Authorized>
+            </AuthorizeView>
             <div class="">
                 @Body
             </div>
         </div>
     </div>
 </div>
+
+
+@code {
+    private async Task LogOut()
+    {
+        await AuthService.Logout();
+        NavigationManager.NavigateTo("/");
+    }
+}
+
