@@ -1,50 +1,43 @@
-﻿@page "/login"
+﻿@page "/signup"
 
 
-<div class="h-screen flex justify-center items-center logimg">
+<div class="h-screen w-screen flex justify-center items-center logimg">
     <form class="w-full max-w-xs flex flex-col form-input" action="">
         <div class="text-center">
-            <h1 class="text-[30px] mb-12 text-white font-[500]">Log in for BrainBurst</h1>
+            <h1 class="text-[30px] mb-12 text-white font-[500]">Sign up for BrainBurst</h1>
         </div>
 
-        @if (ShowErrors)
-        {
-            <div class="alert alert-danger" role="alert">
-                <p>@Error</p>
-            </div>
-        }
+        <div class="flex border-b-2 mb-12">
+            <i class='bx bx-user-circle text-[22px] mr-3 mb-[5px] text-white'></i>
+            <input class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
+                   type="name" placeholder="First name">
+        </div>
+
 
         <div class="flex border-b-2 mb-6">
             <i class='bx bx-envelope text-[20px] mr-4 mb-[5px]' style='color:#fffefe'></i>
-            <input @bind="loginModel.Email" class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
+            <input class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
                    type="email" placeholder="Email ID">
         </div>
 
-        <div class="flex border-b-2 mt-6 mb-10">
+        <div class="flex border-b-2 mt-6">
             <i class='bx bxs-lock text-[20px] mr-4 mb-[6px]' style='color:#fffefe'></i>
-            <input @bind="loginModel.Password" class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
+            <input class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
                    type="password" placeholder="Password">
         </div>
 
-
-        @*<div class="flex justify-between my-10">
-            <label class="flex mr-8">
-                <input type="checkbox" class="h-4 w-4 accent-black mt-[2px] focus:outline-none">
-                <span class="text-white text-[14px] ml-3 font-[400]">Remember me</span>
-            </label>
-
-
-            <a href="resign.html" class="italic text-white text-[14px] font-[400]">Forgot Password?</a>
-
-
-        </div>*@
-
-        <div @onclick="UserLogin" class="flex justify-center rounded-lg w-full py-3 bg-[#172d42]">
-            <i class='bx bxs-user-check text-[24px] mr-2 text-white'></i>
-            <label class="text-white font-bold">
-                Log in
-            </label>
+        <div class="flex border-b-2 mt-11">
+            <i class='bx bxs-lock text-[20px] mr-4 mb-[6px]' style='color:#fffefe'></i>
+            <input class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
+                   type="password" placeholder="Confirm password">
         </div>
+
+        <a href="#" class="mt-12 flex justify-center rounded-lg w-full py-3 bg-[#172d42]">
+            <i class='bx bx-user-plus text-[23px] mr-2' style='color:#f7f7f7'></i>
+            <label class="text-white font-bold">
+                Sign Up
+            </label>
+        </a>
 
         <span class="text-center my-4 text-white font-bold">Or</span>
 
@@ -66,7 +59,7 @@
                     <path clip-path="url(#b)" fill="#4285F4" d="M48 48L17 24l-4-3 35-10z" />
                 </svg>
                 <span class="ml-4">
-                    Log in
+                    Sign Up
                     with
                     Google
                 </span>
@@ -74,8 +67,8 @@
         </button>
 
         <div class="flex justify-between mt-8">
-            <p class="text-white font-[400]">Don't have an account?</p>
-            <a href="signup.html" class="font-[400] text-white">Sign Up</a>
+            <p class="text-white font-[400]">You got an account?</p>
+            <a href="login.html" class="font-[400] text-white">Log In</a>
         </div>
 
 
@@ -83,24 +76,5 @@
 </div>
 
 @code {
-    private LoginModel loginModel = new LoginModel();
-    private bool ShowErrors;
-    private string Error = "";    
-
-    private async Task UserLogin()
-    {
-        ShowErrors = false;
-
-        var result = await AuthService.Login(loginModel);
-
-        if (result.Successful)
-        {
-            NavigationManager.NavigateTo("/");
-        }
-        else
-        {
-            Error = result.Error;
-            ShowErrors = true;
-        }
-    }
+    
 }
