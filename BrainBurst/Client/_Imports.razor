@@ -11,4 +11,10 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Blazored.LocalStorage
-@using BrainBurst.Client.Providers
+@using BrainBurst.Domain.Model
+@using BrainBurst.Service.Logics
+@inject AuthenticationStateProvider _authStateProvider
+@inject NavigationManager _navigationManager
+@inject ILocalStorageService _localStorageService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager

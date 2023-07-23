@@ -5,6 +5,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Blazored.LocalStorage;
 using BrainBurst.Client.Handlers;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using BrainBurst.Server.Extentions;
 
 var builder = WebApplication.CreateBuilder(args);
 IConfiguration configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
@@ -14,10 +18,25 @@ builder.Services.AddOptions();
 
 
 builder.Services.AddControllers();
-builder.Services.AddSwaggerGen();
+builder.Services.AddMySwaggerGen();
 builder.Services.AddDbContext<BrainBrustDBContext>(option => option.UseNpgsql(configuration["ConnectionStrings:ConnectionString"]));
+builder.Services.AddDefaultIdentity<IdentityUser>().AddEntityFrameworkStores<BrainBrustDBContext>();
 
 //builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = configuration["JwtIssuer"],
+        ValidAudience = configuration["JwtAudience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JwtSecurityKey"]))
+    };
+});
 
 builder.Services.AddAuthentication(options =>
 {
@@ -31,7 +50,8 @@ builder.Services.AddAuthentication(
     CookieAuthenticationDefaults.AuthenticationScheme
 )
 .AddCookie()
-.AddGoogle(options => {
+.AddGoogle(options =>
+{
     options.ClientId = configuration["Authentication:Google:ClientId"];
     options.ClientSecret = configuration["Authentication:Google:ClientSecret"];
 });
@@ -77,6 +97,8 @@ else
     app.UseSwaggerUI();
 }
 
+app.UseRoleInitializerMiddleware();
+
 app.UseHttpsRedirection();
 
 app.UseBlazorFrameworkFiles();
@@ -85,8 +107,8 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseCors("CorsSpecs");
-app.UseAuthentication();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();

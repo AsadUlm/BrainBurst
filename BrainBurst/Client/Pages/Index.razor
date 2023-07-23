@@ -1,0 +1,15 @@
+﻿@page "/"
+
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+
+<AuthorizeView>
+    <NotAuthorized>
+        <Login />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    
+}

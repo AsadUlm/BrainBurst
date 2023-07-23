@@ -10,176 +10,139 @@ using BrainBurst.Domain.Model;
 using Microsoft.EntityFrameworkCore;
 using BrainBurst.Shared.DTO_s;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 
 namespace BrainBurst.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
-{    
+{
+    private readonly IConfiguration _configuration;
     private readonly BrainBrustDBContext _brainBrustDBContext;
-    
-    public AuthController(BrainBrustDBContext brainBrustDBContext)
+    private readonly UserManager<IdentityUser> _userManager;
+
+    public AuthController(IConfiguration configuration, BrainBrustDBContext brainBrustDBContext, UserManager<IdentityUser> userManager)
     {
         this._brainBrustDBContext = brainBrustDBContext;
+        this._configuration = configuration;
+        _userManager = userManager;
     }
 
     [HttpPost]
-    [Route("login")]
-    public async Task<IActionResult> LoginAsync(LoginDTO login)
+    public async Task<IActionResult> RegisterUser([FromBody] RegisterModel model)
     {
-        var user = await _brainBrustDBContext
-        .User.Where(_ => _.Email.ToLower() == login.Email.ToLower() && _.Password == login.Password).FirstOrDefaultAsync();
+        var newUser = new IdentityUser { UserName = model.Email, Email = model.Email };
 
-        if (user == null)
+        var result = await _userManager.CreateAsync(newUser, model.Password);
+
+        if (!result.Succeeded)
         {
-            return BadRequest("Invalid Credentials");
+            var errors = result.Errors.Select(x => x.Description);
+            return Ok(new RegisterResult { Successful = false, Errors = errors });
         }
 
-        var claims = new List<Claim>
-    {
-        new Claim("userid", user.Id.ToString()),
-        new Claim(ClaimTypes.Email, user.Email)
-    };
-
-        var claimsIdentity = new ClaimsIdentity(
-            claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-        var authProperties = new AuthenticationProperties();
-
-        await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(claimsIdentity),
-            authProperties);
-        return Ok("Success");
+        return Ok(new RegisterResult { Successful = true });
     }
 
 
-    [HttpPost]
-    [Route("logout")]
-    public async Task<IActionResult> LogoutAsync()
-    {
-        await HttpContext.SignOutAsync();
-        return Ok("success");
-    }
 
-    [Authorize]
-    [HttpGet]
-    [Route("user-profile")]
-    public async Task<IActionResult> UserProfileAsync()
-    {
-        int userId = HttpContext.User.Claims
-        .Where(_ => _.Type == "userid")
-        .Select(_ => Convert.ToInt32(_.Value))
-        .First();
 
-        var userProfile = await _brainBrustDBContext
-        .User
-        .Where(_ => _.Id == userId)
-        .Select(_ => new UserProfileDTO
-        {
-            UserId = _.Id,
-            Email = _.Email,
-            FirstName = _.FirstName,
-            LastName = _.LastName
-        }).FirstOrDefaultAsync();
+    //private async Task RefreshExternalSignIn(User user)
+    //{
+    //    var claims = new List<Claim>
+    //    {
+    //        new Claim("userid", user.Id.ToString()),
+    //        new Claim(ClaimTypes.Email, user.Email)
+    //    };
 
-        return Ok(userProfile);
-    }
+    //    var claimsIdentity = new ClaimsIdentity(
+    //        claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-    private async Task RefreshExternalSignIn(User user)
-    {
-        var claims = new List<Claim>
-        {
-            new Claim("userid", user.Id.ToString()),
-            new Claim(ClaimTypes.Email, user.Email)
-        };
+    //    var authProperties = new AuthenticationProperties();
 
-        var claimsIdentity = new ClaimsIdentity(
-            claims, CookieAuthenticationDefaults.AuthenticationScheme);
+    //    HttpContext.User.AddIdentity(claimsIdentity);
 
-        var authProperties = new AuthenticationProperties();
+    //    await HttpContext.SignOutAsync();
 
-        HttpContext.User.AddIdentity(claimsIdentity);
+    //    await HttpContext.SignInAsync(
+    //        CookieAuthenticationDefaults.AuthenticationScheme,
+    //        new ClaimsPrincipal(claimsIdentity),
+    //        authProperties);
+    //}
 
-        await HttpContext.SignOutAsync();
+    //private async Task<User> ManageExternalLoginUser(string email, string firstName, string lastName, string externalLoginName)
+    //{
+    //    var user = await _brainBrustDBContext
+    //    .User.Where(_ => _.Email.ToLower() == email.ToLower()
+    //    && _.ExternalLoginName.ToLower() == externalLoginName.ToLower())
+    //    .FirstOrDefaultAsync();
 
-        await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(claimsIdentity),
-            authProperties);
-    }
+    //    if (user != null)
+    //    {
+    //        return user;
+    //    }
 
-    private async Task<User> ManageExternalLoginUser(string email, string firstName, string lastName, string externalLoginName)
-    {
-        var user = await _brainBrustDBContext
-        .User.Where(_ => _.Email.ToLower() == email.ToLower()
-        && _.ExternalLoginName.ToLower() == externalLoginName.ToLower())
-        .FirstOrDefaultAsync();
+    //    var newUser = new User
+    //    {
+    //        Email = email,
+    //        ExternalLoginName = externalLoginName,
+    //        FirstName = firstName,
+    //        LastName = lastName
+    //    };
+    //    _brainBrustDBContext.User.Add(newUser);
+    //    await _brainBrustDBContext.SaveChangesAsync();
+    //    return newUser;
+    //}
 
-        if (user != null)
-        {
-            return user;
-        }
+    //[HttpGet]
+    //[Route("google-login")]
+    //public IActionResult GoogleLogin(string returnURL)
+    //{
+    //    return Challenge(
+    //        new AuthenticationProperties
+    //        {
+    //            RedirectUri = Url.Action(nameof(GoogleLoginCallBack), new { returnURL })
+    //        },
+    //        GoogleDefaults.AuthenticationScheme
+    //    );
+    //}
 
-        var newUser = new User
-        {
-            Email = email,
-            ExternalLoginName = externalLoginName,
-            FirstName = firstName,
-            LastName = lastName
-        };
-        _brainBrustDBContext.User.Add(newUser);
-        await _brainBrustDBContext.SaveChangesAsync();
-        return newUser;
-    }
+    //[HttpGet]
+    //[Route("google-login-callback")]
+    //public async Task<IActionResult> GoogleLoginCallBack(string returnURL)
+    //{
+    //    var authenticationResult = await HttpContext
+    //    .AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
+    //    if (authenticationResult.Succeeded)
+    //    {
+    //        string email = HttpContext
+    //        .User.Claims.Where(_ => _.Type == ClaimTypes.Email)
+    //        .Select(_ => _.Value)
+    //        .FirstOrDefault();
 
-    [HttpGet]
-    [Route("google-login")]
-    public IActionResult GoogleLogin(string returnURL)
-    {
-        return Challenge(
-            new AuthenticationProperties
-            {
-                RedirectUri = Url.Action(nameof(GoogleLoginCallBack), new { returnURL })
-            },
-            GoogleDefaults.AuthenticationScheme
-        );
-    }
+    //        string firstName = HttpContext
+    //        .User.Claims.Where(_ => _.Type == ClaimTypes.GivenName)
+    //        .Select(_ => _.Value)
+    //        .FirstOrDefault();
 
-    [HttpGet]
-    [Route("google-login-callback")]
-    public async Task<IActionResult> GoogleLoginCallBack(string returnURL)
-    {
-        var authenticationResult = await HttpContext
-        .AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
-        if (authenticationResult.Succeeded)
-        {
-            string email = HttpContext
-            .User.Claims.Where(_ => _.Type == ClaimTypes.Email)
-            .Select(_ => _.Value)
-            .FirstOrDefault();
+    //        string lastName = HttpContext
+    //        .User.Claims.Where(_ => _.Type == ClaimTypes.Surname)
+    //        .Select(_ => _.Value)
+    //        .FirstOrDefault();
 
-            string firstName = HttpContext
-            .User.Claims.Where(_ => _.Type == ClaimTypes.GivenName)
-            .Select(_ => _.Value)
-            .FirstOrDefault();
+    //        var user = await ManageExternalLoginUser(
+    //            email,
+    //            firstName,
+    //            lastName,
+    //            "Google"
+    //        );
 
-            string lastName = HttpContext
-            .User.Claims.Where(_ => _.Type == ClaimTypes.Surname)
-            .Select(_ => _.Value)
-            .FirstOrDefault();
-
-            var user = await ManageExternalLoginUser(
-                email,
-                firstName,
-                lastName,
-                "Google"
-            );
-
-            await RefreshExternalSignIn(user);
-            return Redirect($"{returnURL}?externalauth=true");
-        }
-        return Redirect($"{returnURL}?externalauth=false");
-    }
+    //        await RefreshExternalSignIn(user);
+    //        return Redirect($"{returnURL}?externalauth=true");
+    //    }
+    //    return Redirect($"{returnURL}?externalauth=false");
+    //}
 }
