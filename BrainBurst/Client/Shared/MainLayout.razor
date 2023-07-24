@@ -11,12 +11,6 @@
             </AuthorizeView>
         </div>
         <div class="w-full z-0">
-            <AuthorizeView>
-                <Authorized>
-                    <p>Hello</p>
-                    <button @onclick="LogOut">Log out</button>
-                </Authorized>
-            </AuthorizeView>
             <div class="">
                 @Body
             </div>
@@ -26,10 +20,6 @@
 
 
 @code {
-    private async Task LogOut()
-    {
-        await AuthService.Logout();
-        NavigationManager.NavigateTo("/");
-    }
+
 }
 
