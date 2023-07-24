@@ -26,7 +26,6 @@
 
             <div class="mt-5 flex border-b-2">
                 <i class='bx bxs-lock text-[20px] mr-4 mt-[8px]' style='color:#fffefe'></i>
-                <i class="fa-solid fa-face-hand-peeking"></i>
 
                 <div class="relative">
                     <input @bind="loginModel.Password" id="password" name="password" type="password" class="w-full h-10 text-[white] bg-transparent placeholder-transparent peer focus:outline-none" placeholder="kamster" />
@@ -35,19 +34,6 @@
             </div>
 
         </div>
-      
-
-        @*<div class="flex justify-between my-10">
-            <label class="flex mr-8">
-                <input type="checkbox" class="h-4 w-4 accent-black mt-[2px] focus:outline-none">
-                <span class="text-white text-[14px] ml-3 font-[400]">Remember me</span>
-            </label>
-
-
-            <a href="resign.html" class="italic text-white text-[14px] font-[400]">Forgot Password?</a>
-
-
-        </div>*@
 
         <div @onclick="UserLogin" class="flex justify-center rounded-lg w-full py-3 bg-[#172d42]">
             <i class='bx bxs-user-check text-[24px] mr-2 text-white'></i>
