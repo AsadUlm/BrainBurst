@@ -13,19 +13,29 @@
                 <p>@Error</p>
             </div>
         }
+        <div class="mb-12">
 
-        <div class="flex border-b-2 mb-6">
-            <i class='bx bx-envelope text-[20px] mr-4 mb-[5px]' style='color:#fffefe'></i>
-            <input @bind="loginModel.Email" class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
-                   type="email" placeholder="Email ID">
+            <div class="mb-5 flex border-b-2">
+                <i class='bx bx-envelope text-[20px] mr-4 mt-[8px]' style='color:#fffefe'></i>
+
+                <div class="relative">
+                    <input @bind="loginModel.Email" id="email" name="email" type="email" class="w-full h-10 text-[white] bg-transparent placeholder-transparent peer focus:outline-none" placeholder="kamster" />
+                    <label for="email" class="absolute left-0 -top-3.5 text-[white] text-[15px] transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-white peer-placeholder-shown:top-2 peer-focus:-top-3.5 peer-focus:text-[white] peer-focus:text-sm">Email</label>
+                </div>
+            </div>
+
+            <div class="mt-5 flex border-b-2">
+                <i class='bx bxs-lock text-[20px] mr-4 mt-[8px]' style='color:#fffefe'></i>
+                <i class="fa-solid fa-face-hand-peeking"></i>
+
+                <div class="relative">
+                    <input @bind="loginModel.Password" id="password" name="password" type="password" class="w-full h-10 text-[white] bg-transparent placeholder-transparent peer focus:outline-none" placeholder="kamster" />
+                    <label for="password" class="absolute left-0 -top-3.5 text-[white] text-[15px] transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-white peer-placeholder-shown:top-2 peer-focus:-top-3.5 peer-focus:text-[white] peer-focus:text-sm">Password</label>
+                </div>
+            </div>
+
         </div>
-
-        <div class="flex border-b-2 mt-6 mb-10">
-            <i class='bx bxs-lock text-[20px] mr-4 mb-[6px]' style='color:#fffefe'></i>
-            <input @bind="loginModel.Password" class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
-                   type="password" placeholder="Password">
-        </div>
-
+      
 
         @*<div class="flex justify-between my-10">
             <label class="flex mr-8">
