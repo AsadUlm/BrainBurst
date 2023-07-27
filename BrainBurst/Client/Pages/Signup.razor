@@ -1,4 +1,7 @@
 ﻿@page "/signup"
+@using System.Net.Http.Json
+@using BrainBurst.Shared.DTO_s
+@inject HttpClient httpClient
 
 <div class="h-screen w-screen flex justify-center items-center logimg">
     <form class="w-full max-w-xs flex flex-col form-input" action="">
@@ -8,44 +11,50 @@
 
         <div class="flex border-b-2 mb-12">
             <i class='bx bx-user-circle text-[22px] mr-3 mb-[5px] text-white'></i>
-            <input class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
-                   type="name" placeholder="First name">
+            <input @bind="@registrationUser.FullName" class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
+                   type="name" placeholder="Full name">
+        </div>
+
+        <div class="flex border-b-2 mb-12">
+            <i class='bx bx-user-circle text-[22px] mr-3 mb-[5px] text-white'></i>
+            <input @bind="@registrationUser.UserName" class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
+                   type="name" placeholder="User name">
         </div>
 
 
         <div class="flex border-b-2 mb-6">
             <i class='bx bx-envelope text-[20px] mr-4 mb-[5px]' style='color:#fffefe'></i>
-            <input class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
+            <input @bind="@registrationUser.Email" class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
                    type="email" placeholder="Email">
         </div>
 
         <div class="flex border-b-2 mt-6">
             <i class='bx bxs-lock text-[20px] mr-4 mb-[6px]' style='color:#fffefe'></i>
-            <input class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
+            <input @bind="@registrationUser.Password" class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
                    type="password" placeholder="Password">
 
             @*@if (showPassword)
             {
-                <i class="fa-regular fa-eye mt-[12px] text-white text-[18px]" @onclick="TogglePasswordVisibility"></i>
+            <i class="fa-regular fa-eye mt-[12px] text-white text-[18px]" @onclick="TogglePasswordVisibility"></i>
             }
             else
             {
-                <i class="fa-regular fa-eye-slash mt-[12px] text-white text-[18px]" @onclick="TogglePasswordVisibility"></i>
+            <i class="fa-regular fa-eye-slash mt-[12px] text-white text-[18px]" @onclick="TogglePasswordVisibility"></i>
             }*@
         </div>
 
         <div class="flex border-b-2 mt-11">
             <i class='bx bxs-lock text-[20px] mr-4 mb-[6px]' style='color:#fffefe'></i>
-            <input class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
+            <input @bind="@registrationUser.ConfirmPassword" class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
                    type="password" placeholder="Confirm password">
         </div>
 
-        <a href="#" class="mt-12 flex justify-center rounded-lg w-full py-3 bg-[#172d42]">
+        <button @onclick="HandleSignUp" class="mt-12 flex justify-center rounded-lg w-full py-3 bg-[#172d42]">
             <i class='bx bx-user-plus text-[23px] mr-2' style='color:#f7f7f7'></i>
-            <label class="text-white font-bold">
+            <span class="text-white font-bold">
                 Sign Up
-            </label>
-        </a>
+            </span>
+        </button>
 
         <span class="text-center my-4 text-white font-bold">Or</span>
 
@@ -85,20 +94,20 @@
 
 @code {
 
-    //private RegistrationUserDTO registrationUser = new RegistrationUserDTO();
+    private RegistrationUserDTO registrationUser = new RegistrationUserDTO();
 
-    //private async Task HandleSignUp()
-    //{
-    //    var response = await HttpClient.PostAsJsonAsync("/api/signup", registrationUser);
+    private async Task HandleSignUp()
+    {
+        var response = await httpClient.PostAsJsonAsync("api/User/CreateUser", registrationUser);
 
-    //    if (response.IsSuccessStatusCode)
-    //    {
-            
-    //    }
-    //    else
-    //    {
-    //        // Registration failed, handle the error if needed
-    //    }
-    //}
+        if (response.IsSuccessStatusCode)
+        {
+            NavigationManager.NavigateTo("/");
+        }
+        else
+        {
+            Console.WriteLine("Can't be updated");
+        }
+    }
 
 }
