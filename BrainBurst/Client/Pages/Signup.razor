@@ -32,15 +32,6 @@
             <i class='bx bxs-lock text-[20px] mr-4 mb-[6px]' style='color:#fffefe'></i>
             <input @bind="@registrationUser.Password" class="text-white font-[400] focus:outline-none bg-transparent placeholder-[white] text-[15px] ml-2 mb-2"
                    type="password" placeholder="Password">
-
-            @*@if (showPassword)
-            {
-            <i class="fa-regular fa-eye mt-[12px] text-white text-[18px]" @onclick="TogglePasswordVisibility"></i>
-            }
-            else
-            {
-            <i class="fa-regular fa-eye-slash mt-[12px] text-white text-[18px]" @onclick="TogglePasswordVisibility"></i>
-            }*@
         </div>
 
         <div class="flex border-b-2 mt-11">
@@ -102,7 +93,8 @@
 
         if (response.IsSuccessStatusCode)
         {
-            NavigationManager.NavigateTo("/login");
+           // NavigationManager.NavigateTo("/login");
+            Console.WriteLine("be updated");
         }
         else
         {
