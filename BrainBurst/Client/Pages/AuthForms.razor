@@ -151,6 +151,57 @@
         return false;
     }
 
+    private async Task UserLogin()
+    {
+        ShowErrors = false;
+
+        if (IsLoginModelValidate())
+        {
+            Console.WriteLine("Pls write login and password"); // поправишь потом чтоб уведомление вышло что нужно заполнить логин и пароль\
+            return;
+        }
+
+        var result = await AuthService.Login(loginModel);
+
+        if (result.Successful)
+        {
+            NavigationManager.NavigateTo("/");
+        }
+        else
+        {
+            ShowErrors = true;
+        }
+
+    }
+
+    private bool IsLoginModelValidate()
+    {
+        if (loginModel.Email == null || loginModel.Password == null)
+            return true;
+        return false;
+    }
+
+
+    private async Task HandleSignUp()
+    {
+        var response = await httpClient.PostAsJsonAsync("api/User/CreateUser", registrationUser);
+
+        if (response.IsSuccessStatusCode)
+        {
+            // NavigationManager.NavigateTo("/login");
+            Console.WriteLine("be updated");
+        }
+        else
+        {
+            Console.WriteLine("Can't be updated");
+        }
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+
     private void ToggleFormsVisibility()
     {
         showLogin = !showLogin;
