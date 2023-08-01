@@ -1,0 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap');
+.f-family {
+    font-family: 'Montserrat', sans-serif;
+}
+
+
+.logimg {
+    background-image: url('/image/light-background-with-sunset-projector-lamp.jpg');
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: cover;
+}
