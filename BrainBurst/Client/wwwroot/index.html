@@ -23,29 +23,6 @@
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-
-    <script>
-        function showTooltip(index) {
-            const selectedTooltip = document.getElementById(`tooltip${index}`);
-            const isTooltipVisible = selectedTooltip.classList.contains('hidden');
-            const icon = document.getElementById(`icon${index}`);
-
-            const tooltips = document.querySelectorAll('[id^="tooltip"]');
-            tooltips.forEach(tooltip => {
-                tooltip.classList.add('hidden');
-                tooltip.classList.remove('slidein');
-            });
-
-            if (isTooltipVisible) {
-                selectedTooltip.classList.remove('hidden');
-                selectedTooltip.classList.add('slidein');
-                icon.classList.add('bx-tada');
-                setTimeout(() => {
-                    icon.classList.remove('bx-tada');
-                }, 1000);
-            }
-        }
-    </script>
 </head>
 
 
