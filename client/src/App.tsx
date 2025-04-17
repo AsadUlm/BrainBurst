@@ -11,6 +11,7 @@ import RequireAuth from './components/RequireAuth';
 import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminResults from './pages/AdminResults';
+import MyHistory from './pages/MyHistory';
 
 export default function App() {
   return (
@@ -35,6 +36,15 @@ export default function App() {
             element={
               <RequireAuth>
                 <TestRunner />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/myresults"
+            element={
+              <RequireAuth>
+                <MyHistory />
               </RequireAuth>
             }
           />

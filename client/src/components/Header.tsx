@@ -11,6 +11,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import HomeIcon from '@mui/icons-material/Home';
+import ArticleIcon from '@mui/icons-material/Article';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
@@ -86,6 +87,8 @@ export default function Header() {
           <Divider orientation="vertical" flexItem sx={{ height: 28 }} />
 
           <MenuButton label="Главная" path="/" icon={<HomeIcon fontSize="small" />} />
+          
+          <MenuButton label="История" path="/myresults" icon={<ArticleIcon fontSize="small" />} />
           
           {isAdmin && (
             <>
