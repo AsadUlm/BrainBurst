@@ -1,40 +1,112 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
-  Container, Typography, TextField, Button, Box
+  Box,
+  Button,
+  Container,
+  TextField,
+  Typography,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
 } from '@mui/material';
 import QuestionForm from '../components/QuestionForm';
 
+interface Question {
+  text: string;
+  options: string[];
+  correctIndex: number;
+  time?: number;
+}
+
+/* type Payload = {
+  title: string;
+  timeLimit?: number;
+  questions: {
+    text: string;
+    options: string[];
+    correctIndex: number;
+    time?: number; // теперь time — необязательный
+  }[];
+}; */
+
+
 export default function AdminCreateTest() {
   const [title, setTitle] = useState('');
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+
+  const [useGlobalTimer, setUseGlobalTimer] = useState(true);
+  const [timeLimit, setTimeLimit] = useState(60); // default: 1 минута
 
   const addQuestion = () => {
-    setQuestions([...questions, {
-      text: '',
-      options: ['', '', '', ''],
-      correctIndex: 0,
-    }]);
+    setQuestions([
+      ...questions,
+      {
+        text: '',
+        options: ['', '', '', ''],
+        correctIndex: 0,
+        time: 15,
+      },
+    ]);
   };
 
-  const updateQuestion = (index: number, data: any) => {
-    const newQuestions = [...questions];
-    newQuestions[index] = data;
-    setQuestions(newQuestions);
+  const updateQuestion = (index: number, data: Question) => {
+    const updated = [...questions];
+    updated[index] = data;
+    setQuestions(updated);
   };
 
   const handleSubmit = async () => {
-    const res = await fetch('http://localhost:5000/api/tests', {
+    const token = localStorage.getItem('token');
+  
+    // Подготовка payload с правильной типизацией
+    const payload: {
+      title: string;
+      timeLimit?: number;
+      questions: {
+        text: string;
+        options: string[];
+        correctIndex: number;
+        time?: number;
+      }[];
+    } = {
+      title,
+      questions: useGlobalTimer
+        ? questions.map(({ ...rest }) => rest) // удаляем time
+        : questions,
+      ...(useGlobalTimer ? { timeLimit } : {}),
+    };
+  
+    const res = await fetch('/api/tests', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, questions }),
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
     });
+  
     const data = await res.json();
+  
+    if (!res.ok) {
+      alert('Ошибка: ' + (data.error || 'Что-то пошло не так'));
+      return;
+    }
+  
     alert('Тест создан: ' + data._id);
+    setTitle('');
+    setTimeLimit(60);
+    setUseGlobalTimer(true);
+    setQuestions([]);
   };
+  
+  
+  
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom>Создание теста</Typography>
+      <Typography variant="h4" gutterBottom>
+        Создание теста
+      </Typography>
 
       <TextField
         fullWidth
@@ -44,21 +116,64 @@ export default function AdminCreateTest() {
         sx={{ mb: 3 }}
       />
 
+      <Typography variant="subtitle1" sx={{ mb: 1 }}>
+        Таймер:
+      </Typography>
+
+      <RadioGroup
+        row
+        value={useGlobalTimer ? 'global' : 'per-question'}
+        onChange={(e) => setUseGlobalTimer(e.target.value === 'global')}
+        sx={{ mb: 3 }}
+      >
+        <FormControlLabel
+          value="global"
+          control={<Radio />}
+          label="Общее время на весь тест"
+        />
+        <FormControlLabel
+          value="per-question"
+          control={<Radio />}
+          label="Индивидуальное время на каждый вопрос"
+        />
+      </RadioGroup>
+
+      {useGlobalTimer && (
+        <TextField
+          fullWidth
+          label="Время на тест (в секундах)"
+          type="number"
+          value={timeLimit}
+          onChange={(e) => setTimeLimit(Number(e.target.value))}
+          sx={{ mb: 4 }}
+        />
+      )}
+
       {questions.map((q, idx) => (
         <QuestionForm
           key={idx}
           index={idx}
           question={q}
           onChange={(data) => updateQuestion(idx, data)}
-        />
+          showTimeInput={!useGlobalTimer}
+      />
       ))}
 
       <Box mt={2}>
-        <Button onClick={addQuestion} variant="outlined">Добавить вопрос</Button>
+        <Button variant="outlined" onClick={addQuestion}>
+          Добавить вопрос
+        </Button>
       </Box>
 
       <Box mt={4}>
-        <Button onClick={handleSubmit} variant="contained" color="primary">Сохранить тест</Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
+          disabled={!title || questions.length === 0}
+        >
+          Сохранить тест
+        </Button>
       </Box>
     </Container>
   );

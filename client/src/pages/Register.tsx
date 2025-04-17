@@ -1,23 +1,23 @@
 import { useState } from 'react';
 import {
   Box,
-  Typography,
   TextField,
+  Typography,
   Button,
   Alert,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
-export default function Login() {
+export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     setError('');
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -26,16 +26,13 @@ export default function Login() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Ошибка входа');
+        setError(data.error || 'Ошибка регистрации');
         return;
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('role', data.role);
-      localStorage.setItem('email', data.email);
-      navigate('/');
+      navigate('/login');
     } catch {
-      setError('Ошибка соединения с сервером');
+      setError('Ошибка подключения к серверу');
     }
   };
 
@@ -43,40 +40,31 @@ export default function Login() {
     <Box
       sx={{
         width: '100%',
+        minHeight: 'calc(100vh - 64px)',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
         px: 2,
       }}
     >
-      <Box
-        sx={{
-          width: '100%',
-          maxWidth: 400,
-        }}
-      >
+      <Box sx={{ width: '100%', maxWidth: 400 }}>
         <Typography variant="h4" gutterBottom>
-          Вход
+          Регистрация
         </Typography>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
         <TextField
-          label="Email"
           fullWidth
+          label="Email"
           margin="normal"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-
         <TextField
+          fullWidth
           label="Пароль"
           type="password"
-          fullWidth
           margin="normal"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -85,10 +73,10 @@ export default function Login() {
         <Button
           fullWidth
           variant="contained"
-          onClick={handleLogin}
           sx={{ mt: 2 }}
+          onClick={handleRegister}
         >
-          Войти
+          Зарегистрироваться
         </Button>
       </Box>
     </Box>

@@ -26,7 +26,7 @@ router.post('/login', async (req, res) => {
     if (!isMatch) return res.status(401).json({ error: 'Неверный email или пароль' });
 
     const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, role: user.role });
+    res.json({ token, role: user.role, email: user.email, });
 });
 
 module.exports = router;
