@@ -8,16 +8,17 @@ import {
   useTheme,
   Chip,
   Stack,
-  Skeleton,
 } from '@mui/material';
 import HistoryIcon from '@mui/icons-material/History';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TestResultDialog from './components/TestResultDialog';
+import { LoadingPage } from '../Loading/index';
 
 interface Question {
   text: string;
   options: string[];
+  correctIndex: number;
 }
 
 interface Result {
@@ -31,7 +32,8 @@ interface Result {
 interface ResultDetail extends Result {
   answers: number[];
   correctAnswers: number[];
-  questions?: Question[];
+  shuffledOptions: string[][];
+  questions: Question[];
 }
 
 export default function MyHistory() {
@@ -66,7 +68,7 @@ export default function MyHistory() {
     });
   
     const fullResult = await res.json();
-    setSelectedResult(fullResult); // тут уже правильный тип ResultDetail
+    setSelectedResult(fullResult);
     setDialogOpen(true);
   };
   
@@ -100,16 +102,7 @@ export default function MyHistory() {
       </Box>
 
       {loading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {[1, 2, 3].map((i) => (
-            <Skeleton 
-              key={i}
-              variant="rectangular" 
-              height={120} 
-              sx={{ borderRadius: 0 }}
-            />
-          ))}
-        </Box>
+        <LoadingPage />
       ) : myResults.length === 0 ? (
         <Paper
           elevation={0}

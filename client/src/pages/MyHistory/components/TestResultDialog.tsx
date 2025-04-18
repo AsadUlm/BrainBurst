@@ -29,7 +29,8 @@ interface ResultDetail {
   createdAt: string;
   answers: number[];
   correctAnswers: number[];
-  questions?: Question[];
+  shuffledOptions: string[][];
+  questions: Question[];
 }
 
 interface Props {
@@ -42,6 +43,10 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
   const theme = useTheme();
 
   if (!result) return null;
+
+  if (!result.shuffledOptions) {
+    return <Typography>Ошибка загрузки данных</Typography>;
+  }
 
   return (
     <Dialog 
@@ -63,11 +68,7 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
           p: 3,
           borderBottom: `1px solid ${theme.palette.divider}`
         }}>
-          <EmojiEvents sx={{ 
-            fontSize: 32, 
-            color: theme.palette.primary.main,
-            mr: 2 
-          }}/>
+          <EmojiEvents sx={{ fontSize: 32, color: theme.palette.primary.main, mr: 2 }} />
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant="h4" sx={{ fontWeight: 600 }}>
               {result.testTitle}
@@ -101,6 +102,8 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
               const correctAnswer = result.correctAnswers[idx];
               const isCorrect = userAnswer === correctAnswer;
 
+              const options = result.shuffledOptions[idx];
+
               return (
                 <Paper
                   key={idx}
@@ -125,13 +128,13 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
                       Вопрос {idx + 1}
                     </Typography>
                   </Stack>
-                  
+
                   <Typography variant="body1" sx={{ mb: 3 }}>
                     {q.text}
                   </Typography>
 
                   <Stack spacing={1.5}>
-                    {q.options.map((opt, i) => {
+                    {options.map((opt, i) => {
                       const isUserSelected = userAnswer === i;
                       const isCorrectOption = correctAnswer === i;
 

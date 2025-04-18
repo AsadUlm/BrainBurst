@@ -40,7 +40,6 @@ export default function Register() {
     <Box
       sx={{
         width: '100%',
-        minHeight: 'calc(100vh - 64px)',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',

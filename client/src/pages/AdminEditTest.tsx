@@ -11,11 +11,13 @@ import {
   Divider,
   useTheme,
   Paper,
+  CircularProgress
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import QuestionForm from '../components/QuestionForm';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TimerIcon from '@mui/icons-material/Timer';
+import { LoadingPage } from './Loading/index';
 
 interface Question {
   text: string;
@@ -39,24 +41,36 @@ export default function AdminEditTest() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [timeLimit, setTimeLimit] = useState<number>(60);
   const [useGlobalTimer, setUseGlobalTimer] = useState(true);
+  const [loading, setLoading] = useState(true); // <- загрузка страницы
+  const [submitting, setSubmitting] = useState(false); // <- загрузка отправки
 
   useEffect(() => {
     const fetchTest = async () => {
-      const res = await fetch(`/api/tests/${id}`);
-      const data: TestData = await res.json();
-      setTitle(data.title);
-      setQuestions(data.questions || []);
+      try {
+        const res = await fetch(`/api/tests/${id}`);
+        if (!res.ok) throw new Error('Ошибка загрузки теста');
 
-      if ('timeLimit' in data) {
-        setTimeLimit(data.timeLimit || 60);
-        setUseGlobalTimer(true);
-      } else {
-        setUseGlobalTimer(false);
+        const data: TestData = await res.json();
+        setTitle(data.title);
+        setQuestions(data.questions || []);
+
+        if ('timeLimit' in data) {
+          setTimeLimit(data.timeLimit || 60);
+          setUseGlobalTimer(true);
+        } else {
+          setUseGlobalTimer(false);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Не удалось загрузить тест.');
+        navigate('/admin');
+      } finally {
+        setLoading(false);
       }
     };
 
     if (id) fetchTest();
-  }, [id]);
+  }, [id, navigate]);
 
   const updateQuestion = (index: number, updated: Question) => {
     const copy = [...questions];
@@ -71,6 +85,8 @@ export default function AdminEditTest() {
       return;
     }
 
+    setSubmitting(true);
+
     const payload: TestData = {
       title,
       questions: questions.map((q) =>
@@ -79,24 +95,35 @@ export default function AdminEditTest() {
       ...(useGlobalTimer && { timeLimit }),
     };
 
-    const res = await fetch(`/api/tests/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch(`/api/tests/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
 
-    if (!res.ok) {
-      const err = await res.json();
-      alert(err.error || 'Ошибка при обновлении');
-      return;
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || 'Ошибка при обновлении');
+        return;
+      }
+
+      alert('Изменения сохранены');
+      navigate('/');
+    } catch (err) {
+      console.error(err);
+      alert('Произошла ошибка при сохранении');
+    } finally {
+      setSubmitting(false);
     }
-
-    alert('Изменения сохранены');
-    navigate('/');
   };
+
+  if (loading) {
+    return <LoadingPage />;
+  }
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -105,7 +132,6 @@ export default function AdminEditTest() {
           variant="h3" 
           sx={{ 
             fontWeight: 600,
-            color: theme.palette.text.primary,
             display: 'flex',
             alignItems: 'center',
             gap: 2
@@ -135,31 +161,11 @@ export default function AdminEditTest() {
           label="Название теста"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          sx={{ 
-            mb: 4,
-            '& .MuiInputLabel-root': {
-              color: theme.palette.text.secondary
-            }
-          }}
-          InputProps={{
-            sx: {
-              fontSize: '1.25rem',
-              fontWeight: 500
-            }
-          }}
+          sx={{ mb: 4 }}
         />
 
         <Box sx={{ mb: 4 }}>
-          <Typography 
-            variant="h5" 
-            sx={{ 
-              mb: 3,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              color: theme.palette.text.primary
-            }}
-          >
+          <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
             <TimerIcon />
             Настройки времени
           </Typography>
@@ -168,11 +174,6 @@ export default function AdminEditTest() {
             row
             value={useGlobalTimer ? 'global' : 'per-question'}
             onChange={(e) => setUseGlobalTimer(e.target.value === 'global')}
-            sx={{ 
-              '& .MuiButtonBase-root': {
-                color: theme.palette.text.secondary
-              }
-            }}
           >
             <FormControlLabel
               value="global"
@@ -194,27 +195,12 @@ export default function AdminEditTest() {
               type="number"
               value={timeLimit}
               onChange={(e) => setTimeLimit(Number(e.target.value))}
-              sx={{ 
-                mt: 3,
-                maxWidth: 300,
-                '& .MuiInputBase-input': {
-                  py: 1.5
-                }
-              }}
+              sx={{ mt: 3, maxWidth: 300 }}
             />
           )}
         </Box>
 
-        <Typography 
-          variant="h5" 
-          sx={{ 
-            mb: 3,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            color: theme.palette.text.primary
-          }}
-        >
+        <Typography variant="h5" sx={{ mb: 3 }}>
           Вопросы теста
         </Typography>
 
@@ -240,32 +226,18 @@ export default function AdminEditTest() {
             width: '100%',
             py: 2,
             borderStyle: 'dashed',
-            '&:hover': {
-              borderColor: theme.palette.primary.main
-            }
           }}
         >
           Добавить вопрос
         </Button>
       </Paper>
 
-      <Box sx={{ 
-        display: 'flex',
-        justifyContent: 'flex-end',
-        gap: 2 
-      }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
         <Button
           variant="outlined"
           onClick={() => navigate('/')}
-          sx={{
-            px: 5,
-            py: 1.5,
-            borderRadius: 0,
-            borderWidth: 2,
-            '&:hover': {
-              borderWidth: 2
-            }
-          }}
+          sx={{ px: 5, py: 1.5 }}
+          disabled={submitting}
         >
           Отмена
         </Button>
@@ -273,20 +245,10 @@ export default function AdminEditTest() {
           variant="contained"
           color="primary"
           onClick={handleSubmit}
-          disabled={!title || questions.length === 0}
-          sx={{
-            px: 5,
-            py: 1.5,
-            borderRadius: 0,
-            boxShadow: theme.shadows[3],
-            transition: 'all 0.2s ease',
-            '&:hover': {
-              transform: 'translateY(-1px)',
-              boxShadow: theme.shadows[5],
-            }
-          }}
+          disabled={!title || questions.length === 0 || submitting}
+          sx={{ px: 5, py: 1.5 }}
         >
-          Сохранить изменения
+          {submitting ? <CircularProgress size={24} color="inherit" /> : 'Сохранить изменения'}
         </Button>
       </Box>
     </Container>

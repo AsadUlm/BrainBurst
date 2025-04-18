@@ -20,6 +20,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { alpha } from '@mui/material/styles';
+import { LoadingPage } from './Loading/index';
 
 interface Result {
   _id: string;
@@ -36,10 +37,12 @@ interface Result {
 export default function AdminResults() {
   const theme = useTheme();
   const [results, setResults] = useState<Result[]>([]);
+  const [loading, setLoading] = useState(true);
+
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-
+  
     fetch('/api/results', {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -49,10 +52,22 @@ export default function AdminResults() {
       .then((data) => {
         if (Array.isArray(data)) setResults(data);
         else console.error('Ожидался массив, но пришло:', data);
+      })
+      .catch((err) => {
+        console.error('Ошибка загрузки результатов:', err);
+      })
+      .finally(() => {
+        setLoading(false);
       });
   }, []);
 
-  return (
+  if (loading) {
+    return <LoadingPage />;
+  }
+  
+
+  return (    
+
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ mb: 6 }}>
         <Typography 

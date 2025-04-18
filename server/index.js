@@ -22,9 +22,9 @@ createDefaultAdmin();
 
 // const clientPath = path.join(__dirname, "./frontend/dist");
 
-app.get('/', (req, res) => {
-    res.send('BrainBurst API working!');
-});
+// app.get('/', (req, res) => {
+//     res.send('BrainBurst API working!');
+// });
 
 // app.use(express.static(clientPath));
 // app.get(/^\/(?!api).*/, (req, res) => {

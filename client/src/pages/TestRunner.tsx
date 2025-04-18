@@ -76,6 +76,10 @@ export default function TestRunner() {
             correctIndex: shuffledOptions.findIndex((o) => o.isCorrect),
           };
         });
+
+        /* const shuffledQuestions = shuffleArray(data.questions).map((q) => ({
+          ...q, // ❗ Варианты ответов НЕ трогаем
+        })); */
   
         const randomized = { ...data, questions: shuffledQuestions };
   
@@ -207,7 +211,11 @@ export default function TestRunner() {
     const correctAnswers = test.questions.map((q) => q.correctIndex);
     const mistakes = test.questions
       .map((q, i) => (userAnswers[i] !== q.correctIndex ? i : null))
-      .filter((i): i is number => i !== null);    
+      .filter((i): i is number => i !== null);
+
+    const shuffledOptions = test.questions.map((q) => q.options);
+
+    console.log("shuffledOptions", shuffledOptions);
 
       console.log({
         userAnswers,
@@ -227,7 +235,8 @@ export default function TestRunner() {
         total: test.questions.length,
         answers: userAnswers,
         correctAnswers,
-        mistakes 
+        mistakes,
+        shuffledOptions,
       }),
     });
   };
