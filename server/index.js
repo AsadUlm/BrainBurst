@@ -20,18 +20,21 @@ app.use('/api/tests', testRoutes);
 app.use('/api/results', resultRoutes);
 createDefaultAdmin();
 
-// const clientPath = path.join(__dirname, "./frontend/dist");
+const clientPath = path.join(__dirname, "./frontend/dist");
 
-// app.get('/', (req, res) => {
-//     res.send('BrainBurst API working!');
-// });
+/* app.get('/', (req, res) => {
+    res.send('BrainBurst API working!');
+}); */
 
-// app.use(express.static(clientPath));
-// app.get(/^\/(?!api).*/, (req, res) => {
-//     res.sendFile(path.join(clientPath, 'index.html'));
-// });
+app.use(express.static(clientPath));
+app.get(/^\/(?!api).*/, (req, res) => {
+    res.sendFile(path.join(clientPath, 'index.html'));
+});
 
 
 app.listen(PORT, () => {
+    console.log('==========================================');
     console.log(`Server started on http://localhost:${PORT}`);
+    console.log('📦 Project version: 2.0.1');
+    console.log('==========================================');
 });

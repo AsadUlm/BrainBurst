@@ -32,8 +32,7 @@ interface Result {
 interface ResultDetail extends Result {
   answers: number[];
   correctAnswers: number[];
-  shuffledOptions: string[][];
-  questions: Question[];
+  shuffledQuestions: Question[];
 }
 
 export default function MyHistory() {

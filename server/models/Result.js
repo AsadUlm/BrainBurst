@@ -9,7 +9,10 @@ const ResultSchema = new mongoose.Schema({
     answers: [Number],
     correctAnswers: [Number],
     mistakes: [Number],
-    shuffledOptions: { type: [[String]], required: true },
+    shuffledQuestions: [{
+        text: { type: String, required: true },
+        options: [{ type: String, required: true }]
+    }],
     createdAt: { type: Date, default: Date.now }
 });
 

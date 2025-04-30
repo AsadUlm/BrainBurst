@@ -16,10 +16,10 @@ router.post('/', async (req, res) => {
             answers,
             correctAnswers,
             mistakes,
-            shuffledOptions,
+            shuffledQuestions
         } = req.body;
 
-        if (!userEmail || !testId || !testTitle || !answers || !correctAnswers || !mistakes || !shuffledOptions) {
+        if (!userEmail || !testId || !testTitle || !answers || !correctAnswers || !mistakes || !shuffledQuestions) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
@@ -32,7 +32,7 @@ router.post('/', async (req, res) => {
             answers,
             correctAnswers,
             mistakes,
-            shuffledOptions,
+            shuffledQuestions
         });
 
         await newResult.save();
@@ -43,7 +43,6 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Админ получает все результаты
 router.get('/', verifyToken, requireAdmin, async (req, res) => {
     const results = await Result.find().sort({ createdAt: -1 });
     res.json(results);
@@ -75,11 +74,8 @@ router.get('/:id', verifyToken, async (req, res) => {
             createdAt: result.createdAt,
             answers: result.answers,
             correctAnswers: result.correctAnswers,
-            shuffledOptions: result.shuffledOptions || [],
-            questions: test.questions.map(q => ({
-                text: q.text,
-                options: q.options
-            })),
+            mistakes: result.mistakes,
+            shuffledQuestions: result.shuffledQuestions, // <- Ключевой массив!
         });
     } catch (error) {
         console.error('Ошибка получения полного результата', error);

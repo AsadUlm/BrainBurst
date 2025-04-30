@@ -36,4 +36,19 @@ router.get('/:id', async (req, res) => {
     res.json(test);
 });
 
+// Удаление теста (только для админа)
+router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
+    try {
+        const deleted = await Test.findByIdAndDelete(req.params.id);
+        if (!deleted) {
+            return res.status(404).json({ error: 'Тест не найден' });
+        }
+        res.json({ message: 'Тест удалён' });
+    } catch (error) {
+        console.error('Ошибка удаления теста:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+
 module.exports = router;

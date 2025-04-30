@@ -10,6 +10,7 @@ import {
   Divider,
   Stack
 } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import DescriptionIcon from '@mui/icons-material/Description';
 import { useNavigate } from 'react-router-dom';
@@ -34,6 +35,25 @@ export default function AdminTestList() {
       .then(res => res.json())
       .then(data => setTests(data));
   }, []);
+
+  const handleDelete = async (testId: string) => {
+    const confirmed = window.confirm('Вы уверены, что хотите удалить этот тест?');
+    if (!confirmed) return;
+
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/tests/${testId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.ok) {
+      setTests(prev => prev.filter(t => t._id !== testId));
+    } else {
+      alert('Ошибка при удалении теста');
+    }
+  };
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -74,11 +94,14 @@ export default function AdminTestList() {
               borderRadius: 0
             }}
           >
-            <CardContent sx={{ 
-              p: theme.spacing(2.5),
-              pb: `${theme.spacing(2.5)} !important`,
-              position: 'relative'
-            }}>
+            <CardContent
+              sx={{ 
+                p: theme.spacing(2.5),
+                pb: `${theme.spacing(2.5)} !important`,
+                position: 'relative'
+              }}
+            >
+              {/* Кнопка редактирования */}
               <IconButton
                 sx={{
                   position: 'absolute',
@@ -94,6 +117,23 @@ export default function AdminTestList() {
                 <EditIcon fontSize="small" />
               </IconButton>
 
+              {/* Кнопка удаления */}
+              <IconButton
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 42,
+                  color: theme.palette.text.secondary,
+                  '&:hover': {
+                    color: theme.palette.error.main
+                  }
+                }}
+                onClick={() => handleDelete(test._id)}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+
+              {/* Заголовок карточки */}
               <Stack direction="row" alignItems="center" gap={2} mb={2}>
                 <DescriptionIcon 
                   sx={{ 
@@ -112,6 +152,7 @@ export default function AdminTestList() {
                 </Typography>
               </Stack>
 
+              {/* ID теста */}
               <Box
                 sx={{
                   display: 'flex',

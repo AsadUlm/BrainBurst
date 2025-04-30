@@ -27,10 +27,9 @@ interface ResultDetail {
   score: number;
   total: number;
   createdAt: string;
-  answers: number[];
-  correctAnswers: number[];
-  shuffledOptions: string[][];
-  questions: Question[];
+  answers: number[];         // индексы выбранных ответов
+  correctAnswers: number[];  // индексы правильных ответов
+  shuffledQuestions: Question[];  // вопросы в порядке, как их видел пользователь
 }
 
 interface Props {
@@ -44,15 +43,11 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
 
   if (!result) return null;
 
-  if (!result.shuffledOptions) {
-    return <Typography>Ошибка загрузки данных</Typography>;
-  }
-
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
       fullWidth
       PaperProps={{
         sx: {
@@ -62,12 +57,14 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
       }}
     >
       <DialogTitle sx={{ p: 0 }}>
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          p: 3,
-          borderBottom: `1px solid ${theme.palette.divider}`
-        }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            p: 3,
+            borderBottom: `1px solid ${theme.palette.divider}`
+          }}
+        >
           <EmojiEvents sx={{ fontSize: 32, color: theme.palette.primary.main, mr: 2 }} />
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant="h4" sx={{ fontWeight: 600 }}>
@@ -96,96 +93,115 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
 
       <DialogContent sx={{ p: 3, mt: 2 }}>
         <Stack spacing={3}>
-          {result.questions && result.questions.length > 0 ? (
-            result.questions.map((q, idx) => {
-              const userAnswer = result.answers[idx];
-              const correctAnswer = result.correctAnswers[idx];
-              const isCorrect = userAnswer === correctAnswer;
+          {result.shuffledQuestions.map((q, idx) => {
+            const userAnswer = result.answers[idx];
+            const correctAnswer = result.correctAnswers[idx];
+            const isCorrect = userAnswer === correctAnswer;
 
-              const options = result.shuffledOptions[idx];
-
-              return (
-                <Paper
-                  key={idx}
-                  variant="outlined"
-                  sx={{
-                    p: 3,
-                    borderColor: isCorrect ? theme.palette.success.main : theme.palette.error.main,
-                    borderRadius: 0,
-                    bgcolor: alpha(
-                      isCorrect ? theme.palette.success.light : theme.palette.error.light,
-                      0.1
-                    ),
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      transform: 'translateY(-2px)'
-                    }
-                  }}
-                >
-                  <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                    <HelpOutline color="action" />
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                      Вопрос {idx + 1}
-                    </Typography>
-                  </Stack>
-
-                  <Typography variant="body1" sx={{ mb: 3 }}>
-                    {q.text}
+            return (
+              <Paper
+                key={idx}
+                variant="outlined"
+                sx={{
+                  p: 3,
+                  borderColor: isCorrect ? theme.palette.success.main : theme.palette.error.main,
+                  bgcolor: alpha(
+                    isCorrect ? theme.palette.success.light : theme.palette.error.light,
+                    0.1
+                  )
+                }}
+              >
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                  <HelpOutline color="action" />
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Вопрос {idx + 1}
                   </Typography>
+                </Stack>
 
-                  <Stack spacing={1.5}>
-                    {options.map((opt, i) => {
-                      const isUserSelected = userAnswer === i;
-                      const isCorrectOption = correctAnswer === i;
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  {q.text}
+                </Typography>
 
-                      return (
-                        <Box
-                          key={i}
-                          sx={{
-                            p: 2,
-                            border: `1px solid ${theme.palette.divider}`,
-                            borderRadius: 0,
-                            bgcolor: theme.palette.background.paper,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1.5,
-                            ...(isCorrectOption && {
-                              borderColor: theme.palette.success.main,
-                              bgcolor: alpha(theme.palette.success.light, 0.2)
-                            }),
-                            ...(isUserSelected && !isCorrectOption && {
-                              borderColor: theme.palette.error.main,
-                              bgcolor: alpha(theme.palette.error.light, 0.2)
-                            })
-                          }}
-                        >
-                          {isCorrectOption ? (
-                            <CheckCircleIcon color="success" />
-                          ) : (
-                            <CancelIcon color={isUserSelected ? 'error' : 'disabled'} />
-                          )}
-                          <Typography variant="body1">{opt}</Typography>
-                        </Box>
-                      );
-                    })}
-                  </Stack>
+                <Stack spacing={1}>
+                {q.options.map((opt, i) => {
+  const isUserAnswer = userAnswer === i;
+  const isCorrectAnswer = correctAnswer === i;
 
-                  {userAnswer === -1 && (
-                    <Chip
-                      label="Нет ответа"
-                      color="warning"
-                      variant="outlined"
-                      sx={{ mt: 2, alignSelf: 'flex-start' }}
-                    />
-                  )}
-                </Paper>
-              );
-            })
-          ) : (
-            <Typography variant="body1" color="text.secondary" sx={{ p: 3 }}>
-              Нет вопросов для отображения
-            </Typography>
-          )}
+  const isWrongUserAnswer = isUserAnswer && !isCorrectAnswer;
+
+  return (
+    <Box
+      key={i}
+      sx={{
+        p: 2,
+        border: '1px solid',
+        borderColor: isCorrectAnswer
+          ? theme.palette.success.main
+          : isWrongUserAnswer
+          ? theme.palette.error.main
+          : theme.palette.divider,
+        bgcolor: isCorrectAnswer
+          ? alpha(theme.palette.success.light, 0.2)
+          : isWrongUserAnswer
+          ? alpha(theme.palette.error.light, 0.2)
+          : theme.palette.background.paper,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5
+      }}
+    >
+      {isCorrectAnswer ? (
+        <CheckCircleIcon color="success" />
+      ) : isWrongUserAnswer ? (
+        <CancelIcon color="error" />
+      ) : (
+        <Box sx={{ width: 24 }} /> // пустой слот, чтобы всё выровнять
+      )}
+
+      <Typography
+        variant="body1"
+        sx={{
+          fontWeight: isUserAnswer ? 600 : 400,
+          color: isWrongUserAnswer ? theme.palette.error.main : 'inherit'
+        }}
+      >
+        {opt}
+      </Typography>
+
+      {isUserAnswer && (
+        <Chip
+          label="Ваш ответ"
+          size="small"
+          color={isCorrectAnswer ? 'success' : 'error'}
+          sx={{ ml: 'auto' }}
+        />
+      )}
+
+      {!isUserAnswer && isCorrectAnswer && (
+        <Chip
+          label="Правильный ответ"
+          size="small"
+          color="success"
+          sx={{ ml: 'auto' }}
+        />
+      )}
+    </Box>
+  );
+})}
+
+                </Stack>
+
+                {userAnswer === -1 && (
+                  <Chip
+                    label="Нет ответа"
+                    color="warning"
+                    variant="outlined"
+                    sx={{ mt: 2 }}
+                  />
+                )}
+              </Paper>
+            );
+          })}
         </Stack>
       </DialogContent>
     </Dialog>
