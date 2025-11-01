@@ -78,6 +78,19 @@
         "examModeDescription": "이전 질문으로 돌아갈 수 없는 엄격한 모드",
         "textAnswer": "텍스트 답변"
     },
+    "practice": {
+        "correct": "정답입니다!",
+        "incorrect": "오답입니다",
+        "correctAnswer": "정답",
+        "checkAnswer": "답변 확인",
+        "showAnswer": "답변 보기",
+        "skip": "건너뛰기",
+        "next": "다음",
+        "previous": "이전",
+        "tryAgain": "다시 시도",
+        "skipQuestion": "질문 건너뛰기",
+        "viewAnswer": "답변 보기"
+    },
     "admin": {
         "dashboard": "대시보드",
         "createTest": "테스트 생성",

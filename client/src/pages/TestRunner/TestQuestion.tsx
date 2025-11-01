@@ -10,7 +10,8 @@ import {
   Typography,
   useTheme,
   Box,
-  TextField
+  TextField,
+  Chip
 } from '@mui/material';
 import { Timer } from '@mui/icons-material';
 import { useEffect, useState } from 'react';
@@ -141,9 +142,18 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
           }}
         >
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-            <Typography variant="h5" sx={{ fontWeight: 600 }}>
-              {t('test.question')} {current + 1} {t('test.of')} {test.questions.length}
-            </Typography>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                {t('test.question')} {current + 1} {t('test.of')} {test.questions.length}
+              </Typography>
+              <Chip
+                label={t('test.standardTest')}
+                color="primary"
+                variant="outlined"
+                size="small"
+                sx={{ borderRadius: 0 }}
+              />
+            </Stack>
 
             <Stack direction="row" spacing={1} alignItems="center">
               <Timer fontSize="small" />

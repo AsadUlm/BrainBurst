@@ -130,7 +130,7 @@ export default function TestRunner() {
   }
 
   if (showResult) {
-    return <TestResultSummary test={test} answers={answers} score={score} />;
+    return <TestResultSummary test={test} answers={answers} score={score} isPracticeMode={false} />;
   }
 
   return (

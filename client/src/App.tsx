@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import TestHomePage from './pages/TestHomePage';
 // import TestRunner from './pages/TestRunner';
 import TestRunner from './pages/TestRunner/TestRunner';
+import PracticeRunner from './pages/TestRunner/PracticeRunner';
 import AdminCreateTest from './pages/AdminCreateTest';
 import AdminEditTest from './pages/AdminEditTest';
 import AdminTestList from './pages/AdminTestList';
@@ -47,6 +48,15 @@ export default function App() {
             element={
               <RequireAuth>
                 <TestRunner />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/test/:id/practice"
+            element={
+              <RequireAuth>
+                <PracticeRunner />
               </RequireAuth>
             }
           />

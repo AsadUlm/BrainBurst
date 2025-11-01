@@ -337,31 +337,73 @@ export default function TestHomePage() {
                             </Stack>
                         </Paper>
 
-                        {/* Будущие режимы (скоро) */}
+                        {/* Режим практики */}
                         <Paper
                             elevation={0}
                             sx={{
                                 p: 4,
-                                border: `1px solid ${theme.palette.divider}`,
+                                border: `2px solid ${theme.palette.info.main}`,
                                 borderRadius: 0,
-                                opacity: 0.6,
                                 position: 'relative'
                             }}
                         >
-                            <Chip
-                                label={t('test.comingSoon')}
-                                size="small"
-                                variant="outlined"
-                                sx={{ borderRadius: 0, mb: 2 }}
-                            />
-                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                                {t('test.practiceMode')}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                {t('test.practiceModeDescription')}
-                            </Typography>
+                            <Stack spacing={3}>
+                                <Box>
+                                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                                        {t('test.practiceMode')}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                        {t('test.practiceModeDescription')}
+                                    </Typography>
+                                </Box>
+
+                                <Divider />
+
+                                <Stack spacing={2}>
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                        <CheckCircleIcon fontSize="small" color="success" />
+                                        <Typography variant="body2">
+                                            {t('practice.skipQuestion')}
+                                        </Typography>
+                                    </Stack>
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                        <CheckCircleIcon fontSize="small" color="success" />
+                                        <Typography variant="body2">
+                                            {t('practice.viewAnswer')}
+                                        </Typography>
+                                    </Stack>
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                        <CheckCircleIcon fontSize="small" color="success" />
+                                        <Typography variant="body2">
+                                            {t('practice.checkAnswer')}
+                                        </Typography>
+                                    </Stack>
+                                </Stack>
+
+                                <Button
+                                    variant="outlined"
+                                    size="large"
+                                    fullWidth
+                                    color="info"
+                                    startIcon={<HelpOutlineIcon />}
+                                    onClick={() => navigate(`/test/${id}/practice`)}
+                                    sx={{
+                                        py: 1.5,
+                                        borderRadius: 0,
+                                        textTransform: 'none',
+                                        fontSize: '1.1rem',
+                                        fontWeight: 600,
+                                        '&:hover': {
+                                            transform: 'translateY(-2px)'
+                                        }
+                                    }}
+                                >
+                                    {t('test.startTest')}
+                                </Button>
+                            </Stack>
                         </Paper>
 
+                        {/* Будущий режим экзамена */}
                         <Paper
                             elevation={0}
                             sx={{

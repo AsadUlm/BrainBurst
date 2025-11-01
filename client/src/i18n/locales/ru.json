@@ -78,6 +78,19 @@
         "examModeDescription": "Строгий режим без возможности вернуться к предыдущим вопросам",
         "textAnswer": "текстовый ответ"
     },
+    "practice": {
+        "correct": "Правильно!",
+        "incorrect": "Неправильно",
+        "correctAnswer": "Правильный ответ",
+        "checkAnswer": "Проверить ответ",
+        "showAnswer": "Показать ответ",
+        "skip": "Пропустить",
+        "next": "Далее",
+        "previous": "Назад",
+        "tryAgain": "Попробовать снова",
+        "skipQuestion": "Пропустить вопрос",
+        "viewAnswer": "Посмотреть ответ"
+    },
     "admin": {
         "dashboard": "Панель управления",
         "createTest": "Создать тест",

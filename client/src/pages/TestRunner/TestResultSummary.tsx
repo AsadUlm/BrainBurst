@@ -1,6 +1,7 @@
 // components/TestRunner/TestResultSummary.tsx
 import {
   Box,
+  Button,
   Chip,
   Container,
   Paper,
@@ -9,6 +10,8 @@ import {
   useTheme
 } from '@mui/material';
 import { CheckCircle, ErrorOutline } from '@mui/icons-material';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import HomeIcon from '@mui/icons-material/Home';
 import { Test, Answer } from './types';
 import { alpha } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
@@ -16,28 +19,66 @@ import { useTranslation } from 'react-i18next';
 interface Props {
   test: Test;
   answers: Answer[];
-  score: number;
+  score?: number;
+  onRestart?: () => void;
+  onBackToTests?: () => void;
+  isPracticeMode?: boolean;
 }
 
-export default function TestResultSummary({ test, answers, score }: Props) {
+export default function TestResultSummary({
+  test,
+  answers,
+  score,
+  onRestart,
+  onBackToTests,
+  isPracticeMode = false
+}: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
+
+  // Подсчет правильных ответов если score не передан
+  const calculatedScore = score ?? answers.filter((answer, i) => {
+    const question = test.questions[i];
+    const isOpenQuestion = question.options.length === 1;
+
+    if (isOpenQuestion) {
+      return typeof answer === 'string' &&
+        answer.toLowerCase().trim() === question.options[0].toLowerCase().trim();
+    }
+    return answer === question.correctIndex;
+  }).length;
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ mb: 6 }}>
-        <Typography
-          variant="h3"
-          sx={{
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2
-          }}
-        >
-          {t('test.testResult')}
-          <Box sx={{ flex: 1, height: 4, bgcolor: theme.palette.divider }} />
-        </Typography>
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 600,
+              flex: 1
+            }}
+          >
+            {t('test.testResult')}
+          </Typography>
+          {isPracticeMode && (
+            <Chip
+              label={t('test.practiceMode')}
+              color="info"
+              variant="outlined"
+              sx={{ borderRadius: 0, fontSize: '1rem', px: 2, py: 1 }}
+            />
+          )}
+          {!isPracticeMode && (
+            <Chip
+              label={t('test.standardTest')}
+              color="primary"
+              variant="outlined"
+              sx={{ borderRadius: 0, fontSize: '1rem', px: 2, py: 1 }}
+            />
+          )}
+        </Stack>
+        <Box sx={{ height: 4, bgcolor: theme.palette.divider }} />
       </Box>      <Paper
         elevation={0}
         sx={{
@@ -49,13 +90,13 @@ export default function TestResultSummary({ test, answers, score }: Props) {
       >
         <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
           <Chip
-            label={`${score} / ${test.questions.length}`}
-            color={score === test.questions.length ? 'success' : 'warning'}
+            label={`${calculatedScore} / ${test.questions.length}`}
+            color={calculatedScore === test.questions.length ? 'success' : 'warning'}
             variant="outlined"
-            sx={{ fontSize: '1.5rem', p: 2 }}
+            sx={{ fontSize: '1.5rem', p: 2, borderRadius: 0 }}
           />
           <Typography variant="h5">
-            {t('test.correctAnswersCount')} {score} {t('test.of')} {test.questions.length}
+            {t('test.correctAnswersCount')} {calculatedScore} {t('test.of')} {test.questions.length}
           </Typography>
         </Stack>        {test.questions.map((q, i) => {
           const userAnswer = answers[i];
@@ -74,6 +115,7 @@ export default function TestResultSummary({ test, answers, score }: Props) {
               sx={{
                 p: 3,
                 mb: 3,
+                borderRadius: 0,
                 borderColor: isCorrect
                   ? theme.palette.success.main
                   : theme.palette.error.main,
@@ -151,6 +193,44 @@ export default function TestResultSummary({ test, answers, score }: Props) {
             </Paper>
           );
         })}
+
+        {/* Кнопки для режима практики */}
+        {isPracticeMode && (onRestart || onBackToTests) && (
+          <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
+            {onRestart && (
+              <Button
+                variant="outlined"
+                startIcon={<RestartAltIcon />}
+                onClick={onRestart}
+                fullWidth
+                sx={{
+                  py: 1.5,
+                  borderRadius: 0,
+                  fontWeight: 600,
+                  textTransform: 'none'
+                }}
+              >
+                {t('practice.tryAgain')}
+              </Button>
+            )}
+            {onBackToTests && (
+              <Button
+                variant="contained"
+                startIcon={<HomeIcon />}
+                onClick={onBackToTests}
+                fullWidth
+                sx={{
+                  py: 1.5,
+                  borderRadius: 0,
+                  fontWeight: 600,
+                  textTransform: 'none'
+                }}
+              >
+                {t('test.backToTests')}
+              </Button>
+            )}
+          </Stack>
+        )}
       </Paper>
     </Container>
   );
