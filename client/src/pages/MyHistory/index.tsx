@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { 
-  Container, 
-  Typography, 
-  Paper, 
-  Box, 
-  Divider, 
+import {
+  Container,
+  Typography,
+  Paper,
+  Box,
+  Divider,
   useTheme,
   Chip,
   Stack,
@@ -14,6 +14,7 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TestResultDialog from './components/TestResultDialog';
 import { LoadingPage } from '../Loading/index';
+import { useTranslation } from 'react-i18next';
 
 interface Question {
   text: string;
@@ -42,6 +43,7 @@ export default function MyHistory() {
   const [selectedResult, setSelectedResult] = useState<ResultDetail | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const email = localStorage.getItem('email');
+  const { t } = useTranslation();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -61,17 +63,17 @@ export default function MyHistory() {
 
   const handleOpenDialog = async (result: Result) => {
     const token = localStorage.getItem('token');
-  
+
     const res = await fetch(`/api/results/${result._id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-  
+
     const fullResult = await res.json();
     setSelectedResult(fullResult);
     setDialogOpen(true);
   };
-  
-  
+
+
 
   const handleCloseDialog = () => {
     setSelectedResult(null);
@@ -81,9 +83,9 @@ export default function MyHistory() {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ mb: 6 }}>
-        <Typography 
-          variant="h3" 
-          sx={{ 
+        <Typography
+          variant="h3"
+          sx={{
             fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
@@ -91,16 +93,14 @@ export default function MyHistory() {
           }}
         >
           <HistoryIcon fontSize="large" />
-          История тестов
-          <Divider sx={{ 
-            flex: 1, 
-            height: 4, 
-            backgroundColor: theme.palette.divider, 
+          {t('test.historyTitle')}
+          <Divider sx={{
+            flex: 1,
+            height: 4,
+            backgroundColor: theme.palette.divider,
           }} />
         </Typography>
-      </Box>
-
-      {loading ? (
+      </Box>      {loading ? (
         <LoadingPage />
       ) : myResults.length === 0 ? (
         <Paper
@@ -113,7 +113,7 @@ export default function MyHistory() {
           }}
         >
           <Typography variant="h5" sx={{ color: theme.palette.text.secondary }}>
-            Вы ещё не проходили тесты
+            {t('test.noTestsCompleted')}
           </Typography>
         </Paper>
       ) : (
@@ -135,9 +135,9 @@ export default function MyHistory() {
               }}
               onClick={() => handleOpenDialog(r)}
             >
-              <Stack 
-                direction="row" 
-                justifyContent="space-between" 
+              <Stack
+                direction="row"
+                justifyContent="space-between"
                 alignItems="center"
                 sx={{ mb: 2 }}
               >

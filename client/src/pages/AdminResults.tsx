@@ -17,6 +17,7 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { LoadingPage } from './Loading/index';
 import TestResultDialog from './MyHistory/components/TestResultDialog';
+import { useTranslation } from 'react-i18next';
 //import { alpha } from '@mui/material/styles';
 
 export interface Question {
@@ -49,6 +50,7 @@ export default function AdminResults() {
   const theme = useTheme();
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedResult, setSelectedResult] = useState<ResultDetail | null>(null);
@@ -102,7 +104,7 @@ export default function AdminResults() {
             gap: 2
           }}
         >
-          Статистика прохождения
+          {t('admin.statistics')}
           <Divider
             sx={{
               flex: 1,
@@ -130,7 +132,7 @@ export default function AdminResults() {
                 borderBottom: `2px solid ${theme.palette.divider}`
               }}
             >
-              {['Email', 'Тест', 'Результат', 'Ошибки', 'Дата'].map(header => (
+              {[t('admin.email'), t('admin.test'), t('admin.result'), t('admin.errors'), t('admin.date')].map(header => (
                 <TableCell
                   key={header}
                   sx={{
@@ -192,7 +194,7 @@ export default function AdminResults() {
                     </Box>
                   ) : (
                     <Chip
-                      label="Без ошибок"
+                      label={t('admin.noErrors')}
                       color="success"
                       size="small"
                       icon={<CheckCircleOutlineIcon fontSize="small" />}

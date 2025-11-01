@@ -7,12 +7,14 @@ import {
   Alert,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleLogin = async () => {
     setError('');
@@ -26,7 +28,7 @@ export default function Login() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Ошибка входа');
+        setError(data.error || t('common.error'));
         return;
       }
 
@@ -35,7 +37,7 @@ export default function Login() {
       localStorage.setItem('email', data.email);
       navigate('/');
     } catch {
-      setError('Ошибка соединения с сервером');
+      setError(t('common.error'));
     }
   };
 
@@ -56,7 +58,7 @@ export default function Login() {
         }}
       >
         <Typography variant="h4" gutterBottom>
-          Вход
+          {t('auth.loginTitle')}
         </Typography>
 
         {error && (
@@ -66,7 +68,7 @@ export default function Login() {
         )}
 
         <TextField
-          label="Email"
+          label={t('auth.email')}
           fullWidth
           margin="normal"
           value={email}
@@ -74,7 +76,7 @@ export default function Login() {
         />
 
         <TextField
-          label="Пароль"
+          label={t('auth.password')}
           type="password"
           fullWidth
           margin="normal"
@@ -88,7 +90,7 @@ export default function Login() {
           onClick={handleLogin}
           sx={{ mt: 2 }}
         >
-          Войти
+          {t('auth.login')}
         </Button>
       </Box>
     </Box>

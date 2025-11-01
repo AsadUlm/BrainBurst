@@ -18,6 +18,7 @@ import QuestionForm from '../components/QuestionForm';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TimerIcon from '@mui/icons-material/Timer';
 import { LoadingPage } from './Loading/index';
+import { useTranslation } from 'react-i18next';
 
 interface Question {
   text: string;
@@ -36,6 +37,7 @@ export default function AdminEditTest() {
   const theme = useTheme();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [title, setTitle] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -48,7 +50,7 @@ export default function AdminEditTest() {
     const fetchTest = async () => {
       try {
         const res = await fetch(`/api/tests/${id}`);
-        if (!res.ok) throw new Error('Ошибка загрузки теста');
+        if (!res.ok) throw new Error(t('admin.errorUpdating'));
 
         const data: TestData = await res.json();
         setTitle(data.title);
@@ -62,7 +64,7 @@ export default function AdminEditTest() {
         }
       } catch (err) {
         console.error(err);
-        alert('Не удалось загрузить тест.');
+        alert(t('admin.errorUpdating'));
         navigate('/admin');
       } finally {
         setLoading(false);
@@ -81,7 +83,7 @@ export default function AdminEditTest() {
   const handleSubmit = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Вы не авторизованы');
+      alert(t('common.error'));
       return;
     }
 
@@ -107,15 +109,15 @@ export default function AdminEditTest() {
 
       if (!res.ok) {
         const err = await res.json();
-        alert(err.error || 'Ошибка при обновлении');
+        alert(err.error || t('admin.errorUpdating'));
         return;
       }
 
-      alert('Изменения сохранены');
+      alert(t('admin.testUpdated'));
       navigate('/');
     } catch (err) {
       console.error(err);
-      alert('Произошла ошибка при сохранении');
+      alert(t('admin.errorUpdating'));
     } finally {
       setSubmitting(false);
     }
@@ -128,9 +130,9 @@ export default function AdminEditTest() {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ mb: 6 }}>
-        <Typography 
-          variant="h3" 
-          sx={{ 
+        <Typography
+          variant="h3"
+          sx={{
             fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
@@ -138,11 +140,11 @@ export default function AdminEditTest() {
           }}
         >
           <DescriptionIcon fontSize="large" />
-          Редактирование теста
-          <Divider sx={{ 
-            flex: 1, 
-            height: 4, 
-            backgroundColor: theme.palette.divider 
+          {t('admin.editingTest')}
+          <Divider sx={{
+            flex: 1,
+            height: 4,
+            backgroundColor: theme.palette.divider
           }} />
         </Typography>
       </Box>
@@ -158,16 +160,14 @@ export default function AdminEditTest() {
       >
         <TextField
           fullWidth
-          label="Название теста"
+          label={t('admin.testName')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           sx={{ mb: 4 }}
-        />
-
-        <Box sx={{ mb: 4 }}>
+        />        <Box sx={{ mb: 4 }}>
           <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
             <TimerIcon />
-            Настройки времени
+            {t('admin.timer')}
           </Typography>
 
           <RadioGroup
@@ -178,20 +178,20 @@ export default function AdminEditTest() {
             <FormControlLabel
               value="global"
               control={<Radio />}
-              label="Общее время на весь тест"
+              label={t('admin.globalTimer')}
               sx={{ mr: 4 }}
             />
             <FormControlLabel
               value="per-question"
               control={<Radio />}
-              label="Индивидуальное время на вопросы"
+              label={t('admin.perQuestionTimer')}
             />
           </RadioGroup>
 
           {useGlobalTimer && (
             <TextField
               fullWidth
-              label="Общее время (секунды)"
+              label={t('admin.timeForTest')}
               type="number"
               value={timeLimit}
               onChange={(e) => setTimeLimit(Number(e.target.value))}
@@ -201,7 +201,7 @@ export default function AdminEditTest() {
         </Box>
 
         <Typography variant="h5" sx={{ mb: 3 }}>
-          Вопросы теста
+          {t('admin.question')}
         </Typography>
 
         {questions.map((q, idx) => (
@@ -222,13 +222,13 @@ export default function AdminEditTest() {
             correctIndex: 0,
             time: 15
           }])}
-          sx={{ 
+          sx={{
             width: '100%',
             py: 2,
             borderStyle: 'dashed',
           }}
         >
-          Добавить вопрос
+          {t('admin.addQuestion')}
         </Button>
       </Paper>
 
@@ -239,7 +239,7 @@ export default function AdminEditTest() {
           sx={{ px: 5, py: 1.5 }}
           disabled={submitting}
         >
-          Отмена
+          {t('common.cancel')}
         </Button>
         <Button
           variant="contained"
@@ -248,7 +248,7 @@ export default function AdminEditTest() {
           disabled={!title || questions.length === 0 || submitting}
           sx={{ px: 5, py: 1.5 }}
         >
-          {submitting ? <CircularProgress size={24} color="inherit" /> : 'Сохранить изменения'}
+          {submitting ? <CircularProgress size={24} color="inherit" /> : t('admin.updateTest')}
         </Button>
       </Box>
     </Container>

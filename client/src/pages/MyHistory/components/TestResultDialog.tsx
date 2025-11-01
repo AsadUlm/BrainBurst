@@ -15,6 +15,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CloseIcon from '@mui/icons-material/Close';
 import { EmojiEvents, AccessTime, HelpOutline } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 interface Question {
   text: string;
@@ -40,6 +41,7 @@ interface Props {
 
 export default function TestResultDialog({ open, onClose, result }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   if (!result) return null;
 
@@ -114,7 +116,7 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
                 <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
                   <HelpOutline color="action" />
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Вопрос {idx + 1}
+                    {t('test.question')} {idx + 1}
                   </Typography>
                 </Stack>
 
@@ -123,77 +125,77 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
                 </Typography>
 
                 <Stack spacing={1}>
-                {q.options.map((opt, i) => {
-  const isUserAnswer = userAnswer === i;
-  const isCorrectAnswer = correctAnswer === i;
+                  {q.options.map((opt, i) => {
+                    const isUserAnswer = userAnswer === i;
+                    const isCorrectAnswer = correctAnswer === i;
 
-  const isWrongUserAnswer = isUserAnswer && !isCorrectAnswer;
+                    const isWrongUserAnswer = isUserAnswer && !isCorrectAnswer;
 
-  return (
-    <Box
-      key={i}
-      sx={{
-        p: 2,
-        border: '1px solid',
-        borderColor: isCorrectAnswer
-          ? theme.palette.success.main
-          : isWrongUserAnswer
-          ? theme.palette.error.main
-          : theme.palette.divider,
-        bgcolor: isCorrectAnswer
-          ? alpha(theme.palette.success.light, 0.2)
-          : isWrongUserAnswer
-          ? alpha(theme.palette.error.light, 0.2)
-          : theme.palette.background.paper,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.5
-      }}
-    >
-      {isCorrectAnswer ? (
-        <CheckCircleIcon color="success" />
-      ) : isWrongUserAnswer ? (
-        <CancelIcon color="error" />
-      ) : (
-        <Box sx={{ width: 24 }} /> // пустой слот, чтобы всё выровнять
-      )}
+                    return (
+                      <Box
+                        key={i}
+                        sx={{
+                          p: 2,
+                          border: '1px solid',
+                          borderColor: isCorrectAnswer
+                            ? theme.palette.success.main
+                            : isWrongUserAnswer
+                              ? theme.palette.error.main
+                              : theme.palette.divider,
+                          bgcolor: isCorrectAnswer
+                            ? alpha(theme.palette.success.light, 0.2)
+                            : isWrongUserAnswer
+                              ? alpha(theme.palette.error.light, 0.2)
+                              : theme.palette.background.paper,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.5
+                        }}
+                      >
+                        {isCorrectAnswer ? (
+                          <CheckCircleIcon color="success" />
+                        ) : isWrongUserAnswer ? (
+                          <CancelIcon color="error" />
+                        ) : (
+                          <Box sx={{ width: 24 }} /> // пустой слот, чтобы всё выровнять
+                        )}
 
-      <Typography
-        variant="body1"
-        sx={{
-          fontWeight: isUserAnswer ? 600 : 400,
-          color: isWrongUserAnswer ? theme.palette.error.main : 'inherit'
-        }}
-      >
-        {opt}
-      </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            fontWeight: isUserAnswer ? 600 : 400,
+                            color: isWrongUserAnswer ? theme.palette.error.main : 'inherit'
+                          }}
+                        >
+                          {opt}
+                        </Typography>
 
-      {isUserAnswer && (
-        <Chip
-          label="Ваш ответ"
-          size="small"
-          color={isCorrectAnswer ? 'success' : 'error'}
-          sx={{ ml: 'auto' }}
-        />
-      )}
+                        {isUserAnswer && (
+                          <Chip
+                            label={t('test.yourAnswer')}
+                            size="small"
+                            color={isCorrectAnswer ? 'success' : 'error'}
+                            sx={{ ml: 'auto' }}
+                          />
+                        )}
 
-      {!isUserAnswer && isCorrectAnswer && (
-        <Chip
-          label="Правильный ответ"
-          size="small"
-          color="success"
-          sx={{ ml: 'auto' }}
-        />
-      )}
-    </Box>
-  );
-})}
+                        {!isUserAnswer && isCorrectAnswer && (
+                          <Chip
+                            label={t('test.correctAnswer')}
+                            size="small"
+                            color="success"
+                            sx={{ ml: 'auto' }}
+                          />
+                        )}
+                      </Box>
+                    );
+                  })}
 
                 </Stack>
 
                 {userAnswer === -1 && (
                   <Chip
-                    label="Нет ответа"
+                    label={t('test.noAnswer')}
                     color="warning"
                     variant="outlined"
                     sx={{ mt: 2 }}

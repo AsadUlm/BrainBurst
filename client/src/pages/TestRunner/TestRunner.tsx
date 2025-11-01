@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import TestResumePrompt from './TestResumePrompt';
 import TestQuestion from './TestQuestion';
 import TestResultSummary from './TestResultSummary';
@@ -8,6 +9,7 @@ import { Container } from '@mui/material';
 
 export default function TestRunner() {
   const { id } = useParams();
+  const { t } = useTranslation();
   const [test, setTest] = useState<Test | null>(null);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
@@ -76,7 +78,7 @@ export default function TestRunner() {
     });
   };
 
-  if (!test) return <Container>Загрузка...</Container>;
+  if (!test) return <Container>{t('test.loading')}</Container>;
 
   if (resumeAvailable && !showResult) {
     return (

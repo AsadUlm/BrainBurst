@@ -6,6 +6,7 @@ import {
   FormControlLabel,
   Radio,
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 interface Question {
   text: string;
@@ -27,6 +28,8 @@ export default function QuestionForm({
   onChange,
   showTimeInput,
 }: Props) {
+  const { t } = useTranslation();
+
   const handleOptionChange = (i: number, value: string) => {
     const newOptions = [...question.options];
     newOptions[i] = value;
@@ -36,19 +39,19 @@ export default function QuestionForm({
   return (
     <Box sx={{ border: '1px solid #ccc', p: 2, mb: 3, borderRadius: 2 }}>
       <Typography variant="h6" sx={{ mb: 2 }}>
-        Вопрос #{index + 1}
+        {t('questionForm.questionNumber')}{index + 1}
       </Typography>
 
       <TextField
         fullWidth
-        label="Текст вопроса"
+        label={t('questionForm.questionText')}
         value={question.text}
         onChange={(e) => onChange({ ...question, text: e.target.value })}
         sx={{ mb: 2 }}
       />
 
       <Typography variant="subtitle1" sx={{ mb: 1 }}>
-        Варианты ответа:
+        {t('questionForm.answerOptions')}
       </Typography>
 
       <RadioGroup
@@ -64,7 +67,7 @@ export default function QuestionForm({
             control={<Radio />}
             label={
               <TextField
-                label={`Вариант ${i + 1}`}
+                label={`${t('questionForm.option')} ${i + 1}`}
                 value={opt}
                 onChange={(e) => handleOptionChange(i, e.target.value)}
                 fullWidth
@@ -80,7 +83,7 @@ export default function QuestionForm({
         <TextField
           fullWidth
           type="number"
-          label="Время на вопрос (в секундах)"
+          label={t('questionForm.timePerQuestion')}
           value={question.time}
           onChange={(e) =>
             onChange({ ...question, time: Number(e.target.value) })

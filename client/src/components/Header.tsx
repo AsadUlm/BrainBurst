@@ -1,15 +1,16 @@
-import { 
-  Box, 
-  Toolbar, 
-  Typography, 
-  Button, 
-  Stack, 
-  Divider, 
+import {
+  Box,
+  Toolbar,
+  Typography,
+  Button,
+  Stack,
+  Divider,
   useTheme,
   IconButton
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 import HomeIcon from '@mui/icons-material/Home';
 import ArticleIcon from '@mui/icons-material/Article';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
@@ -17,12 +18,14 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import LoginIcon from '@mui/icons-material/Login';
+import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Header() {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, isAdmin, role } = useAuth();
+  const { t } = useTranslation();
 
   const handleLogout = () => {
     localStorage.clear();
@@ -37,11 +40,11 @@ export default function Header() {
         py: 1,
         borderRadius: 0,
         textTransform: 'none',
-        color: location.pathname === path 
-          ? theme.palette.primary.main 
+        color: location.pathname === path
+          ? theme.palette.primary.main
           : theme.palette.text.primary,
-        borderBottom: location.pathname === path 
-          ? `2px solid ${theme.palette.primary.main}` 
+        borderBottom: location.pathname === path
+          ? `2px solid ${theme.palette.primary.main}`
           : 'none',
         transition: 'all 0.2s ease',
         '&:hover': {
@@ -64,43 +67,43 @@ export default function Header() {
         boxShadow: theme.shadows[1]
       }}
     >
-      <Toolbar sx={{ 
-        maxWidth: 1280, 
-        mx: 'auto', 
-        width: '100%', 
-        px: 3 
+      <Toolbar sx={{
+        maxWidth: 1280,
+        mx: 'auto',
+        width: '100%',
+        px: 3
       }}>
         <Stack direction="row" alignItems="center" spacing={2} sx={{ flexGrow: 1 }}>
           <Typography
             variant="h5"
             onClick={() => navigate('/')}
-            sx={{ 
+            sx={{
               cursor: 'pointer',
               fontWeight: 700,
               color: theme.palette.primary.main,
               '&:hover': { opacity: 0.8 }
             }}
           >
-            BrainBurst
+            {t('app.title')}
           </Typography>
-          
+
           <Divider orientation="vertical" flexItem sx={{ height: 28 }} />
 
-          <MenuButton label="Главная" path="/" icon={<HomeIcon fontSize="small" />} />
-          
-          <MenuButton label="История" path="/myresults" icon={<ArticleIcon fontSize="small" />} />
-          
+          <MenuButton label={t('header.home')} path="/" icon={<HomeIcon fontSize="small" />} />
+
+          <MenuButton label={t('header.history')} path="/myresults" icon={<ArticleIcon fontSize="small" />} />
+
           {isAdmin && (
             <>
-              <MenuButton 
-                label="Админка" 
-                path="/admin" 
-                icon={<AdminPanelSettingsIcon fontSize="small" />} 
+              <MenuButton
+                label={t('header.admin')}
+                path="/admin"
+                icon={<AdminPanelSettingsIcon fontSize="small" />}
               />
-              <MenuButton 
-                label="Результаты" 
-                path="/admin/results" 
-                icon={<AssessmentIcon fontSize="small" />} 
+              <MenuButton
+                label={t('header.results')}
+                path="/admin/results"
+                icon={<AssessmentIcon fontSize="small" />}
               />
             </>
           )}
@@ -109,23 +112,23 @@ export default function Header() {
         <Stack direction="row" spacing={1} alignItems="center">
           {!isAuthenticated ? (
             <>
-              <MenuButton 
-                label="Войти" 
-                path="/login" 
-                icon={<LoginIcon fontSize="small" />} 
+              <MenuButton
+                label={t('header.login')}
+                path="/login"
+                icon={<LoginIcon fontSize="small" />}
               />
               <Divider orientation="vertical" flexItem sx={{ height: 24 }} />
-              <MenuButton 
-                label="Регистрация" 
-                path="/register" 
-                icon={<HowToRegIcon fontSize="small" />} 
+              <MenuButton
+                label={t('header.register')}
+                path="/register"
+                icon={<HowToRegIcon fontSize="small" />}
               />
             </>
           ) : (
             <>
-              <Typography 
-                variant="body2" 
-                sx={{ 
+              <Typography
+                variant="body2"
+                sx={{
                   px: 2,
                   color: theme.palette.text.secondary,
                   display: 'flex',
@@ -138,9 +141,11 @@ export default function Header() {
                 ) : (
                   <HomeIcon fontSize="small" />
                 )}
-                {role === 'admin' ? 'Администратор' : 'Пользователь'}
+                {role === 'admin' ? t('header.administrator') : t('header.user')}
               </Typography>
-              
+
+              <LanguageSwitcher />
+
               <IconButton
                 onClick={handleLogout}
                 sx={{

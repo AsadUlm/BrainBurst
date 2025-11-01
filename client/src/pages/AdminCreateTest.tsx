@@ -10,6 +10,7 @@ import {
   Radio,
 } from '@mui/material';
 import QuestionForm from '../components/QuestionForm';
+import { useTranslation } from 'react-i18next';
 
 interface Question {
   text: string;
@@ -36,6 +37,7 @@ export default function AdminCreateTest() {
 
   const [useGlobalTimer, setUseGlobalTimer] = useState(true);
   const [timeLimit, setTimeLimit] = useState(60); // default: 1 минута
+  const { t } = useTranslation();
 
   const addQuestion = () => {
     setQuestions([
@@ -57,7 +59,7 @@ export default function AdminCreateTest() {
 
   const handleSubmit = async () => {
     const token = localStorage.getItem('token');
-  
+
     // Подготовка payload с правильной типизацией
     const payload: {
       title: string;
@@ -75,7 +77,7 @@ export default function AdminCreateTest() {
         : questions,
       ...(useGlobalTimer ? { timeLimit } : {}),
     };
-  
+
     const res = await fetch('/api/tests', {
       method: 'POST',
       headers: {
@@ -84,40 +86,40 @@ export default function AdminCreateTest() {
       },
       body: JSON.stringify(payload),
     });
-  
+
     const data = await res.json();
-  
+
     if (!res.ok) {
-      alert('Ошибка: ' + (data.error || 'Что-то пошло не так'));
+      alert(t('admin.errorCreating') + ' ' + (data.error || t('admin.somethingWrong')));
       return;
     }
-  
-    alert('Тест создан: ' + data._id);
+
+    alert(t('admin.testCreated') + ' ' + data._id);
     setTitle('');
     setTimeLimit(60);
     setUseGlobalTimer(true);
     setQuestions([]);
   };
-  
-  
-  
+
+
+
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>
-        Создание теста
+        {t('admin.creatingTest')}
       </Typography>
 
       <TextField
         fullWidth
-        label="Название теста"
+        label={t('admin.testName')}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         sx={{ mb: 3 }}
       />
 
       <Typography variant="subtitle1" sx={{ mb: 1 }}>
-        Таймер:
+        {t('admin.timer')}
       </Typography>
 
       <RadioGroup
@@ -129,19 +131,19 @@ export default function AdminCreateTest() {
         <FormControlLabel
           value="global"
           control={<Radio />}
-          label="Общее время на весь тест"
+          label={t('admin.globalTimer')}
         />
         <FormControlLabel
           value="per-question"
           control={<Radio />}
-          label="Индивидуальное время на каждый вопрос"
+          label={t('admin.perQuestionTimer')}
         />
       </RadioGroup>
 
       {useGlobalTimer && (
         <TextField
           fullWidth
-          label="Время на тест (в секундах)"
+          label={t('admin.timeForTest')}
           type="number"
           value={timeLimit}
           onChange={(e) => setTimeLimit(Number(e.target.value))}
@@ -156,12 +158,12 @@ export default function AdminCreateTest() {
           question={q}
           onChange={(data) => updateQuestion(idx, data)}
           showTimeInput={!useGlobalTimer}
-      />
+        />
       ))}
 
       <Box mt={2}>
         <Button variant="outlined" onClick={addQuestion}>
-          Добавить вопрос
+          {t('admin.addQuestion')}
         </Button>
       </Box>
 
@@ -172,7 +174,7 @@ export default function AdminCreateTest() {
           onClick={handleSubmit}
           disabled={!title || questions.length === 0}
         >
-          Сохранить тест
+          {t('admin.saveTest')}
         </Button>
       </Box>
     </Container>

@@ -10,6 +10,7 @@ import {
   Stack
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import ListIcon from '@mui/icons-material/List';
 import InfoIcon from '@mui/icons-material/Info';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -25,6 +26,7 @@ export default function TestList() {
   const [tests, setTests] = useState<Test[]>([]);
   const navigate = useNavigate();
   const theme = useTheme();
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetch('/api/tests')
@@ -44,7 +46,7 @@ export default function TestList() {
           mt: 2,
         }}
       >
-        Доступные тесты
+        {t('test.availableTests')}
       </Typography>
 
       <Divider
@@ -114,7 +116,7 @@ export default function TestList() {
                   color="primary"
                   sx={{ fontWeight: 500 }}
                 >
-                  {test.questionsCount || 'Неизвестно'} вопрос(ов)
+                  {test.questionsCount || t('test.noTests')} {t('test.question')}
                 </Typography>
                 <ChevronRightIcon />
               </Stack>

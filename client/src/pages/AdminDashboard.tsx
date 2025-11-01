@@ -2,17 +2,19 @@ import { Box, Button, Typography, Stack, Container, Divider, useTheme } from '@m
 import { useNavigate } from 'react-router-dom';
 import AdminTestList from './AdminTestList';
 import AddIcon from '@mui/icons-material/Add';
+import { useTranslation } from 'react-i18next';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ mb: 6 }}>
-        <Typography 
-          variant="h3" 
-          sx={{ 
+        <Typography
+          variant="h3"
+          sx={{
             fontWeight: 600,
             color: theme.palette.text.primary,
             display: 'flex',
@@ -20,7 +22,7 @@ export default function AdminDashboard() {
             gap: 2
           }}
         >
-          Админ-панель
+          {t('admin.adminPanel')}
           <Divider sx={{ flex: 1, height: 4, backgroundColor: theme.palette.divider }} />
         </Typography>
 
@@ -41,12 +43,10 @@ export default function AdminDashboard() {
               }
             }}
           >
-            Создать новый тест
+            {t('admin.createNewTest')}
           </Button>
         </Stack>
-      </Box>
-
-      <AdminTestList />
+      </Box>      <AdminTestList />
     </Container>
   );
 }

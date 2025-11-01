@@ -14,6 +14,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import DescriptionIcon from '@mui/icons-material/Description';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface Test {
   _id: string;
@@ -24,6 +25,7 @@ export default function AdminTestList() {
   const [tests, setTests] = useState<Test[]>([]);
   const navigate = useNavigate();
   const theme = useTheme();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -37,7 +39,7 @@ export default function AdminTestList() {
   }, []);
 
   const handleDelete = async (testId: string) => {
-    const confirmed = window.confirm('Вы уверены, что хотите удалить этот тест?');
+    const confirmed = window.confirm(t('admin.confirmDelete'));
     if (!confirmed) return;
 
     const token = localStorage.getItem('token');
@@ -51,15 +53,15 @@ export default function AdminTestList() {
     if (res.ok) {
       setTests(prev => prev.filter(t => t._id !== testId));
     } else {
-      alert('Ошибка при удалении теста');
+      alert(t('admin.deleteError'));
     }
   };
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography 
-        variant="h3" 
-        sx={{ 
+      <Typography
+        variant="h3"
+        sx={{
           fontWeight: 600,
           mb: 4,
           color: theme.palette.text.primary,
@@ -68,11 +70,9 @@ export default function AdminTestList() {
           gap: 2
         }}
       >
-        Управление тестами
+        {t('admin.manageTests')}
         <Divider sx={{ flex: 1 }} />
-      </Typography>
-
-      <Box
+      </Typography>      <Box
         sx={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
@@ -95,7 +95,7 @@ export default function AdminTestList() {
             }}
           >
             <CardContent
-              sx={{ 
+              sx={{
                 p: theme.spacing(2.5),
                 pb: `${theme.spacing(2.5)} !important`,
                 position: 'relative'
@@ -135,11 +135,11 @@ export default function AdminTestList() {
 
               {/* Заголовок карточки */}
               <Stack direction="row" alignItems="center" gap={2} mb={2}>
-                <DescriptionIcon 
-                  sx={{ 
+                <DescriptionIcon
+                  sx={{
                     fontSize: 28,
-                    color: theme.palette.primary.main 
-                  }} 
+                    color: theme.palette.primary.main
+                  }}
                 />
                 <Typography
                   variant="h6"

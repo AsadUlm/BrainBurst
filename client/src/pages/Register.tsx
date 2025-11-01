@@ -7,12 +7,14 @@ import {
   Alert,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleRegister = async () => {
     setError('');
@@ -26,13 +28,13 @@ export default function Register() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Ошибка регистрации');
+        setError(data.error || t('common.error'));
         return;
       }
 
       navigate('/login');
     } catch {
-      setError('Ошибка подключения к серверу');
+      setError(t('common.error'));
     }
   };
 
@@ -48,21 +50,21 @@ export default function Register() {
     >
       <Box sx={{ width: '100%', maxWidth: 400 }}>
         <Typography variant="h4" gutterBottom>
-          Регистрация
+          {t('auth.registerTitle')}
         </Typography>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
         <TextField
           fullWidth
-          label="Email"
+          label={t('auth.email')}
           margin="normal"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
         <TextField
           fullWidth
-          label="Пароль"
+          label={t('auth.password')}
           type="password"
           margin="normal"
           value={password}
@@ -75,7 +77,7 @@ export default function Register() {
           sx={{ mt: 2 }}
           onClick={handleRegister}
         >
-          Зарегистрироваться
+          {t('auth.register')}
         </Button>
       </Box>
     </Box>
