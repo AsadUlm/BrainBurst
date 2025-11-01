@@ -1,4 +1,4 @@
-import { IconButton, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
+import { Button, Menu, MenuItem, ListItemIcon, ListItemText, useTheme } from '@mui/material';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import LanguageIcon from '@mui/icons-material/Language';
@@ -10,6 +10,7 @@ const languages = [
 
 export default function LanguageSwitcher() {
     const { i18n } = useTranslation();
+    const theme = useTheme();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
 
@@ -30,17 +31,25 @@ export default function LanguageSwitcher() {
 
     return (
         <>
-            <IconButton
+            <Button
                 onClick={handleClick}
+                startIcon={<LanguageIcon fontSize="small" />}
                 sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5
+                    px: 2,
+                    py: 1,
+                    borderRadius: 0,
+                    textTransform: 'none',
+                    color: theme.palette.text.primary,
+                    transition: 'all 0.2s ease',
+                    minWidth: 'auto',
+                    '&:hover': {
+                        backgroundColor: theme.palette.action.hover,
+                        transform: 'translateY(-1px)'
+                    }
                 }}
             >
-                <LanguageIcon />
-                <span style={{ fontSize: '1.2em' }}>{currentLanguage.flag}</span>
-            </IconButton>
+                <span style={{ fontSize: '1.2em', marginLeft: 4 }}>{currentLanguage.flag}</span>
+            </Button>
             <Menu
                 anchorEl={anchorEl}
                 open={open}
@@ -53,14 +62,31 @@ export default function LanguageSwitcher() {
                     vertical: 'top',
                     horizontal: 'right',
                 }}
+                PaperProps={{
+                    sx: {
+                        borderRadius: 0,
+                        border: `1px solid ${theme.palette.divider}`,
+                        mt: 1
+                    }
+                }}
             >
                 {languages.map((language) => (
                     <MenuItem
                         key={language.code}
                         onClick={() => handleLanguageChange(language.code)}
                         selected={i18n.language === language.code}
+                        sx={{
+                            py: 1.5,
+                            px: 2,
+                            '&.Mui-selected': {
+                                backgroundColor: theme.palette.action.selected,
+                            },
+                            '&:hover': {
+                                backgroundColor: theme.palette.action.hover,
+                            }
+                        }}
                     >
-                        <ListItemIcon>
+                        <ListItemIcon sx={{ minWidth: 36 }}>
                             <span style={{ fontSize: '1.5em' }}>{language.flag}</span>
                         </ListItemIcon>
                         <ListItemText>{language.name}</ListItemText>

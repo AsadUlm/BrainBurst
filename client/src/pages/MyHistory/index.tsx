@@ -22,6 +22,8 @@ interface Question {
   correctIndex: number;
 }
 
+type Answer = number | string;
+
 interface Result {
   _id: string;
   testTitle: string;
@@ -31,7 +33,7 @@ interface Result {
 }
 
 interface ResultDetail extends Result {
-  answers: number[];
+  answers: Answer[];
   correctAnswers: number[];
   shuffledQuestions: Question[];
 }

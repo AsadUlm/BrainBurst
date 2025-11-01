@@ -22,13 +22,15 @@ interface Question {
   options: string[];
 }
 
+type Answer = number | string;
+
 interface ResultDetail {
   _id: string;
   testTitle: string;
   score: number;
   total: number;
   createdAt: string;
-  answers: number[];         // индексы выбранных ответов
+  answers: Answer[];         // индексы выбранных ответов или текстовые ответы
   correctAnswers: number[];  // индексы правильных ответов
   shuffledQuestions: Question[];  // вопросы в порядке, как их видел пользователь
 }
@@ -98,7 +100,13 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
           {result.shuffledQuestions.map((q, idx) => {
             const userAnswer = result.answers[idx];
             const correctAnswer = result.correctAnswers[idx];
-            const isCorrect = userAnswer === correctAnswer;
+            const isOpenQuestion = q.options.length === 1;
+
+            // Для открытых вопросов проверяем текстовое совпадение
+            const isCorrect = isOpenQuestion
+              ? typeof userAnswer === 'string' &&
+              userAnswer.toLowerCase().trim() === q.options[0].toLowerCase().trim()
+              : userAnswer === correctAnswer;
 
             return (
               <Paper
@@ -124,82 +132,151 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
                   {q.text}
                 </Typography>
 
-                <Stack spacing={1}>
-                  {q.options.map((opt, i) => {
-                    const isUserAnswer = userAnswer === i;
-                    const isCorrectAnswer = correctAnswer === i;
-
-                    const isWrongUserAnswer = isUserAnswer && !isCorrectAnswer;
-
-                    return (
+                {isOpenQuestion ? (
+                  // Отображение для открытых вопросов
+                  <Box>
+                    <Box
+                      sx={{
+                        p: 2,
+                        border: '1px solid',
+                        borderColor: isCorrect
+                          ? theme.palette.success.main
+                          : theme.palette.error.main,
+                        bgcolor: alpha(
+                          isCorrect ? theme.palette.success.light : theme.palette.error.light,
+                          0.2
+                        ),
+                        mb: 2
+                      }}
+                    >
+                      <Stack direction="row" alignItems="center" spacing={1.5}>
+                        {isCorrect ? (
+                          <CheckCircleIcon color="success" />
+                        ) : (
+                          <CancelIcon color="error" />
+                        )}
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                            {t('test.yourAnswer')}:
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              fontWeight: 600,
+                              color: isCorrect
+                                ? theme.palette.success.main
+                                : theme.palette.error.main
+                            }}
+                          >
+                            {typeof userAnswer === 'string' ? userAnswer : t('test.noAnswer')}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Box>
+                    {!isCorrect && (
                       <Box
-                        key={i}
                         sx={{
                           p: 2,
                           border: '1px solid',
-                          borderColor: isCorrectAnswer
-                            ? theme.palette.success.main
-                            : isWrongUserAnswer
-                              ? theme.palette.error.main
-                              : theme.palette.divider,
-                          bgcolor: isCorrectAnswer
-                            ? alpha(theme.palette.success.light, 0.2)
-                            : isWrongUserAnswer
-                              ? alpha(theme.palette.error.light, 0.2)
-                              : theme.palette.background.paper,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1.5
+                          borderColor: theme.palette.success.main,
+                          bgcolor: alpha(theme.palette.success.light, 0.2)
                         }}
                       >
-                        {isCorrectAnswer ? (
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
                           <CheckCircleIcon color="success" />
-                        ) : isWrongUserAnswer ? (
-                          <CancelIcon color="error" />
-                        ) : (
-                          <Box sx={{ width: 24 }} /> // пустой слот, чтобы всё выровнять
-                        )}
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                              {t('test.correctAnswer')}:
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              sx={{ fontWeight: 600, color: theme.palette.success.main }}
+                            >
+                              {q.options[0]}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </Box>
+                    )}
+                  </Box>
+                ) : (
+                  // Отображение для вопросов с множественным выбором
+                  <Stack spacing={1}>
+                    {q.options.map((opt, i) => {
+                      const isUserAnswer = userAnswer === i;
+                      const isCorrectAnswer = correctAnswer === i;
 
-                        <Typography
-                          variant="body1"
+                      const isWrongUserAnswer = isUserAnswer && !isCorrectAnswer;
+
+                      return (
+                        <Box
+                          key={i}
                           sx={{
-                            fontWeight: isUserAnswer ? 600 : 400,
-                            color: isWrongUserAnswer ? theme.palette.error.main : 'inherit'
+                            p: 2,
+                            border: '1px solid',
+                            borderColor: isCorrectAnswer
+                              ? theme.palette.success.main
+                              : isWrongUserAnswer
+                                ? theme.palette.error.main
+                                : theme.palette.divider,
+                            bgcolor: isCorrectAnswer
+                              ? alpha(theme.palette.success.light, 0.2)
+                              : isWrongUserAnswer
+                                ? alpha(theme.palette.error.light, 0.2)
+                                : theme.palette.background.paper,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5
                           }}
                         >
-                          {opt}
-                        </Typography>
+                          {isCorrectAnswer ? (
+                            <CheckCircleIcon color="success" />
+                          ) : isWrongUserAnswer ? (
+                            <CancelIcon color="error" />
+                          ) : (
+                            <Box sx={{ width: 24 }} /> // пустой слот, чтобы всё выровнять
+                          )}
 
-                        {isUserAnswer && (
-                          <Chip
-                            label={t('test.yourAnswer')}
-                            size="small"
-                            color={isCorrectAnswer ? 'success' : 'error'}
-                            sx={{ ml: 'auto' }}
-                          />
-                        )}
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              fontWeight: isUserAnswer ? 600 : 400,
+                              color: isWrongUserAnswer ? theme.palette.error.main : 'inherit'
+                            }}
+                          >
+                            {opt}
+                          </Typography>
 
-                        {!isUserAnswer && isCorrectAnswer && (
-                          <Chip
-                            label={t('test.correctAnswer')}
-                            size="small"
-                            color="success"
-                            sx={{ ml: 'auto' }}
-                          />
-                        )}
-                      </Box>
-                    );
-                  })}
+                          {isUserAnswer && (
+                            <Chip
+                              label={t('test.yourAnswer')}
+                              size="small"
+                              color={isCorrectAnswer ? 'success' : 'error'}
+                              sx={{ ml: 'auto' }}
+                            />
+                          )}
 
-                </Stack>
+                          {!isUserAnswer && isCorrectAnswer && (
+                            <Chip
+                              label={t('test.correctAnswer')}
+                              size="small"
+                              color="success"
+                              sx={{ ml: 'auto' }}
+                            />
+                          )}
+                        </Box>
+                      );
+                    })}
 
-                {userAnswer === -1 && (
-                  <Chip
-                    label={t('test.noAnswer')}
-                    color="warning"
-                    variant="outlined"
-                    sx={{ mt: 2 }}
-                  />
+                    {userAnswer === -1 && (
+                      <Chip
+                        label={t('test.noAnswer')}
+                        color="warning"
+                        variant="outlined"
+                        sx={{ mt: 2 }}
+                      />
+                    )}
+                  </Stack>
                 )}
               </Paper>
             );

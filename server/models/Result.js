@@ -6,7 +6,7 @@ const ResultSchema = new mongoose.Schema({
     testTitle: { type: String, required: true },
     score: { type: Number, required: true },
     total: { type: Number, required: true },
-    answers: [Number],
+    answers: [mongoose.Schema.Types.Mixed], // Поддержка как чисел, так и строк
     correctAnswers: [Number],
     mistakes: [Number],
     shuffledQuestions: [{

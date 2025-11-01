@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import TestResumePrompt from './TestResumePrompt';
 import TestQuestion from './TestQuestion';
 import TestResultSummary from './TestResultSummary';
-import { Test } from './types'; // вынесем типы отдельно
+import { Test, Answer } from './types'; // вынесем типы отдельно
 import { Container } from '@mui/material';
 
 export default function TestRunner() {
@@ -12,12 +12,22 @@ export default function TestRunner() {
   const { t } = useTranslation();
   const [test, setTest] = useState<Test | null>(null);
   const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState<number[]>([]);
+  const [answers, setAnswers] = useState<Answer[]>([]);
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [resumeAvailable, setResumeAvailable] = useState(false);
 
   const storageKey = `testProgress_${id}`;
+
+  // Автосохранение прогресса при изменении ответов или текущего вопроса
+  useEffect(() => {
+    if (test && !showResult && answers.length > 0) {
+      localStorage.setItem(storageKey, JSON.stringify({
+        answers,
+        current
+      }));
+    }
+  }, [answers, current, test, showResult, storageKey]);
 
   useEffect(() => {
     fetch(`/api/tests/${id}`)
@@ -47,13 +57,25 @@ export default function TestRunner() {
       });
   }, [id]);
 
-  const finishTest = async (finalAnswers: number[]) => {
+  const finishTest = async (finalAnswers: Answer[]) => {
     if (!test) return;
 
     const correctAnswers = test.questions.map(q => q.correctIndex);
-    const points = finalAnswers.reduce((sum, ans, i) => (
-      ans === correctAnswers[i] ? sum + 1 : sum
-    ), 0);
+
+    // Подсчет правильных ответов с учетом текстовых ответов
+    const points = finalAnswers.reduce<number>((sum, ans, i) => {
+      const question = test.questions[i];
+
+      // Если вопрос с открытым ответом (options.length === 1)
+      if (question.options.length === 1) {
+        const correctAnswer = question.options[0].toLowerCase().trim();
+        const userAnswer = typeof ans === 'string' ? ans.toLowerCase().trim() : '';
+        return userAnswer === correctAnswer ? sum + 1 : sum;
+      }
+
+      // Обычный вопрос с множественным выбором
+      return ans === correctAnswers[i] ? sum + 1 : sum;
+    }, 0);
 
     setScore(points);
     setShowResult(true);
@@ -67,7 +89,15 @@ export default function TestRunner() {
       total: test.questions.length,
       answers: finalAnswers,
       correctAnswers,
-      mistakes: finalAnswers.map((a, i) => a !== correctAnswers[i] ? i : null).filter(x => x !== null),
+      mistakes: finalAnswers.map((a, i) => {
+        const question = test.questions[i];
+        if (question.options.length === 1) {
+          const correctAnswer = question.options[0].toLowerCase().trim();
+          const userAnswer = typeof a === 'string' ? a.toLowerCase().trim() : '';
+          return userAnswer !== correctAnswer ? i : null;
+        }
+        return a !== correctAnswers[i] ? i : null;
+      }).filter(x => x !== null),
       shuffledQuestions: test.questions,
     };
 
@@ -109,9 +139,11 @@ export default function TestRunner() {
       current={current}
       answers={answers}
       setAnswers={setAnswers}
-      onNext={(next) => {
+      onNext={(next, updatedAnswers) => {
+        // Используем обновленные ответы, если они переданы
+        const finalAnswers = updatedAnswers || answers;
         if (next >= test.questions.length) {
-          finishTest(answers);
+          finishTest(finalAnswers);
         } else {
           setCurrent(next);
         }

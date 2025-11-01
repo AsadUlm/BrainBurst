@@ -12,3 +12,6 @@ export interface Test {
     questions: Question[];
     timeLimit?: number;
 }
+
+// Тип для ответов: число для множественного выбора или строка для текстового ответа
+export type Answer = number | string;

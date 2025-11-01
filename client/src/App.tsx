@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import TestList from './pages/TestList';
 import Login from './pages/Login';
+import TestHomePage from './pages/TestHomePage';
 // import TestRunner from './pages/TestRunner';
 import TestRunner from './pages/TestRunner/TestRunner';
 import AdminCreateTest from './pages/AdminCreateTest';
@@ -34,6 +35,15 @@ export default function App() {
 
           <Route
             path="/test/:id"
+            element={
+              <RequireAuth>
+                <TestHomePage />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/test/:id/run"
             element={
               <RequireAuth>
                 <TestRunner />

@@ -9,13 +9,13 @@ import {
   useTheme
 } from '@mui/material';
 import { CheckCircle, ErrorOutline } from '@mui/icons-material';
-import { Test } from './types';
+import { Test, Answer } from './types';
 import { alpha } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
   test: Test;
-  answers: number[];
+  answers: Answer[];
   score: number;
 }
 
@@ -59,7 +59,13 @@ export default function TestResultSummary({ test, answers, score }: Props) {
           </Typography>
         </Stack>        {test.questions.map((q, i) => {
           const userAnswer = answers[i];
-          const isCorrect = userAnswer === q.correctIndex;
+          const isOpenQuestion = q.options.length === 1;
+
+          // Для открытых вопросов проверяем текстовое совпадение
+          const isCorrect = isOpenQuestion
+            ? typeof userAnswer === 'string' &&
+            userAnswer.toLowerCase().trim() === q.options[0].toLowerCase().trim()
+            : userAnswer === q.correctIndex;
 
           return (
             <Paper
@@ -79,33 +85,69 @@ export default function TestResultSummary({ test, answers, score }: Props) {
             >
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                 {t('test.question')} {i + 1}: {q.text}
-              </Typography>              {q.options.map((opt, idx) => {
-                const isUser = userAnswer === idx;
-                const isRight = q.correctIndex === idx;
+              </Typography>
 
-                return (
-                  <Box
-                    key={idx}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      pl: 2,
-                      py: 1,
-                      color: isRight
-                        ? theme.palette.success.main
-                        : isUser
-                          ? theme.palette.error.main
-                          : theme.palette.text.primary,
-                      fontWeight: isUser ? 600 : 400
-                    }}
-                  >
-                    {isRight && <CheckCircle fontSize="small" />}
-                    {isUser && !isRight && <ErrorOutline fontSize="small" />}
-                    <Typography>{opt}</Typography>
+              {isOpenQuestion ? (
+                // Отображение для открытых вопросов
+                <Box sx={{ pl: 2 }}>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                      {t('test.yourAnswer')}:
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontWeight: 600,
+                        color: isCorrect
+                          ? theme.palette.success.main
+                          : theme.palette.error.main
+                      }}
+                    >
+                      {typeof userAnswer === 'string' ? userAnswer : t('test.noAnswer')}
+                      {isCorrect && <CheckCircle fontSize="small" sx={{ ml: 1, verticalAlign: 'middle' }} />}
+                      {!isCorrect && <ErrorOutline fontSize="small" sx={{ ml: 1, verticalAlign: 'middle' }} />}
+                    </Typography>
                   </Box>
-                );
-              })}
+                  {!isCorrect && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                        {t('test.correctAnswer')}:
+                      </Typography>
+                      <Typography sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+                        {q.options[0]}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              ) : (
+                // Отображение для вопросов с множественным выбором
+                q.options.map((opt, idx) => {
+                  const isUser = userAnswer === idx;
+                  const isRight = q.correctIndex === idx;
+
+                  return (
+                    <Box
+                      key={idx}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        pl: 2,
+                        py: 1,
+                        color: isRight
+                          ? theme.palette.success.main
+                          : isUser
+                            ? theme.palette.error.main
+                            : theme.palette.text.primary,
+                        fontWeight: isUser ? 600 : 400
+                      }}
+                    >
+                      {isRight && <CheckCircle fontSize="small" />}
+                      {isUser && !isRight && <ErrorOutline fontSize="small" />}
+                      <Typography>{opt}</Typography>
+                    </Box>
+                  );
+                })
+              )}
             </Paper>
           );
         })}

@@ -9,27 +9,41 @@ import {
   Stack,
   Typography,
   useTheme,
-  Box
+  Box,
+  TextField
 } from '@mui/material';
 import { Timer } from '@mui/icons-material';
 import { useEffect, useState } from 'react';
 import { LinearProgress } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 //import { alpha } from '@mui/material/styles';
-import { Test } from './types';
+import { Test, Answer } from './types';
 
 interface Props {
   test: Test;
   current: number;
-  answers: number[];
-  setAnswers: (a: number[]) => void;
-  onNext: (nextIndex: number) => void;
+  answers: Answer[];
+  setAnswers: (a: Answer[]) => void;
+  onNext: (nextIndex: number, updatedAnswers?: Answer[]) => void;
 }
 
 export default function TestQuestion({ test, current, answers, setAnswers, onNext }: Props) {
   const theme = useTheme();
   const question = test.questions[current];
   const { t } = useTranslation();
+
+  // Определяем, является ли вопрос открытым (только один вариант ответа)
+  const isOpenQuestion = question.options.length === 1;
+  const [textAnswer, setTextAnswer] = useState('');
+
+  // Загружаем сохраненный текстовый ответ при смене вопроса
+  useEffect(() => {
+    if (isOpenQuestion && typeof answers[current] === 'string') {
+      setTextAnswer(answers[current] as string);
+    } else {
+      setTextAnswer('');
+    }
+  }, [current, isOpenQuestion]);
 
   const [globalTimeLeft, setGlobalTimeLeft] = useState<number | null>(
     test.timeLimit ?? null
@@ -40,6 +54,20 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
 
   const isGlobalTimer = !!test.timeLimit;
 
+  // Функция для автоматического перехода при истечении времени
+  const handleTimeExpired = () => {
+    const updated = [...answers];
+    if (isOpenQuestion) {
+      // Сохраняем текущий введенный текст (даже если пустой)
+      updated[current] = textAnswer.trim() || '';
+    } else if (updated[current] === undefined) {
+      // Если не выбран ответ, сохраняем -1
+      updated[current] = -1;
+    }
+    setAnswers(updated);
+    onNext(current + 1, updated);
+  };
+
   // Глобальный таймер
   useEffect(() => {
     if (!isGlobalTimer) return;
@@ -48,7 +76,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
       setGlobalTimeLeft((prev) => {
         if (!prev || prev <= 1) {
           clearInterval(timer);
-          onNext(current + 1);
+          handleTimeExpired();
           return 0;
         }
         return prev - 1;
@@ -56,7 +84,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isGlobalTimer]);
+  }, [isGlobalTimer, current, answers, textAnswer, isOpenQuestion]);
 
   // Таймер на вопрос
   useEffect(() => {
@@ -68,7 +96,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
       setQuestionTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          onNext(current + 1);
+          handleTimeExpired();
           return 0;
         }
         return prev - 1;
@@ -76,7 +104,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [current]);
+  }, [current, isGlobalTimer, answers, textAnswer, isOpenQuestion]);
 
   const handleAnswerChange = (index: number) => {
     const updated = [...answers];
@@ -84,13 +112,21 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
     setAnswers(updated);
   };
 
+  const handleTextAnswerChange = (text: string) => {
+    setTextAnswer(text);
+  };
+
   const handleNext = () => {
     const updated = [...answers];
-    if (updated[current] === undefined) {
+    if (isOpenQuestion) {
+      // Для открытых вопросов сохраняем сам текст ответа
+      updated[current] = textAnswer.trim();
+    } else if (updated[current] === undefined) {
       updated[current] = -1;
-      setAnswers(updated);
     }
-    onNext(current + 1);
+    setAnswers(updated);
+    // Передаем обновленный массив в onNext
+    onNext(current + 1, updated);
   };
 
   return (
@@ -149,29 +185,49 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
             {question.text}
           </Typography>
 
-          <RadioGroup
-            value={answers[current] ?? -1}
-            onChange={(e) => handleAnswerChange(parseInt(e.target.value))}
-            sx={{ mb: 4 }}
-          >
-            {question.options.map((opt, i) => (
-              <FormControlLabel
-                key={i}
-                value={i}
-                control={<Radio />}
-                label={<Typography variant="body1">{opt}</Typography>}
-                sx={{
-                  p: 1,
-                  mb: 1,
-                  border: `1px solid ${theme.palette.divider}`,
+          {isOpenQuestion ? (
+            // Открытый вопрос - текстовое поле для ввода
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              value={textAnswer}
+              onChange={(e) => handleTextAnswerChange(e.target.value)}
+              placeholder={t('test.yourAnswerPlaceholder')}
+              variant="outlined"
+              sx={{
+                mb: 4,
+                '& .MuiOutlinedInput-root': {
                   borderRadius: 0,
-                  '&:hover': {
-                    backgroundColor: theme.palette.action.hover
-                  }
-                }}
-              />
-            ))}
-          </RadioGroup>
+                }
+              }}
+            />
+          ) : (
+            // Вопрос с множественным выбором - радиокнопки
+            <RadioGroup
+              value={answers[current] ?? -1}
+              onChange={(e) => handleAnswerChange(parseInt(e.target.value))}
+              sx={{ mb: 4 }}
+            >
+              {question.options.map((opt, i) => (
+                <FormControlLabel
+                  key={i}
+                  value={i}
+                  control={<Radio />}
+                  label={<Typography variant="body1">{opt}</Typography>}
+                  sx={{
+                    p: 1,
+                    mb: 1,
+                    border: `1px solid ${theme.palette.divider}`,
+                    borderRadius: 0,
+                    '&:hover': {
+                      backgroundColor: theme.palette.action.hover
+                    }
+                  }}
+                />
+              ))}
+            </RadioGroup>
+          )}
 
           <Stack direction="row" justifyContent="flex-end">
             <Button
