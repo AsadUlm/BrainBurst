@@ -76,7 +76,23 @@
         "practiceModeDescription": "질문 건너뛰기 및 정답 보기가 가능한 연습 모드",
         "examMode": "시험 모드",
         "examModeDescription": "이전 질문으로 돌아갈 수 없는 엄격한 모드",
-        "textAnswer": "텍스트 답변"
+        "textAnswer": "텍스트 답변",
+        "minutes": "분",
+        "questionsCount": "문제"
+    },
+    "history": {
+        "sort": "정렬",
+        "sortByDate": "날짜순",
+        "sortByScore": "점수순",
+        "view": "보기",
+        "viewGrouped": "테스트별",
+        "viewList": "목록",
+        "attempts": "시도",
+        "attemptsPlural": "시도",
+        "bestScore": "최고 점수",
+        "avgScore": "평균 점수",
+        "lastAttempt": "마지막",
+        "attemptNumber": "#"
     },
     "practice": {
         "correct": "정답입니다!",

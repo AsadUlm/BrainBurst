@@ -59,7 +59,7 @@ export default function PracticeRunner() {
     };
 
     const handleBackToTests = () => {
-        navigate('/tests');
+        navigate('/');
     };
 
     if (loading) {

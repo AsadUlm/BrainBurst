@@ -173,17 +173,44 @@ export default function TestHomePage() {
                                         </Typography>
 
                                         {isOpenQuestion ? (
-                                            <Box
-                                                sx={{
-                                                    p: 2,
-                                                    border: `1px dashed ${theme.palette.divider}`,
-                                                    borderRadius: 0,
-                                                    bgcolor: alpha(theme.palette.info.main, 0.05)
-                                                }}
-                                            >
-                                                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                                                    {t('test.enterAnswer')} ({t('test.textAnswer')})
-                                                </Typography>
+                                            <Box>
+                                                <Box
+                                                    sx={{
+                                                        p: 2,
+                                                        border: `1px dashed ${theme.palette.divider}`,
+                                                        borderRadius: 0,
+                                                        bgcolor: alpha(theme.palette.info.main, 0.05),
+                                                        mb: 2
+                                                    }}
+                                                >
+                                                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                                        {t('test.enterAnswer')} ({t('test.textAnswer')})
+                                                    </Typography>
+                                                </Box>
+                                                <Box
+                                                    sx={{
+                                                        p: 2,
+                                                        border: `1px solid ${theme.palette.success.main}`,
+                                                        borderRadius: 0,
+                                                        bgcolor: alpha(theme.palette.success.light, 0.1),
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 1.5
+                                                    }}
+                                                >
+                                                    <CheckCircleIcon
+                                                        fontSize="small"
+                                                        sx={{ color: theme.palette.success.main }}
+                                                    />
+                                                    <Box>
+                                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                                                            {t('test.correctAnswer')}:
+                                                        </Typography>
+                                                        <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+                                                            {question.options[0]}
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
                                             </Box>
                                         ) : (
                                             <Stack spacing={1}>

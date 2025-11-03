@@ -26,7 +26,7 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
 
 
 router.get('/', async (req, res) => {
-    const tests = await Test.find({}, 'title');
+    const tests = await Test.find({});
     res.json(tests);
 });
 

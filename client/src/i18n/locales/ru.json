@@ -76,7 +76,23 @@
         "practiceModeDescription": "Тренировочный режим с возможностью пропуска вопросов и просмотра правильных ответов",
         "examMode": "Режим экзамена",
         "examModeDescription": "Строгий режим без возможности вернуться к предыдущим вопросам",
-        "textAnswer": "текстовый ответ"
+        "textAnswer": "текстовый ответ",
+        "minutes": "минут",
+        "questionsCount": "вопросов"
+    },
+    "history": {
+        "sort": "Сортировка",
+        "sortByDate": "По дате",
+        "sortByScore": "По баллам",
+        "view": "Вид",
+        "viewGrouped": "По тестам",
+        "viewList": "Список",
+        "attempts": "попытка",
+        "attemptsPlural": "попытки",
+        "bestScore": "Лучший результат",
+        "avgScore": "Средний балл",
+        "lastAttempt": "Последняя",
+        "attemptNumber": "#"
     },
     "practice": {
         "correct": "Правильно!",
