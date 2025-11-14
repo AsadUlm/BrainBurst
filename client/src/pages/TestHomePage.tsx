@@ -18,6 +18,7 @@ import QuizIcon from '@mui/icons-material/Quiz';
 import TimerIcon from '@mui/icons-material/Timer';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CategoryIcon from '@mui/icons-material/Category';
 
 interface Question {
     text: string;
@@ -26,11 +27,18 @@ interface Question {
     time?: number;
 }
 
+interface Category {
+    _id: string;
+    name: string;
+    color?: string;
+}
+
 interface Test {
     _id: string;
     title: string;
     questions: Question[];
     timeLimit?: number;
+    category?: Category;
 }
 
 export default function TestHomePage() {
@@ -73,6 +81,8 @@ export default function TestHomePage() {
 
     const totalQuestions = test.questions.length;
     const hasTimer = !!test.timeLimit || test.questions.some(q => q.time);
+    const category = test.category;
+    const categoryColor = category?.color || theme.palette.primary.main;
 
     return (
         <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -84,16 +94,29 @@ export default function TestHomePage() {
                     mb: 4,
                     border: `1px solid ${theme.palette.divider}`,
                     borderRadius: 0,
-                    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`
+                    background: `linear-gradient(135deg, ${alpha(categoryColor, 0.05)} 0%, ${alpha(categoryColor, 0.02)} 100%)`
                 }}
             >
                 <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-                    <QuizIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
+                    <QuizIcon sx={{ fontSize: 40, color: categoryColor }} />
                     <Box sx={{ flex: 1 }}>
                         <Typography variant="h3" sx={{ fontWeight: 600, mb: 1 }}>
                             {test.title}
                         </Typography>
                         <Stack direction="row" spacing={2} flexWrap="wrap">
+                            {category && (
+                                <Chip
+                                    icon={<CategoryIcon />}
+                                    label={category.name}
+                                    sx={{
+                                        borderRadius: 0,
+                                        backgroundColor: alpha(categoryColor, 0.15),
+                                        color: categoryColor,
+                                        border: `1px solid ${alpha(categoryColor, 0.3)}`,
+                                        fontWeight: 600,
+                                    }}
+                                />
+                            )}
                             <Chip
                                 icon={<HelpOutlineIcon />}
                                 label={`${totalQuestions} ${t('test.question')}`}
@@ -277,7 +300,7 @@ export default function TestHomePage() {
                             elevation={0}
                             sx={{
                                 p: 4,
-                                border: `2px solid ${theme.palette.primary.main}`,
+                                border: `2px solid ${categoryColor}`,
                                 borderRadius: 0,
                                 position: 'relative',
                                 overflow: 'hidden'
@@ -290,7 +313,7 @@ export default function TestHomePage() {
                                     right: 0,
                                     width: 100,
                                     height: 100,
-                                    background: `radial-gradient(circle, ${alpha(theme.palette.primary.main, 0.1)} 0%, transparent 70%)`,
+                                    background: `radial-gradient(circle, ${alpha(categoryColor, 0.1)} 0%, transparent 70%)`,
                                     transform: 'translate(30%, -30%)'
                                 }}
                             />
@@ -300,8 +323,12 @@ export default function TestHomePage() {
                                     <Chip
                                         label={t('test.recommended')}
                                         size="small"
-                                        color="primary"
-                                        sx={{ borderRadius: 0, mb: 2 }}
+                                        sx={{
+                                            borderRadius: 0,
+                                            mb: 2,
+                                            backgroundColor: categoryColor,
+                                            color: '#fff',
+                                        }}
                                     />
                                     <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
                                         {t('test.standardTest')}
@@ -353,9 +380,12 @@ export default function TestHomePage() {
                                         fontSize: '1.1rem',
                                         fontWeight: 600,
                                         boxShadow: 'none',
+                                        backgroundColor: categoryColor,
                                         '&:hover': {
                                             boxShadow: 'none',
-                                            transform: 'translateY(-2px)'
+                                            transform: 'translateY(-2px)',
+                                            backgroundColor: categoryColor,
+                                            filter: 'brightness(1.1)',
                                         }
                                     }}
                                 >

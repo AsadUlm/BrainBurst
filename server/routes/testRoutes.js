@@ -26,12 +26,12 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
 
 
 router.get('/', async (req, res) => {
-    const tests = await Test.find({});
+    const tests = await Test.find({}).populate('category');
     res.json(tests);
 });
 
 router.get('/:id', async (req, res) => {
-    const test = await Test.findById(req.params.id);
+    const test = await Test.findById(req.params.id).populate('category');
     if (!test) return res.status(404).json({ error: 'Test not found' });
     res.json(test);
 });

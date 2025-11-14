@@ -8,13 +8,21 @@ import {
   useTheme,
   alpha,
   Stack,
-  CircularProgress
+  CircularProgress,
+  Chip
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import QuizIcon from '@mui/icons-material/Quiz';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import CategoryIcon from '@mui/icons-material/Category';
+
+interface Category {
+  _id: string;
+  name: string;
+  color?: string;
+}
 
 interface Test {
   _id: string;
@@ -22,11 +30,13 @@ interface Test {
   description?: string;
   questions: any[];
   timeLimit?: number;
+  category?: Category;
 }
 
 export default function TestList() {
   const [tests, setTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<Record<string, Category>>({});
 
   const navigate = useNavigate();
   const theme = useTheme();
@@ -34,6 +44,20 @@ export default function TestList() {
 
   useEffect(() => {
     setLoading(true);
+
+    // Загрузка категорий
+    fetch('/api/categories')
+      .then((res) => res.json())
+      .then((cats: Category[]) => {
+        const categoryMap: Record<string, Category> = {};
+        cats.forEach(cat => {
+          categoryMap[cat._id] = cat;
+        });
+        setCategories(categoryMap);
+      })
+      .catch((error) => console.error('Error fetching categories:', error));
+
+    // Загрузка тестов
     fetch('/api/tests')
       .then((res) => res.json())
       .then((data) => {
@@ -94,6 +118,8 @@ export default function TestList() {
             const totalQuestions = test.questions?.length || 0;
             const hasTimeLimit = !!test.timeLimit || test.questions?.some((q: any) => q.time);
             const totalTime = test.timeLimit || test.questions?.reduce((sum: number, q: any) => sum + (q.time || 0), 0) || 0;
+            const category = test.category && typeof test.category === 'object' ? test.category : (test.category ? categories[test.category as any] : null);
+            const categoryColor = category?.color || theme.palette.primary.main;
 
             return (
               <Card
@@ -107,8 +133,8 @@ export default function TestList() {
                   overflow: 'hidden',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.25)}`,
-                    borderColor: theme.palette.primary.main,
+                    boxShadow: `0 8px 24px ${alpha(categoryColor, 0.25)}`,
+                    borderColor: categoryColor,
                   },
                 }}
                 onClick={() => navigate(`/test/${test._id}`)}
@@ -117,7 +143,7 @@ export default function TestList() {
                 <Box
                   sx={{
                     height: 4,
-                    background: `linear-gradient(90deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 100%)`,
+                    background: `linear-gradient(90deg, ${categoryColor} 0%, ${alpha(categoryColor, 0.7)} 100%)`,
                   }}
                 />
 
@@ -130,7 +156,7 @@ export default function TestList() {
                   {/* Заголовок теста */}
                   <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mb: 2 }}>
                     <Stack direction="row" alignItems="center" spacing={1.5} sx={{ flex: 1 }}>
-                      <QuizIcon sx={{ color: theme.palette.primary.main, fontSize: 28 }} />
+                      <QuizIcon sx={{ color: categoryColor, fontSize: 28 }} />
                       <Typography
                         variant="h6"
                         sx={{
@@ -144,6 +170,24 @@ export default function TestList() {
                     </Stack>
                     <ChevronRightIcon sx={{ color: theme.palette.action.disabled }} />
                   </Stack>
+
+                  {/* Категория теста */}
+                  {category && (
+                    <Box sx={{ mb: 2 }}>
+                      <Chip
+                        icon={<CategoryIcon fontSize="small" />}
+                        label={category.name}
+                        size="small"
+                        sx={{
+                          borderRadius: 0,
+                          backgroundColor: alpha(categoryColor, 0.1),
+                          color: categoryColor,
+                          border: `1px solid ${alpha(categoryColor, 0.3)}`,
+                          fontWeight: 600,
+                        }}
+                      />
+                    </Box>
+                  )}
 
                   {/* Описание теста */}
                   {test.description && (
@@ -174,13 +218,13 @@ export default function TestList() {
                           width: 36,
                           height: 36,
                           borderRadius: 0,
-                          bgcolor: alpha(theme.palette.primary.main, 0.1),
+                          bgcolor: alpha(categoryColor, 0.1),
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}
                       >
-                        <QuizIcon sx={{ fontSize: 20, color: theme.palette.primary.main }} />
+                        <QuizIcon sx={{ fontSize: 20, color: categoryColor }} />
                       </Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>

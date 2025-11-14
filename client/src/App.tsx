@@ -9,6 +9,7 @@ import PracticeRunner from './pages/TestRunner/PracticeRunner';
 import AdminCreateTest from './pages/AdminCreateTest';
 import AdminEditTest from './pages/AdminEditTest';
 import AdminTestList from './pages/AdminTestList';
+import AdminCategories from './pages/AdminCategories';
 import RequireAdmin from './components/RequireAdmin';
 import RequireAuth from './components/RequireAuth';
 import Register from './pages/Register';
@@ -118,6 +119,17 @@ export default function App() {
               <RequireAdmin>
                 <AdminTestList />
               </RequireAdmin>
+            }
+          />
+
+          <Route
+            path="/admin/categories"
+            element={
+              <RequireAuth>
+                <RequireAdmin>
+                  <AdminCategories />
+                </RequireAdmin>
+              </RequireAuth>
             }
           />
 

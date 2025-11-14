@@ -5,8 +5,12 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
+  IconButton,
+  Button,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
 
 interface Question {
   text: string;
@@ -36,6 +40,23 @@ export default function QuestionForm({
     onChange({ ...question, options: newOptions });
   };
 
+  const addOption = () => {
+    if (question.options.length < 8) {
+      const newOptions = [...question.options, ''];
+      onChange({ ...question, options: newOptions });
+    }
+  };
+
+  const removeOption = (i: number) => {
+    if (question.options.length > 1) {
+      const newOptions = question.options.filter((_, idx) => idx !== i);
+      // Если удаляем правильный ответ, сбрасываем на первый
+      const newCorrectIndex =
+        question.correctIndex === i ? 0 : question.correctIndex > i ? question.correctIndex - 1 : question.correctIndex;
+      onChange({ ...question, options: newOptions, correctIndex: newCorrectIndex });
+    }
+  };
+
   return (
     <Box sx={{ border: '1px solid #ccc', p: 2, mb: 3, borderRadius: 2 }}>
       <Typography variant="h6" sx={{ mb: 2 }}>
@@ -61,23 +82,46 @@ export default function QuestionForm({
         }
       >
         {question.options.map((opt, i) => (
-          <FormControlLabel
-            key={i}
-            value={i}
-            control={<Radio />}
-            label={
-              <TextField
-                label={`${t('questionForm.option')} ${i + 1}`}
-                value={opt}
-                onChange={(e) => handleOptionChange(i, e.target.value)}
-                fullWidth
+          <Box key={i} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <FormControlLabel
+              value={i}
+              control={<Radio />}
+              label={
+                <TextField
+                  label={`${t('questionForm.option')} ${i + 1}`}
+                  value={opt}
+                  onChange={(e) => handleOptionChange(i, e.target.value)}
+                  fullWidth
+                  size="small"
+                />
+              }
+              sx={{ flex: 1 }}
+            />
+            {question.options.length > 1 && (
+              <IconButton
+                onClick={() => removeOption(i)}
                 size="small"
-              />
-            }
-            sx={{ mb: 1 }}
-          />
+                color="error"
+                sx={{ ml: 1 }}
+              >
+                <DeleteIcon />
+              </IconButton>
+            )}
+          </Box>
         ))}
       </RadioGroup>
+
+      {question.options.length < 8 && (
+        <Button
+          variant="outlined"
+          startIcon={<AddIcon />}
+          onClick={addOption}
+          size="small"
+          sx={{ mt: 1 }}
+        >
+          {t('questionForm.addOption')}
+        </Button>
+      )}
 
       {showTimeInput && (
         <TextField

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  Container,
   Typography,
   Card,
   CardContent,
@@ -8,27 +7,55 @@ import {
   useTheme,
   IconButton,
   Divider,
-  Stack
+  Stack,
+  Chip,
+  alpha
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import DescriptionIcon from '@mui/icons-material/Description';
+import QuizIcon from '@mui/icons-material/Quiz';
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import CategoryIcon from '@mui/icons-material/Category';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+
+interface Category {
+  _id: string;
+  name: string;
+  color?: string;
+}
 
 interface Test {
   _id: string;
   title: string;
+  category?: Category;
+  questions?: any[];
 }
 
 export default function AdminTestList() {
   const [tests, setTests] = useState<Test[]>([]);
+  const [categories, setCategories] = useState<Record<string, Category>>({});
   const navigate = useNavigate();
   const theme = useTheme();
   const { t } = useTranslation();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+
+    // Загрузка категорий
+    fetch('/api/categories')
+      .then((res) => res.json())
+      .then((cats: Category[]) => {
+        const categoryMap: Record<string, Category> = {};
+        cats.forEach(cat => {
+          categoryMap[cat._id] = cat;
+        });
+        setCategories(categoryMap);
+      })
+      .catch((error) => console.error('Error fetching categories:', error));
+
+    // Загрузка тестов
     fetch('/api/tests', {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -38,7 +65,8 @@ export default function AdminTestList() {
       .then(data => setTests(data));
   }, []);
 
-  const handleDelete = async (testId: string) => {
+  const handleDelete = async (testId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
     const confirmed = window.confirm(t('admin.confirmDelete'));
     if (!confirmed) return;
 
@@ -57,139 +85,198 @@ export default function AdminTestList() {
     }
   };
 
+  const handleEdit = (testId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    navigate(`/admin/edit/${testId}`);
+  };
+
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography
-        variant="h3"
-        sx={{
-          fontWeight: 600,
-          mb: 4,
-          color: theme.palette.text.primary,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2
-        }}
-      >
-        {t('admin.manageTests')}
-        <Divider sx={{ flex: 1 }} />
-      </Typography>      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-          gap: 3,
-        }}
-      >
-        {tests.map(test => (
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+        gap: 4,
+        px: 2,
+      }}
+    >
+      {tests.map(test => {
+        const category = test.category && typeof test.category === 'object' ? test.category : (test.category ? categories[test.category as any] : null);
+        const categoryColor = category?.color || theme.palette.primary.main;
+        const totalQuestions = test.questions?.length || 0;
+
+        return (
           <Card
             key={test._id}
             sx={{
-              border: `1px solid ${theme.palette.divider}`,
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
-                transform: 'translateY(-2px)'
-              },
               position: 'relative',
-              borderRadius: 0
+              borderRadius: 0,
+              cursor: 'pointer',
+              border: `1px solid ${theme.palette.divider}`,
+              transition: 'all 0.3s cubic-bezier(.25,.8,.25,1)',
+              overflow: 'hidden',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: `0 8px 24px ${alpha(categoryColor, 0.25)}`,
+                borderColor: categoryColor,
+              },
             }}
           >
+            {/* Декоративная линия сверху */}
+            <Box
+              sx={{
+                height: 4,
+                background: `linear-gradient(90deg, ${categoryColor} 0%, ${alpha(categoryColor, 0.7)} 100%)`,
+              }}
+            />
+
             <CardContent
               sx={{
-                p: theme.spacing(2.5),
-                pb: `${theme.spacing(2.5)} !important`,
-                position: 'relative'
+                p: 3,
+                '&:last-child': { pb: 3 },
               }}
             >
-              {/* Кнопка редактирования */}
-              <IconButton
+              {/* Кнопки управления */}
+              <Box
                 sx={{
                   position: 'absolute',
-                  top: 8,
-                  right: 8,
-                  color: theme.palette.text.secondary,
-                  '&:hover': {
-                    color: theme.palette.primary.main
-                  }
+                  top: 16,
+                  right: 16,
+                  display: 'flex',
+                  gap: 0.5,
+                  zIndex: 1,
                 }}
-                onClick={() => navigate(`/admin/edit/${test._id}`)}
               >
-                <EditIcon fontSize="small" />
-              </IconButton>
-
-              {/* Кнопка удаления */}
-              <IconButton
-                sx={{
-                  position: 'absolute',
-                  top: 8,
-                  right: 42,
-                  color: theme.palette.text.secondary,
-                  '&:hover': {
-                    color: theme.palette.error.main
-                  }
-                }}
-                onClick={() => handleDelete(test._id)}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-
-              {/* Заголовок карточки */}
-              <Stack direction="row" alignItems="center" gap={2} mb={2}>
-                <DescriptionIcon
+                <IconButton
+                  size="small"
                   sx={{
-                    fontSize: 28,
-                    color: theme.palette.primary.main
+                    bgcolor: alpha(theme.palette.background.paper, 0.9),
+                    color: theme.palette.text.secondary,
+                    '&:hover': {
+                      bgcolor: theme.palette.background.paper,
+                      color: theme.palette.primary.main,
+                    }
                   }}
-                />
+                  onClick={(e) => handleEdit(test._id, e)}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  sx={{
+                    bgcolor: alpha(theme.palette.background.paper, 0.9),
+                    color: theme.palette.text.secondary,
+                    '&:hover': {
+                      bgcolor: theme.palette.background.paper,
+                      color: theme.palette.error.main,
+                    }
+                  }}
+                  onClick={(e) => handleDelete(test._id, e)}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Box>
+
+              {/* Заголовок теста */}
+              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2, pr: 10 }}>
+                <QuizIcon sx={{ color: categoryColor, fontSize: 28 }} />
                 <Typography
                   variant="h6"
                   sx={{
                     fontWeight: 600,
-                    color: theme.palette.text.primary
+                    color: theme.palette.text.primary,
+                    lineHeight: 1.3,
                   }}
                 >
                   {test.title}
                 </Typography>
               </Stack>
 
-              {/* ID теста */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  mt: 1,
-                  px: 1,
-                  py: 0.5,
-                  bgcolor: theme.palette.action.hover,
-                  width: 'fit-content'
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 500,
-                    color: theme.palette.text.secondary,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5
-                  }}
-                >
-                  ID:
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontFamily: 'monospace',
-                    color: theme.palette.text.primary
-                  }}
-                >
-                  {test._id}
-                </Typography>
-              </Box>
+              {/* Категория теста */}
+              {category && (
+                <Box sx={{ mb: 2 }}>
+                  <Chip
+                    icon={<CategoryIcon fontSize="small" />}
+                    label={category.name}
+                    size="small"
+                    sx={{
+                      borderRadius: 0,
+                      backgroundColor: alpha(categoryColor, 0.1),
+                      color: categoryColor,
+                      border: `1px solid ${alpha(categoryColor, 0.3)}`,
+                      fontWeight: 600,
+                    }}
+                  />
+                </Box>
+              )}
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* Информация о тесте */}
+              <Stack spacing={1.5}>
+                {/* Количество вопросов */}
+                <Stack direction="row" alignItems="center" spacing={1.5}>
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 0,
+                      bgcolor: alpha(categoryColor, 0.1),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <ListAltIcon sx={{ fontSize: 20, color: categoryColor }} />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      {t('test.question')}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {totalQuestions} {totalQuestions === 1 ? t('test.question').toLowerCase() : t('test.questionsCount')}
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                {/* ID теста */}
+                <Stack direction="row" alignItems="center" spacing={1.5}>
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 0,
+                      bgcolor: alpha(theme.palette.info.main, 0.1),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <DescriptionIcon sx={{ fontSize: 20, color: theme.palette.info.main }} />
+                  </Box>
+                  <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      ID
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 600,
+                        fontFamily: 'monospace',
+                        fontSize: '0.75rem',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {test._id}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Stack>
             </CardContent>
           </Card>
-        ))}
-      </Box>
-    </Container>
+        );
+      })}
+    </Box>
   );
 }

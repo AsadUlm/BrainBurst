@@ -151,14 +151,35 @@
         "result": "Результат",
         "errors": "Ошибки",
         "noErrors": "Без ошибок",
-        "saveChanges": "Сохранить изменения"
+        "saveChanges": "Сохранить изменения",
+        "category": "Категория",
+        "selectCategory": "Выберите категорию",
+        "noCategory": "Без категории",
+        "totalResults": "Всего результатов",
+        "perfectResults": "Идеальных результатов",
+        "averageScore": "Средний результат",
+        "searchPlaceholder": "Поиск по email или названию теста...",
+        "filter": "Фильтр",
+        "allResults": "Все результаты",
+        "successOnly": "Без ошибок",
+        "withErrors": "С ошибками",
+        "groupBy": "Группировка",
+        "noGrouping": "Без группировки",
+        "byTest": "По тестам",
+        "byUser": "По пользователям",
+        "byCategory": "По категориям",
+        "byTestAndUser": "По тестам и пользователям",
+        "byTestAndCategory": "По тестам и категориям",
+        "byUserAndCategory": "По пользователям и категориям",
+        "uncategorized": "Без категории"
     },
     "questionForm": {
         "questionNumber": "Вопрос #",
         "questionText": "Текст вопроса",
         "answerOptions": "Варианты ответа:",
         "option": "Вариант",
-        "timePerQuestion": "Время на вопрос (в секундах)"
+        "timePerQuestion": "Время на вопрос (в секундах)",
+        "addOption": "Добавить вариант"
     },
     "common": {
         "yes": "Да",
@@ -172,5 +193,17 @@
         "loading": "Загрузка...",
         "error": "Ошибка",
         "success": "Успех"
+    },
+    "category": {
+        "title": "Управление категориями",
+        "createCategory": "Создать категорию",
+        "editCategory": "Редактировать категорию",
+        "categoryName": "Название категории",
+        "description": "Описание",
+        "selectColor": "Выберите цвет",
+        "create": "Создать",
+        "totalCategories": "Всего категорий",
+        "noCategories": "Нет категорий",
+        "createFirst": "Создать первую категорию"
     }
 }

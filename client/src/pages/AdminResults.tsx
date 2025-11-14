@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
-  Container,
   Typography,
   Box,
   Paper,
@@ -11,14 +10,46 @@ import {
   TableCell,
   TableBody,
   Divider,
-  useTheme
+  useTheme,
+  alpha,
+  Stack,
+  TextField,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  InputAdornment,
+  TableSortLabel,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Card,
+  CardContent
 } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import PersonIcon from '@mui/icons-material/Person';
+import QuizIcon from '@mui/icons-material/Quiz';
+import CategoryIcon from '@mui/icons-material/Category';
 import { LoadingPage } from './Loading/index';
 import TestResultDialog from './MyHistory/components/TestResultDialog';
 import { useTranslation } from 'react-i18next';
-//import { alpha } from '@mui/material/styles';
+
+interface Category {
+  _id: string;
+  name: string;
+  color?: string;
+}
+
+interface Test {
+  _id: string;
+  title: string;
+  category?: Category | string;
+}
 
 export interface Question {
   text: string;
@@ -34,6 +65,7 @@ export interface Result {
   total: number;
   createdAt: string;
   mistakes: number[]; // оставляем для отображения в таблице
+  test?: Test;
 }
 
 export interface ResultDetail extends Omit<Result, 'mistakes'> {
@@ -55,6 +87,13 @@ export default function AdminResults() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedResult, setSelectedResult] = useState<ResultDetail | null>(null);
 
+  // Состояния для фильтрации и сортировки
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterBy, setFilterBy] = useState<'all' | 'success' | 'errors'>('all');
+  const [groupBy, setGroupBy] = useState<'none' | 'test' | 'user' | 'category' | 'test-user' | 'test-category' | 'user-category'>('none');
+  const [sortBy, setSortBy] = useState<'date' | 'score' | 'email' | 'test'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   useEffect(() => {
     const token = localStorage.getItem('token');
 
@@ -74,6 +113,102 @@ export default function AdminResults() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Фильтрация и сортировка
+  const filteredAndSortedResults = useMemo(() => {
+    let filtered = results.filter(r => {
+      const matchesSearch =
+        r.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.testTitle.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesFilter =
+        filterBy === 'all' ? true :
+          filterBy === 'success' ? r.score === r.total :
+            filterBy === 'errors' ? r.score < r.total : true;
+
+      return matchesSearch && matchesFilter;
+    });
+
+    // Сортировка
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'date':
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          break;
+        case 'score':
+          comparison = (a.score / a.total) - (b.score / b.total);
+          break;
+        case 'email':
+          comparison = a.userEmail.localeCompare(b.userEmail);
+          break;
+        case 'test':
+          comparison = a.testTitle.localeCompare(b.testTitle);
+          break;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [results, searchQuery, filterBy, sortBy, sortOrder]);
+
+  // Группировка
+  const groupedResults = useMemo(() => {
+    if (groupBy === 'none') {
+      return { 'all': filteredAndSortedResults };
+    }
+
+    const groups: Record<string, Result[]> = {};
+
+    filteredAndSortedResults.forEach(r => {
+      let keys: string[] = [];
+
+      // Определяем ключи группировки
+      if (groupBy === 'test') {
+        keys = [r.testTitle];
+      } else if (groupBy === 'user') {
+        keys = [r.userEmail];
+      } else if (groupBy === 'category') {
+        const category = r.test?.category;
+        const categoryName = category && typeof category === 'object'
+          ? category.name
+          : t('admin.uncategorized');
+        keys = [categoryName];
+      } else if (groupBy === 'test-user') {
+        keys = [r.testTitle, r.userEmail];
+      } else if (groupBy === 'test-category') {
+        const category = r.test?.category;
+        const categoryName = category && typeof category === 'object'
+          ? category.name
+          : t('admin.uncategorized');
+        keys = [r.testTitle, categoryName];
+      } else if (groupBy === 'user-category') {
+        const category = r.test?.category;
+        const categoryName = category && typeof category === 'object'
+          ? category.name
+          : t('admin.uncategorized');
+        keys = [r.userEmail, categoryName];
+      }
+
+      // Создаем ключ группы
+      const groupKey = keys.join(' → ');
+      if (!groups[groupKey]) groups[groupKey] = [];
+      groups[groupKey].push(r);
+    });
+
+    return groups;
+  }, [filteredAndSortedResults, groupBy, t]);
+
+  // Статистика
+  const stats = useMemo(() => {
+    const total = results.length;
+    const perfect = results.filter(r => r.score === r.total).length;
+    const avgScore = total > 0
+      ? results.reduce((sum, r) => sum + (r.score / r.total), 0) / total * 100
+      : 0;
+
+    return { total, perfect, avgScore };
+  }, [results]);
+
   const handleOpenDialog = async (r: Result) => {
     const token = localStorage.getItem('token');
     const res = await fetch(`/api/results/${r._id}`, {
@@ -89,132 +224,414 @@ export default function AdminResults() {
     setDialogOpen(false);
   };
 
+  const handleSort = (field: 'date' | 'score' | 'email' | 'test') => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+  };
+
   if (loading) return <LoadingPage />;
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ mb: 6 }}>
-        <Typography
-          variant="h3"
+    <Box sx={{ p: 3, maxWidth: 1400, margin: '0 auto' }}>
+      {/* Заголовок */}
+      <Typography
+        variant="h3"
+        gutterBottom
+        sx={{
+          fontWeight: 600,
+          color: theme.palette.text.primary,
+          textAlign: 'center',
+          mt: 2,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 2,
+        }}
+      >
+        <AssessmentIcon sx={{ fontSize: 40 }} />
+        {t('admin.statistics')}
+      </Typography>
+
+      <Divider
+        sx={{
+          mb: 6,
+          mx: 'auto',
+          width: '80px',
+          height: 4,
+          backgroundColor: theme.palette.primary.main,
+        }}
+      />
+
+      {/* Статистика */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: 3,
+          mb: 4,
+        }}
+      >
+        <Card
+          elevation={0}
           sx={{
-            fontWeight: 600,
-            color: theme.palette.text.primary,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2
+            border: `1px solid ${theme.palette.divider}`,
+            borderRadius: 0,
+            overflow: 'hidden',
           }}
         >
-          {t('admin.statistics')}
-          <Divider
+          <Box
             sx={{
-              flex: 1,
               height: 4,
-              backgroundColor: theme.palette.divider
+              background: 'linear-gradient(90deg, #1976d2 0%, #42a5f5 100%)',
             }}
           />
-        </Typography>
+          <CardContent sx={{ textAlign: 'center', py: 3 }}>
+            <QuizIcon sx={{ fontSize: 48, color: '#1976d2', mb: 1 }} />
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+              {stats.total}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t('admin.totalResults')}
+            </Typography>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            border: `1px solid ${theme.palette.divider}`,
+            borderRadius: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <Box
+            sx={{
+              height: 4,
+              background: 'linear-gradient(90deg, #388e3c 0%, #66bb6a 100%)',
+            }}
+          />
+          <CardContent sx={{ textAlign: 'center', py: 3 }}>
+            <CheckCircleOutlineIcon sx={{ fontSize: 48, color: '#388e3c', mb: 1 }} />
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+              {stats.perfect}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t('admin.perfectResults')}
+            </Typography>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            border: `1px solid ${theme.palette.divider}`,
+            borderRadius: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <Box
+            sx={{
+              height: 4,
+              background: 'linear-gradient(90deg, #f57c00 0%, #ff9800 100%)',
+            }}
+          />
+          <CardContent sx={{ textAlign: 'center', py: 3 }}>
+            <AssessmentIcon sx={{ fontSize: 48, color: '#f57c00', mb: 1 }} />
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+              {stats.avgScore.toFixed(1)}%
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t('admin.averageScore')}
+            </Typography>
+          </CardContent>
+        </Card>
       </Box>
 
+      {/* Фильтры и поиск */}
       <Paper
         elevation={0}
         sx={{
+          p: 3,
+          mb: 4,
           border: `1px solid ${theme.palette.divider}`,
-          mb: 6,
-          overflowX: 'auto',
-          borderRadius: 0
+          borderRadius: 0,
         }}
       >
-        <Table>
-          <TableHead>
-            <TableRow
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+          <TextField
+            fullWidth
+            placeholder={t('admin.searchPlaceholder')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 0,
+              }
+            }}
+          />
+
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel>{t('admin.filter')}</InputLabel>
+            <Select
+              value={filterBy}
+              label={t('admin.filter')}
+              onChange={(e) => setFilterBy(e.target.value as any)}
+              sx={{ borderRadius: 0 }}
+            >
+              <MenuItem value="all">{t('admin.allResults')}</MenuItem>
+              <MenuItem value="success">{t('admin.successOnly')}</MenuItem>
+              <MenuItem value="errors">{t('admin.withErrors')}</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl sx={{ minWidth: 250 }}>
+            <InputLabel>{t('admin.groupBy')}</InputLabel>
+            <Select
+              value={groupBy}
+              label={t('admin.groupBy')}
+              onChange={(e) => setGroupBy(e.target.value as any)}
+              sx={{ borderRadius: 0 }}
+            >
+              <MenuItem value="none">{t('admin.noGrouping')}</MenuItem>
+              <MenuItem value="test">{t('admin.byTest')}</MenuItem>
+              <MenuItem value="user">{t('admin.byUser')}</MenuItem>
+              <MenuItem value="category">{t('admin.byCategory')}</MenuItem>
+              <MenuItem value="test-user">{t('admin.byTestAndUser')}</MenuItem>
+              <MenuItem value="test-category">{t('admin.byTestAndCategory')}</MenuItem>
+              <MenuItem value="user-category">{t('admin.byUserAndCategory')}</MenuItem>
+            </Select>
+          </FormControl>
+        </Stack>
+      </Paper>
+
+      {/* Таблица результатов */}
+      {Object.entries(groupedResults).map(([groupName, groupResults]) => (
+        <Box key={groupName} sx={{ mb: 4 }}>
+          {groupBy !== 'none' && (
+            <Accordion
+              defaultExpanded
+              elevation={0}
               sx={{
-                backgroundColor: theme.palette.action.hover,
-                borderBottom: `2px solid ${theme.palette.divider}`
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: 0,
+                '&:before': { display: 'none' },
+                mb: 2,
               }}
             >
-              {[t('admin.email'), t('admin.test'), t('admin.result'), t('admin.errors'), t('admin.date')].map(header => (
-                <TableCell
-                  key={header}
-                  sx={{
-                    fontWeight: 700,
-                    color: theme.palette.text.primary,
-                    py: 2,
-                    fontSize: '0.875rem'
-                  }}
-                >
-                  {header}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {results.map(r => (
-              <TableRow
-                key={r._id}
-                hover
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
                 sx={{
-                  cursor: 'pointer',
-                  '&:not(:last-child)': {
-                    borderBottom: `1px solid ${theme.palette.divider}`
-                  }
+                  backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                  borderBottom: `1px solid ${theme.palette.divider}`,
                 }}
-                onClick={() => handleOpenDialog(r)}
               >
-                <TableCell sx={{ color: theme.palette.text.secondary }}>
-                  {r.userEmail}
-                </TableCell>
-                <TableCell>{r.testTitle}</TableCell>
-                <TableCell>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  {groupBy.includes('test') && <QuizIcon />}
+                  {groupBy.includes('user') && <PersonIcon />}
+                  {groupBy.includes('category') && <CategoryIcon />}
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {groupName}
+                  </Typography>
                   <Chip
-                    label={`${r.score} / ${r.total}`}
-                    color={r.score === r.total ? 'success' : 'warning'}
-                    variant="outlined"
+                    label={groupResults.length}
                     size="small"
-                    icon={
-                      r.score === r.total ? (
-                        <CheckCircleOutlineIcon fontSize="small" />
-                      ) : (
-                        <ErrorOutlineIcon fontSize="small" />
-                      )
-                    }
+                    sx={{ ml: 1 }}
                   />
-                </TableCell>
-                <TableCell>
-                  {r.mistakes.length > 0 ? (
-                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                      {r.mistakes.map(m => (
-                        <Chip
-                          key={m}
-                          label={`#${m + 1}`}
-                          color="error"
-                          size="small"
-                          variant="outlined"
-                        />
-                      ))}
-                    </Box>
-                  ) : (
-                    <Chip
-                      label={t('admin.noErrors')}
-                      color="success"
-                      size="small"
-                      icon={<CheckCircleOutlineIcon fontSize="small" />}
-                    />
-                  )}
-                </TableCell>
-                <TableCell sx={{ color: theme.palette.text.secondary }}>
-                  {new Date(r.createdAt).toLocaleString('ru-RU')}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Paper>
+                </Stack>
+              </AccordionSummary>
+              <AccordionDetails sx={{ p: 0 }}>
+                <RenderResultsTable
+                  results={groupResults}
+                  theme={theme}
+                  t={t}
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  handleSort={handleSort}
+                  handleOpenDialog={handleOpenDialog}
+                />
+              </AccordionDetails>
+            </Accordion>
+          )}
+
+          {groupBy === 'none' && (
+            <Paper
+              elevation={0}
+              sx={{
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: 0,
+                overflow: 'hidden',
+              }}
+            >
+              <RenderResultsTable
+                results={groupResults}
+                theme={theme}
+                t={t}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                handleSort={handleSort}
+                handleOpenDialog={handleOpenDialog}
+              />
+            </Paper>
+          )}
+        </Box>
+      ))}
 
       <TestResultDialog
         open={dialogOpen}
         onClose={handleCloseDialog}
         result={selectedResult}
       />
-    </Container>
+    </Box>
+  );
+}
+
+// Компонент таблицы результатов
+function RenderResultsTable({
+  results,
+  theme,
+  t,
+  sortBy,
+  sortOrder,
+  handleSort,
+  handleOpenDialog,
+}: {
+  results: Result[];
+  theme: any;
+  t: any;
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
+  handleSort: (field: 'date' | 'score' | 'email' | 'test') => void;
+  handleOpenDialog: (r: Result) => void;
+}) {
+  return (
+    <Table>
+      <TableHead>
+        <TableRow
+          sx={{
+            backgroundColor: theme.palette.action.hover,
+            borderBottom: `2px solid ${theme.palette.divider}`,
+          }}
+        >
+          <TableCell>
+            <TableSortLabel
+              active={sortBy === 'email'}
+              direction={sortBy === 'email' ? sortOrder : 'desc'}
+              onClick={() => handleSort('email')}
+              sx={{ fontWeight: 700 }}
+            >
+              {t('admin.email')}
+            </TableSortLabel>
+          </TableCell>
+          <TableCell>
+            <TableSortLabel
+              active={sortBy === 'test'}
+              direction={sortBy === 'test' ? sortOrder : 'desc'}
+              onClick={() => handleSort('test')}
+              sx={{ fontWeight: 700 }}
+            >
+              {t('admin.test')}
+            </TableSortLabel>
+          </TableCell>
+          <TableCell>
+            <TableSortLabel
+              active={sortBy === 'score'}
+              direction={sortBy === 'score' ? sortOrder : 'desc'}
+              onClick={() => handleSort('score')}
+              sx={{ fontWeight: 700 }}
+            >
+              {t('admin.result')}
+            </TableSortLabel>
+          </TableCell>
+          <TableCell sx={{ fontWeight: 700 }}>
+            {t('admin.errors')}
+          </TableCell>
+          <TableCell>
+            <TableSortLabel
+              active={sortBy === 'date'}
+              direction={sortBy === 'date' ? sortOrder : 'desc'}
+              onClick={() => handleSort('date')}
+              sx={{ fontWeight: 700 }}
+            >
+              {t('admin.date')}
+            </TableSortLabel>
+          </TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {results.map((r) => (
+          <TableRow
+            key={r._id}
+            hover
+            sx={{
+              cursor: 'pointer',
+              '&:not(:last-child)': {
+                borderBottom: `1px solid ${theme.palette.divider}`,
+              },
+              transition: 'background-color 0.2s',
+            }}
+            onClick={() => handleOpenDialog(r)}
+          >
+            <TableCell sx={{ color: theme.palette.text.secondary }}>
+              {r.userEmail}
+            </TableCell>
+            <TableCell sx={{ fontWeight: 500 }}>{r.testTitle}</TableCell>
+            <TableCell>
+              <Chip
+                label={`${r.score} / ${r.total}`}
+                color={r.score === r.total ? 'success' : 'warning'}
+                variant="outlined"
+                size="small"
+                icon={
+                  r.score === r.total ? (
+                    <CheckCircleOutlineIcon fontSize="small" />
+                  ) : (
+                    <ErrorOutlineIcon fontSize="small" />
+                  )
+                }
+                sx={{ borderRadius: 0, fontWeight: 600 }}
+              />
+            </TableCell>
+            <TableCell>
+              {r.mistakes.length > 0 ? (
+                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                  {r.mistakes.map((m) => (
+                    <Chip
+                      key={m}
+                      label={`#${m + 1}`}
+                      color="error"
+                      size="small"
+                      variant="outlined"
+                      sx={{ borderRadius: 0 }}
+                    />
+                  ))}
+                </Box>
+              ) : (
+                <Chip
+                  label={t('admin.noErrors')}
+                  color="success"
+                  size="small"
+                  icon={<CheckCircleOutlineIcon fontSize="small" />}
+                  sx={{ borderRadius: 0 }}
+                />
+              )}
+            </TableCell>
+            <TableCell sx={{ color: theme.palette.text.secondary }}>
+              {new Date(r.createdAt).toLocaleString('ru-RU')}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }

@@ -11,12 +11,17 @@ import {
   Divider,
   useTheme,
   Paper,
-  CircularProgress
+  CircularProgress,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import QuestionForm from '../components/QuestionForm';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TimerIcon from '@mui/icons-material/Timer';
+import CategoryIcon from '@mui/icons-material/Category';
 import { LoadingPage } from './Loading/index';
 import { useTranslation } from 'react-i18next';
 
@@ -27,10 +32,18 @@ interface Question {
   time?: number;
 }
 
+interface Category {
+  _id: string;
+  name: string;
+  description?: string;
+  color?: string;
+}
+
 interface TestData {
   title: string;
   questions: Question[];
   timeLimit?: number;
+  category?: string;
 }
 
 export default function AdminEditTest() {
@@ -43,8 +56,18 @@ export default function AdminEditTest() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [timeLimit, setTimeLimit] = useState<number>(60);
   const [useGlobalTimer, setUseGlobalTimer] = useState(true);
-  const [loading, setLoading] = useState(true); // <- загрузка страницы
-  const [submitting, setSubmitting] = useState(false); // <- загрузка отправки
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+
+  useEffect(() => {
+    // Загрузка категорий
+    fetch('/api/categories')
+      .then((res) => res.json())
+      .then((data) => setCategories(data))
+      .catch((err) => console.error('Ошибка загрузки категорий:', err));
+  }, []);
 
   useEffect(() => {
     const fetchTest = async () => {
@@ -55,6 +78,7 @@ export default function AdminEditTest() {
         const data: TestData = await res.json();
         setTitle(data.title);
         setQuestions(data.questions || []);
+        setSelectedCategory(data.category || '');
 
         if ('timeLimit' in data) {
           setTimeLimit(data.timeLimit || 60);
@@ -72,7 +96,7 @@ export default function AdminEditTest() {
     };
 
     if (id) fetchTest();
-  }, [id, navigate]);
+  }, [id, navigate, t]);
 
   const updateQuestion = (index: number, updated: Question) => {
     const copy = [...questions];
@@ -95,6 +119,7 @@ export default function AdminEditTest() {
         useGlobalTimer ? { ...q, time: undefined } : q
       ),
       ...(useGlobalTimer && { timeLimit }),
+      ...(selectedCategory && { category: selectedCategory }),
     };
 
     try {
@@ -164,7 +189,37 @@ export default function AdminEditTest() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           sx={{ mb: 4 }}
-        />        <Box sx={{ mb: 4 }}>
+        />
+
+        <Box sx={{ mb: 4 }}>
+          <Typography
+            variant="h5"
+            sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}
+          >
+            <CategoryIcon />
+            {t('admin.category')}
+          </Typography>
+
+          <FormControl fullWidth>
+            <InputLabel>{t('admin.selectCategory')}</InputLabel>
+            <Select
+              value={selectedCategory}
+              label={t('admin.selectCategory')}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              <MenuItem value="">
+                <em>{t('admin.noCategory')}</em>
+              </MenuItem>
+              {categories.map((cat) => (
+                <MenuItem key={cat._id} value={cat._id}>
+                  {cat.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+
+        <Box sx={{ mb: 4 }}>
           <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
             <TimerIcon />
             {t('admin.timer')}

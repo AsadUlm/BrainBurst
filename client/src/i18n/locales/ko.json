@@ -151,7 +151,27 @@
         "result": "결과",
         "errors": "오류",
         "noErrors": "오류 없음",
-        "saveChanges": "변경 사항 저장"
+        "saveChanges": "변경 사항 저장",
+        "category": "카테고리",
+        "selectCategory": "카테고리 선택",
+        "noCategory": "카테고리 없음",
+        "totalResults": "총 결과",
+        "perfectResults": "완벽한 결과",
+        "averageScore": "평균 점수",
+        "searchPlaceholder": "이메일 또는 테스트 이름으로 검색...",
+        "filter": "필터",
+        "allResults": "모든 결과",
+        "successOnly": "오류 없음",
+        "withErrors": "오류 있음",
+        "groupBy": "그룹화",
+        "noGrouping": "그룹화 없음",
+        "byTest": "테스트별",
+        "byUser": "사용자별",
+        "byCategory": "카테고리별",
+        "byTestAndUser": "테스트 및 사용자별",
+        "byTestAndCategory": "테스트 및 카테고리별",
+        "byUserAndCategory": "사용자 및 카테고리별",
+        "uncategorized": "카테고리 없음"
     },
     "questionForm": {
         "questionNumber": "질문 #",
@@ -172,5 +192,17 @@
         "loading": "로딩 중...",
         "error": "오류",
         "success": "성공"
+    },
+    "category": {
+        "title": "카테고리 관리",
+        "createCategory": "카테고리 생성",
+        "editCategory": "카테고리 편집",
+        "categoryName": "카테고리 이름",
+        "description": "설명",
+        "selectColor": "색상 선택",
+        "create": "생성",
+        "totalCategories": "전체 카테고리",
+        "noCategories": "카테고리 없음",
+        "createFirst": "첫 번째 카테고리 생성"
     }
 }
