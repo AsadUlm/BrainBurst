@@ -78,7 +78,19 @@
         "examModeDescription": "이전 질문으로 돌아갈 수 없는 엄격한 모드",
         "textAnswer": "텍스트 답변",
         "minutes": "분",
-        "questionsCount": "문제"
+        "questionsCount": "문제",
+        "sortBy": "정렬",
+        "sortByName": "이름순",
+        "sortByQuestions": "문제 수순",
+        "sortByTime": "시간순",
+        "groupByCategory": "카테고리별 그룹화",
+        "filterByCategory": "카테고리 필터",
+        "allCategories": "모든 카테고리",
+        "withTimeLimit": "시간 제한 있음",
+        "searchTests": "테스트 검색...",
+        "showFilters": "필터 표시",
+        "hideFilters": "필터 숨기기",
+        "testsFound": "개의 테스트 발견"
     },
     "history": {
         "sort": "정렬",

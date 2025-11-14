@@ -78,7 +78,19 @@
         "examModeDescription": "Строгий режим без возможности вернуться к предыдущим вопросам",
         "textAnswer": "текстовый ответ",
         "minutes": "минут",
-        "questionsCount": "вопросов"
+        "questionsCount": "вопросов",
+        "sortBy": "Сортировка",
+        "sortByName": "По названию",
+        "sortByQuestions": "По количеству вопросов",
+        "sortByTime": "По времени",
+        "groupByCategory": "Группировать по категориям",
+        "filterByCategory": "Фильтр по категориям",
+        "allCategories": "Все категории",
+        "withTimeLimit": "С ограничением времени",
+        "searchTests": "Поиск тестов...",
+        "showFilters": "Показать фильтры",
+        "hideFilters": "Скрыть фильтры",
+        "testsFound": "тестов найдено"
     },
     "history": {
         "sort": "Сортировка",
