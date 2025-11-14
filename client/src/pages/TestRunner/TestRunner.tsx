@@ -43,6 +43,7 @@ export default function TestRunner() {
             text: q.text,
             options: shuffled.map(o => o.text),
             correctIndex: shuffled.findIndex(o => o.isCorrect),
+            time: q.time,
           };
         });
         setTest({ ...data, questions: shuffledQuestions });

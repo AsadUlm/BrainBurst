@@ -85,7 +85,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isGlobalTimer, current, answers, textAnswer, isOpenQuestion]);
+  }, [isGlobalTimer]);
 
   // Таймер на вопрос
   useEffect(() => {
@@ -105,7 +105,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [current, isGlobalTimer, answers, textAnswer, isOpenQuestion]);
+  }, [current, isGlobalTimer]);
 
   const handleAnswerChange = (index: number) => {
     const updated = [...answers];
@@ -176,8 +176,8 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
             variant="determinate"
             value={
               isGlobalTimer
-                ? ((globalTimeLeft ?? 0) / (test.timeLimit || 1)) * 100
-                : (questionTimeLeft / (question.time || 15)) * 100
+                ? (1 - (globalTimeLeft ?? 0) / (test.timeLimit || 1)) * 100
+                : (1 - questionTimeLeft / (question.time || 15)) * 100
             }
             sx={{
               height: 8,
