@@ -37,6 +37,6 @@ app.get(/^\/(?!api).*/, (req, res) => {
 app.listen(PORT, () => {
     console.log('==========================================');
     console.log(`Server started on http://localhost:${PORT}`);
-    console.log('📦 Project version: 3.0.0');
+    console.log('📦 Project version: 4.0.1');
     console.log('==========================================');
 });

@@ -18,6 +18,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import QuizIcon from '@mui/icons-material/Quiz';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import CategoryIcon from '@mui/icons-material/Category';
+import LockIcon from '@mui/icons-material/Lock';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import TestVisibilityModal from '../components/TestVisibilityModal';
@@ -33,6 +34,8 @@ interface Test {
   title: string;
   category?: Category;
   questions?: any[];
+  hideContent?: boolean;
+  attemptsToUnlock?: number;
 }
 
 export default function AdminTestList() {
@@ -60,8 +63,8 @@ export default function AdminTestList() {
       })
       .catch((error) => console.error('Error fetching categories:', error));
 
-    // Загрузка тестов
-    fetch('/api/tests', {
+    // Загрузка тестов (с параметром showAll для админ-панели)
+    fetch('/api/tests?showAll=true', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -109,9 +112,9 @@ export default function AdminTestList() {
   };
 
   const handleVisibilityUpdate = () => {
-    // Перезагрузка списка тестов после обновления
+    // Перезагрузка списка тестов после обновления (с параметром showAll для админ-панели)
     const token = localStorage.getItem('token');
-    fetch('/api/tests', {
+    fetch('/api/tests?showAll=true', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -248,6 +251,22 @@ export default function AdminTestList() {
                       backgroundColor: alpha(categoryColor, 0.1),
                       color: categoryColor,
                       border: `1px solid ${alpha(categoryColor, 0.3)}`,
+                      fontWeight: 600,
+                    }}
+                  />
+                </Box>
+              )}
+
+              {/* Индикатор скрытого контента */}
+              {test.hideContent && (
+                <Box sx={{ mb: 2 }}>
+                  <Chip
+                    icon={<LockIcon fontSize="small" />}
+                    label={`${t('admin.contentLocked')} (${test.attemptsToUnlock || 0} ${t('test.questionsCount')})`}
+                    size="small"
+                    color="warning"
+                    sx={{
+                      borderRadius: 0,
                       fontWeight: 600,
                     }}
                   />

@@ -39,10 +39,26 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
 
 router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
     try {
+        console.log('🔧 PUT /api/tests/:id - Обновление теста:', req.params.id);
+        console.log('📦 Payload:', JSON.stringify(req.body, null, 2));
+        console.log('👥 allowedUsers type:', typeof req.body.allowedUsers);
+        console.log('👥 allowedUsers:', req.body.allowedUsers);
+
+        // Проверяем что allowedUsers это массив строк
+        if (req.body.allowedUsers && Array.isArray(req.body.allowedUsers)) {
+            console.log('🔍 Проверка каждого элемента allowedUsers:');
+            req.body.allowedUsers.forEach((user, index) => {
+                console.log(`  [${index}] type: ${typeof user}, value:`, user);
+            });
+        }
+
         const updated = await Test.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updated) return res.status(404).json({ error: 'Test not found' });
+
+        console.log('✅ Тест обновлен. allowedUsers в БД:', updated.allowedUsers);
         res.json(updated);
     } catch (err) {
+        console.error('❌ Ошибка обновления теста:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -52,61 +68,104 @@ router.get('/', optionalAuth, async (req, res) => {
     try {
         const userId = req.user?.userId; // Получаем ID пользователя из токена (если есть)
         const isAdmin = req.user?.role === 'admin';
+        const showAll = req.query.showAll === 'true'; // Параметр для админ-панели
+
+        console.log('🔍 Запрос тестов. userId:', userId, 'isAdmin:', isAdmin, 'showAll:', showAll);
 
         let tests;
 
-        if (isAdmin) {
-            // Админы видят все тесты
+        // ТОЛЬКО для админ-панели показываем все тесты без фильтрации
+        if (isAdmin && showAll) {
             tests = await Test.find({}).populate('category');
-        } else {
-            // Обычные пользователи видят только доступные тесты
-            const now = new Date();
-
-            // Более гибкий запрос - если поле isVisible не существует или true
-            const query = {
-                $or: [
-                    { isVisible: { $exists: false } }, // Старые тесты без поля isVisible
-                    { isVisible: true }                // Новые тесты с isVisible = true
-                ]
-            };
-
-            tests = await Test.find(query).populate('category');
-
-            // Фильтруем по датам
-            tests = tests.filter(test => {
-                // Если availableFrom установлено - проверяем что уже доступен
-                if (test.availableFrom && new Date(test.availableFrom) > now) {
-                    return false;
-                }
-                // Если availableUntil установлено - проверяем что еще доступен
-                if (test.availableUntil && new Date(test.availableUntil) < now) {
-                    return false;
-                }
-                return true;
-            });
-
-            // Фильтруем по разрешенным пользователям
-            tests = tests.filter(test => {
-                // Если allowedUsers пустой или не существует - доступен всем
-                if (!test.allowedUsers || test.allowedUsers.length === 0) {
-                    return true;
-                }
-                // Если есть ограничения - проверяем авторизованного пользователя
-                if (!userId) {
-                    return false; // Неавторизованные не видят тесты с ограничениями
-                }
-                // Проверяем, есть ли пользователь в списке разрешенных
-                return test.allowedUsers.some(id => id.toString() === userId.toString());
-            });
+            console.log('👑 Админ-панель: показываем все тесты:', tests.length);
+            res.json(tests);
+            return;
         }
+
+        // Для всех остальных (включая админов на обычных страницах) применяем фильтрацию
+        const now = new Date();
+
+        // Получаем все тесты с заполненными связями
+        tests = await Test.find({}).populate('category').populate('allowedUsers', '_id');
+
+        console.log('📋 Всего тестов в базе:', tests.length);
+
+        // Применяем все фильтры
+        tests = tests.filter(test => {
+            // 1. Проверка видимости
+            const isVisibleField = test.isVisible !== undefined ? test.isVisible : true;
+            if (!isVisibleField) {
+                console.log(`❌ Тест "${test.title}" скрыт (isVisible: false)`);
+                return false;
+            }
+
+            // 2. Проверка по датам
+            if (test.availableFrom && new Date(test.availableFrom) > now) {
+                console.log(`❌ Тест "${test.title}" еще недоступен (from: ${test.availableFrom})`);
+                return false;
+            }
+            if (test.availableUntil && new Date(test.availableUntil) < now) {
+                console.log(`❌ Тест "${test.title}" уже недоступен (until: ${test.availableUntil})`);
+                return false;
+            }
+
+            // 3. Проверка по пользователям
+            if (!test.allowedUsers || test.allowedUsers.length === 0) {
+                console.log(`✅ Тест "${test.title}" доступен всем`);
+                return true;
+            }
+
+            console.log(`🔒 Тест "${test.title}" имеет ограничения`);
+            console.log(`   allowedUsers RAW:`, JSON.stringify(test.allowedUsers));
+            console.log(`   allowedUsers TYPE:`, test.allowedUsers.map(u => typeof u));
+            console.log(`   Проверяем доступ для userId: ${userId} (type: ${typeof userId})`);
+
+            // Если есть ограничения - проверяем авторизованного пользователя
+            if (!userId) {
+                console.log(`❌ Тест "${test.title}" недоступен - пользователь не авторизован`);
+                return false;
+            }
+
+            // Проверяем, есть ли пользователь в списке разрешенных
+            const hasAccess = test.allowedUsers.some(allowedUser => {
+                // allowedUser может быть: ObjectId, строка, или объект с _id
+                let allowedId;
+
+                if (typeof allowedUser === 'string') {
+                    allowedId = allowedUser;
+                } else if (allowedUser && allowedUser._id) {
+                    allowedId = allowedUser._id;
+                } else {
+                    allowedId = allowedUser;
+                }
+
+                const allowedIdStr = allowedId ? allowedId.toString() : '';
+                const userIdStr = userId.toString();
+                const match = allowedIdStr === userIdStr;
+
+                console.log(`   Сравнение: "${allowedIdStr}" === "${userIdStr}" = ${match}`);
+                console.log(`   allowedUser TYPE: ${typeof allowedUser}, VALUE:`, allowedUser);
+
+                return match;
+            });
+
+            if (hasAccess) {
+                console.log(`✅ Тест "${test.title}" ДОСТУПЕН для userId ${userId}`);
+            } else {
+                console.log(`❌ Тест "${test.title}" НЕДОСТУПЕН для userId ${userId}`);
+            }
+
+            return hasAccess;
+        });
+
+        console.log('✅ Итого доступных тестов:', tests.length);
 
         res.json(tests);
     } catch (err) {
+        console.error('❌ Ошибка получения тестов:', err);
         res.status(500).json({ error: err.message });
     }
-});
-
-router.get('/:id', async (req, res) => {
+}); router.get('/:id', async (req, res) => {
     const test = await Test.findById(req.params.id).populate('category');
     if (!test) return res.status(404).json({ error: 'Test not found' });
     res.json(test);

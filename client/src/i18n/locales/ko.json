@@ -5,6 +5,7 @@
     "header": {
         "home": "홈",
         "history": "기록",
+        "analytics": "분석",
         "admin": "관리자",
         "results": "결과",
         "login": "로그인",
@@ -117,7 +118,9 @@
         "previous": "이전",
         "tryAgain": "다시 시도",
         "skipQuestion": "질문 건너뛰기",
-        "viewAnswer": "답변 보기"
+        "viewAnswer": "답변 보기",
+        "disabled": "관리자가 연습 모드를 비활성화했습니다",
+        "locked": "테스트를 {{required}}회 완료해야 합니다 (완료: {{current}}회)"
     },
     "admin": {
         "dashboard": "대시보드",
@@ -201,7 +204,28 @@
         "selectedUsers": "선택된 사용자",
         "visibilitySettings": "가시성 설정",
         "editingVisibilityFor": "가시성 편집 대상",
-        "visibilityUpdated": "가시성 설정이 업데이트되었습니다"
+        "visibilityUpdated": "가시성 설정이 업데이트되었습니다",
+        "contentVisibility": "콘텐츠 가시성",
+        "hideTestContent": "테스트 콘텐츠 숨기기",
+        "contentHiddenDescription": "사용자가 테스트를 통과할 때까지 질문과 답변을 볼 수 없습니다",
+        "contentVisibleDescription": "사용자가 통과 전에 질문과 답변을 볼 수 있습니다",
+        "unlockCondition": "잠금 해제 조건",
+        "attemptsToUnlock": "잠금 해제를 위한 시도 횟수",
+        "attemptsToUnlockHelp": "지정된 횟수만큼 시도하면 콘텐츠를 볼 수 있습니다 (0 = 절대 불가)",
+        "contentLocked": "콘텐츠 잠김",
+        "completeAttemptsToUnlock": "콘텐츠를 보려면 테스트를 {{required}}번 완료하세요",
+        "yourAttempts": "당신의 시도: {{current}} / {{required}}",
+        "practiceModeSettings": "연습 모드 설정",
+        "practiceModeAccess": "연습 모드 접근",
+        "practiceModeEnabled": "모든 사용자에게 가능",
+        "practiceModeDisabled": "비활성화됨",
+        "practiceModeLocked": "시도 필요",
+        "practiceModeEnabledDescription": "연습 모드가 모든 사용자에게 즉시 제공됩니다",
+        "practiceModeDisabledDescription": "이 테스트의 연습 모드가 완전히 비활성화되었습니다",
+        "practiceModeLockedDescription": "표준 모드에서 지정된 횟수만큼 시도한 후 연습 모드를 사용할 수 있습니다",
+        "practiceUnlockCondition": "연습 잠금 해제 조건",
+        "practiceAttemptsRequired": "잠금 해제에 필요한 시도 횟수",
+        "practiceAttemptsRequiredHelp": "연습 모드 접근을 위해 표준 모드에서 테스트를 완료해야 하는 횟수"
     },
     "questionForm": {
         "questionNumber": "질문 #",
@@ -222,6 +246,28 @@
         "loading": "로딩 중...",
         "error": "오류",
         "success": "성공"
+    },
+    "analytics": {
+        "title": "분석 및 통계",
+        "subtitle": "진행 상황과 성적 추적",
+        "noData": "표시할 데이터 없음",
+        "totalTests": "총 테스트",
+        "averageScore": "평균 점수",
+        "accuracyRate": "정답률",
+        "bestScore": "최고 점수",
+        "score": "점수",
+        "performanceOverTime": "성적 추이",
+        "noDataAvailable": "데이터 없음",
+        "answersBreakdown": "답변 통계",
+        "correctAnswers": "정답",
+        "incorrectAnswers": "오답",
+        "totalQuestionsAnswered": "총 풀이 문제 수",
+        "categoryBreakdown": "카테고리별 결과",
+        "testsCompleted": "완료한 테스트",
+        "avgScore": "평균 점수",
+        "tests": "테스트",
+        "recentTests": "최근 테스트",
+        "noRecentTests": "최근 테스트 없음"
     },
     "category": {
         "title": "카테고리 관리",

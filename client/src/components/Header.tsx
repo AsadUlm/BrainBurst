@@ -15,6 +15,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import ArticleIcon from '@mui/icons-material/Article';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import LoginIcon from '@mui/icons-material/Login';
@@ -92,6 +93,8 @@ export default function Header() {
           <MenuButton label={t('header.home')} path="/" icon={<HomeIcon fontSize="small" />} />
 
           <MenuButton label={t('header.history')} path="/myresults" icon={<ArticleIcon fontSize="small" />} />
+
+          <MenuButton label={t('header.analytics')} path="/analytics" icon={<BarChartIcon fontSize="small" />} />
 
           {isAdmin && (
             <>

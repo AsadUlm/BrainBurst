@@ -19,12 +19,17 @@ import {
     Stack,
     Box,
     IconButton,
+    useTheme,
+    alpha,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import CloseIcon from '@mui/icons-material/Close';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PersonIcon from '@mui/icons-material/Person';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import LockIcon from '@mui/icons-material/Lock';
+import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 
 interface User {
     _id: string;
@@ -48,6 +53,7 @@ export default function TestVisibilityModal({
     onUpdate,
 }: TestVisibilityModalProps) {
     const { t } = useTranslation();
+    const theme = useTheme();
 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -59,6 +65,10 @@ export default function TestVisibilityModal({
     const [users, setUsers] = useState<User[]>([]);
     const [availableFrom, setAvailableFrom] = useState('');
     const [availableUntil, setAvailableUntil] = useState('');
+    const [hideContent, setHideContent] = useState(false);
+    const [attemptsToUnlock, setAttemptsToUnlock] = useState(0);
+    const [practiceMode, setPracticeMode] = useState<'enabled' | 'disabled' | 'locked'>('enabled');
+    const [practiceAttemptsRequired, setPracticeAttemptsRequired] = useState(0);
 
     useEffect(() => {
         if (!open || !testId) return;
@@ -87,13 +97,21 @@ export default function TestVisibilityModal({
                 setIsVisible(data.isVisible !== undefined ? data.isVisible : true);
                 if (data.allowedUsers && data.allowedUsers.length > 0) {
                     setRestrictAccess(true);
-                    setSelectedUsers(data.allowedUsers);
+                    // Извлекаем только ID из объектов пользователей
+                    const userIds = data.allowedUsers.map((u: any) =>
+                        typeof u === 'string' ? u : u._id
+                    );
+                    setSelectedUsers(userIds);
                 } else {
                     setRestrictAccess(false);
                     setSelectedUsers([]);
                 }
                 setAvailableFrom(data.availableFrom ? data.availableFrom.slice(0, 16) : '');
                 setAvailableUntil(data.availableUntil ? data.availableUntil.slice(0, 16) : '');
+                setHideContent(data.hideContent || false);
+                setAttemptsToUnlock(data.attemptsToUnlock || 0);
+                setPracticeMode(data.practiceMode || 'enabled');
+                setPracticeAttemptsRequired(data.practiceAttemptsRequired || 0);
             })
             .catch((err) => console.error('Ошибка загрузки теста:', err))
             .finally(() => setLoading(false));
@@ -113,7 +131,20 @@ export default function TestVisibilityModal({
             allowedUsers: restrictAccess && selectedUsers.length > 0 ? selectedUsers : [],
             availableFrom: availableFrom || undefined,
             availableUntil: availableUntil || undefined,
+            hideContent,
+            attemptsToUnlock: hideContent ? attemptsToUnlock : 0,
+            practiceMode,
+            practiceAttemptsRequired: practiceMode === 'locked' ? practiceAttemptsRequired : 0,
         };
+
+        console.log('🚀 Отправка настроек видимости:');
+        console.log('  testId:', testId);
+        console.log('  isVisible:', isVisible);
+        console.log('  restrictAccess:', restrictAccess);
+        console.log('  selectedUsers:', selectedUsers);
+        console.log('  selectedUsers types:', selectedUsers.map(u => typeof u));
+        console.log('  payload.allowedUsers:', payload.allowedUsers);
+        console.log('  Full payload:', JSON.stringify(payload, null, 2));
 
         try {
             const res = await fetch(`/api/tests/${testId}`, {
@@ -307,6 +338,130 @@ export default function TestVisibilityModal({
                                     : `${availableFrom ? new Date(availableFrom).toLocaleString() : '∞'} — ${availableUntil ? new Date(availableUntil).toLocaleString() : '∞'
                                     }`}
                             </Typography>
+                        </Box>
+
+                        <Divider />
+
+                        {/* Скрытие содержимого теста */}
+                        <Box>
+                            <Typography
+                                variant="h6"
+                                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+                            >
+                                <VisibilityOffIcon fontSize="small" />
+                                {t('admin.contentVisibility')}
+                            </Typography>
+
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={hideContent}
+                                        onChange={(e) => {
+                                            setHideContent(e.target.checked);
+                                            if (!e.target.checked) setAttemptsToUnlock(0);
+                                        }}
+                                    />
+                                }
+                                label={t('admin.hideTestContent')}
+                                sx={{ mb: 2 }}
+                            />
+
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                {hideContent
+                                    ? t('admin.contentHiddenDescription')
+                                    : t('admin.contentVisibleDescription')}
+                            </Typography>
+
+                            {hideContent && (
+                                <Box
+                                    sx={{
+                                        p: 2,
+                                        border: `1px solid ${theme.palette.warning.main}`,
+                                        borderRadius: 1,
+                                        bgcolor: alpha(theme.palette.warning.main, 0.05),
+                                    }}
+                                >
+                                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                                        <LockIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                            {t('admin.unlockCondition')}
+                                        </Typography>
+                                    </Stack>
+
+                                    <TextField
+                                        fullWidth
+                                        type="number"
+                                        label={t('admin.attemptsToUnlock')}
+                                        value={attemptsToUnlock}
+                                        onChange={(e) => setAttemptsToUnlock(Math.max(0, parseInt(e.target.value) || 0))}
+                                        helperText={t('admin.attemptsToUnlockHelp')}
+                                        inputProps={{ min: 0 }}
+                                    />
+                                </Box>
+                            )}
+                        </Box>
+
+                        <Divider />
+
+                        {/* Настройки режима практики */}
+                        <Box>
+                            <Typography
+                                variant="h6"
+                                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+                            >
+                                <SportsEsportsIcon fontSize="small" />
+                                {t('admin.practiceModeSettings')}
+                            </Typography>
+
+                            <FormControl fullWidth sx={{ mb: 2 }}>
+                                <InputLabel>{t('admin.practiceModeAccess')}</InputLabel>
+                                <Select
+                                    value={practiceMode}
+                                    label={t('admin.practiceModeAccess')}
+                                    onChange={(e) => {
+                                        setPracticeMode(e.target.value as 'enabled' | 'disabled' | 'locked');
+                                        if (e.target.value !== 'locked') setPracticeAttemptsRequired(0);
+                                    }}
+                                >
+                                    <MenuItem value="enabled">{t('admin.practiceModeEnabled')}</MenuItem>
+                                    <MenuItem value="disabled">{t('admin.practiceModeDisabled')}</MenuItem>
+                                    <MenuItem value="locked">{t('admin.practiceModeLocked')}</MenuItem>
+                                </Select>
+                            </FormControl>
+
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                {practiceMode === 'enabled' && t('admin.practiceModeEnabledDescription')}
+                                {practiceMode === 'disabled' && t('admin.practiceModeDisabledDescription')}
+                                {practiceMode === 'locked' && t('admin.practiceModeLockedDescription')}
+                            </Typography>
+
+                            {practiceMode === 'locked' && (
+                                <Box
+                                    sx={{
+                                        p: 2,
+                                        border: `1px solid ${theme.palette.info.main}`,
+                                        borderRadius: 1,
+                                        bgcolor: alpha(theme.palette.info.main, 0.05),
+                                    }}
+                                >
+                                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                                        <LockIcon fontSize="small" sx={{ color: theme.palette.info.main }} />
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                            {t('admin.practiceUnlockCondition')}
+                                        </Typography>
+                                    </Stack>
+
+                                    <TextField
+                                        fullWidth
+                                        type="number"
+                                        label={t('admin.practiceAttemptsRequired')}
+                                        value={practiceAttemptsRequired}
+                                        onChange={(e) => setPracticeAttemptsRequired(Math.max(0, parseInt(e.target.value) || 0))}
+                                        helperText={t('admin.practiceAttemptsRequiredHelp')}
+                                        inputProps={{ min: 0 }}
+                                    />
+                                </Box>
+                            )}
                         </Box>
                     </Stack>
                 )}

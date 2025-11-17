@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   RadioGroup,
-  FormControlLabel,
   Radio,
   IconButton,
   Button,
@@ -68,6 +67,9 @@ export default function QuestionForm({
         label={t('questionForm.questionText')}
         value={question.text}
         onChange={(e) => onChange({ ...question, text: e.target.value })}
+        multiline
+        minRows={3}
+        maxRows={8}
         sx={{ mb: 2 }}
       />
 
@@ -82,19 +84,19 @@ export default function QuestionForm({
         }
       >
         {question.options.map((opt, i) => (
-          <Box key={i} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <FormControlLabel
+          <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', mb: 2, gap: 1 }}>
+            <Radio
               value={i}
-              control={<Radio />}
-              label={
-                <TextField
-                  label={`${t('questionForm.option')} ${i + 1}`}
-                  value={opt}
-                  onChange={(e) => handleOptionChange(i, e.target.value)}
-                  fullWidth
-                  size="small"
-                />
-              }
+              sx={{ mt: 1 }}
+            />
+            <TextField
+              label={`${t('questionForm.option')} ${i + 1}`}
+              value={opt}
+              onChange={(e) => handleOptionChange(i, e.target.value)}
+              fullWidth
+              multiline
+              minRows={2}
+              maxRows={6}
               sx={{ flex: 1 }}
             />
             {question.options.length > 1 && (
@@ -102,7 +104,7 @@ export default function QuestionForm({
                 onClick={() => removeOption(i)}
                 size="small"
                 color="error"
-                sx={{ ml: 1 }}
+                sx={{ mt: 1 }}
               >
                 <DeleteIcon />
               </IconButton>

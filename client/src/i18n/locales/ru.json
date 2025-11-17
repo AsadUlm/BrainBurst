@@ -5,6 +5,7 @@
     "header": {
         "home": "Главная",
         "history": "История",
+        "analytics": "Аналитика",
         "admin": "Админка",
         "results": "Результаты",
         "login": "Войти",
@@ -117,7 +118,9 @@
         "previous": "Назад",
         "tryAgain": "Попробовать снова",
         "skipQuestion": "Пропустить вопрос",
-        "viewAnswer": "Посмотреть ответ"
+        "viewAnswer": "Посмотреть ответ",
+        "disabled": "Режим практики отключен администратором",
+        "locked": "Требуется завершить {{required}} попыток теста (выполнено: {{current}})"
     },
     "admin": {
         "dashboard": "Панель управления",
@@ -201,7 +204,28 @@
         "selectedUsers": "Выбранные пользователи",
         "visibilitySettings": "Настройки видимости",
         "editingVisibilityFor": "Редактирование видимости для",
-        "visibilityUpdated": "Настройки видимости обновлены"
+        "visibilityUpdated": "Настройки видимости обновлены",
+        "contentVisibility": "Видимость содержимого",
+        "hideTestContent": "Скрыть содержимое теста",
+        "contentHiddenDescription": "Пользователи не смогут увидеть вопросы и ответы до прохождения теста",
+        "contentVisibleDescription": "Пользователи могут просматривать вопросы и ответы до прохождения",
+        "unlockCondition": "Условие разблокировки",
+        "attemptsToUnlock": "Количество попыток для разблокировки",
+        "attemptsToUnlockHelp": "После указанного количества попыток пользователь сможет увидеть содержимое (0 = никогда)",
+        "contentLocked": "Содержимое скрыто",
+        "completeAttemptsToUnlock": "Пройдите тест {{required}} раз(а), чтобы увидеть содержимое",
+        "yourAttempts": "Ваши попытки: {{current}} из {{required}}",
+        "practiceModeSettings": "Настройки режима практики",
+        "practiceModeAccess": "Доступ к режиму практики",
+        "practiceModeEnabled": "Доступен всем",
+        "practiceModeDisabled": "Отключен",
+        "practiceModeLocked": "Требует попыток",
+        "practiceModeEnabledDescription": "Режим практики доступен всем пользователям сразу",
+        "practiceModeDisabledDescription": "Режим практики полностью отключен для этого теста",
+        "practiceModeLockedDescription": "Режим практики будет доступен после указанного количества попыток стандартного режима",
+        "practiceUnlockCondition": "Условие разблокировки практики",
+        "practiceAttemptsRequired": "Количество попыток для разблокировки",
+        "practiceAttemptsRequiredHelp": "Сколько раз нужно пройти тест в стандартном режиме для доступа к практике"
     },
     "questionForm": {
         "questionNumber": "Вопрос #",
@@ -223,6 +247,28 @@
         "loading": "Загрузка...",
         "error": "Ошибка",
         "success": "Успех"
+    },
+    "analytics": {
+        "title": "Аналитика и статистика",
+        "subtitle": "Отслеживайте свой прогресс и успеваемость",
+        "noData": "Нет данных для отображения",
+        "totalTests": "Всего тестов",
+        "averageScore": "Средний балл",
+        "accuracyRate": "Точность ответов",
+        "bestScore": "Лучший результат",
+        "score": "Результат",
+        "performanceOverTime": "Динамика результатов",
+        "noDataAvailable": "Нет данных",
+        "answersBreakdown": "Статистика ответов",
+        "correctAnswers": "Правильные ответы",
+        "incorrectAnswers": "Неправильные ответы",
+        "totalQuestionsAnswered": "Всего вопросов решено",
+        "categoryBreakdown": "Результаты по категориям",
+        "testsCompleted": "Тестов пройдено",
+        "avgScore": "Средний балл",
+        "tests": "тестов",
+        "recentTests": "Последние тесты",
+        "noRecentTests": "Нет последних тестов"
     },
     "category": {
         "title": "Управление категориями",

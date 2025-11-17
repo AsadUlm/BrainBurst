@@ -19,6 +19,9 @@ import TimerIcon from '@mui/icons-material/Timer';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CategoryIcon from '@mui/icons-material/Category';
+import LockIcon from '@mui/icons-material/Lock';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
+import { LoadingPage } from './Loading';
 
 interface Question {
     text: string;
@@ -39,6 +42,10 @@ interface Test {
     questions: Question[];
     timeLimit?: number;
     category?: Category;
+    hideContent?: boolean;
+    attemptsToUnlock?: number;
+    practiceMode?: 'enabled' | 'disabled' | 'locked';
+    practiceAttemptsRequired?: number;
 }
 
 export default function TestHomePage() {
@@ -48,25 +55,90 @@ export default function TestHomePage() {
     const { t } = useTranslation();
     const [test, setTest] = useState<Test | null>(null);
     const [loading, setLoading] = useState(true);
+    const [userAttempts, setUserAttempts] = useState(0);
+    const [canViewContent, setCanViewContent] = useState(true);
+    const [attemptsLoading, setAttemptsLoading] = useState(false);
+    const [canAccessPractice, setCanAccessPractice] = useState(true);
+    const [practiceMessage, setPracticeMessage] = useState('');
 
     useEffect(() => {
-        fetch(`/api/tests/${id}`)
-            .then((res) => res.json())
-            .then((data) => {
-                setTest(data);
+        const loadData = async () => {
+            const token = localStorage.getItem('token');
+
+            try {
+                setLoading(true);
+
+                // Загрузка теста
+                const testRes = await fetch(`/api/tests/${id}`);
+                const testData = await testRes.json();
+
+                let attempts = 0;
+
+                // Если пользователь авторизован - загружаем попытки
+                if (token) {
+                    setAttemptsLoading(true);
+                    try {
+                        // Проверяем количество попыток
+                        const attemptsRes = await fetch(`/api/results/attempts/${id}`, {
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        });
+                        const attemptsData = await attemptsRes.json();
+                        attempts = attemptsData.attempts;
+                        setUserAttempts(attempts);
+
+                        // Проверка доступа к контенту только если hideContent включен
+                        if (testData.hideContent) {
+                            const canView = testData.attemptsToUnlock > 0
+                                ? attempts >= testData.attemptsToUnlock
+                                : false; // Если 0 - никогда не показывать
+                            setCanViewContent(canView);
+                        } else {
+                            setCanViewContent(true);
+                        }
+                    } catch (err) {
+                        console.error('Ошибка загрузки попыток:', err);
+                        if (testData.hideContent) {
+                            setCanViewContent(false);
+                        }
+                    } finally {
+                        setAttemptsLoading(false);
+                    }
+                } else {
+                    setCanViewContent(!testData.hideContent);
+                }
+
+                // Check practice mode access - используем загруженное значение attempts
+                const practiceMode = testData.practiceMode || 'enabled';
+                if (practiceMode === 'disabled') {
+                    setCanAccessPractice(false);
+                    setPracticeMessage(t('practice.disabled'));
+                } else if (practiceMode === 'locked') {
+                    const required = testData.practiceAttemptsRequired || 0;
+                    if (attempts >= required) {
+                        setCanAccessPractice(true);
+                    } else {
+                        setCanAccessPractice(false);
+                        setPracticeMessage(t('practice.locked', { current: attempts, required }));
+                    }
+                } else {
+                    setCanAccessPractice(true);
+                }
+
+                setTest(testData);
+            } catch (error) {
+                console.error('Ошибка загрузки теста:', error);
+            } finally {
                 setLoading(false);
-            })
-            .catch(() => setLoading(false));
+            }
+        };
+
+        loadData();
     }, [id]);
 
-    if (loading) {
-        return (
-            <Container maxWidth="lg" sx={{ py: 4 }}>
-                <Typography variant="h5" textAlign="center">
-                    {t('test.loading')}
-                </Typography>
-            </Container>
-        );
+    if (loading || attemptsLoading) {
+        return <LoadingPage />;
     }
 
     if (!test) {
@@ -152,143 +224,180 @@ export default function TestHomePage() {
                         <Typography variant="h5" sx={{ fontWeight: 600, mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
                             <HelpOutlineIcon color="primary" />
                             {t('test.question')}
+                            {test.hideContent && canViewContent && (
+                                <Chip
+                                    icon={<LockOpenIcon fontSize="small" />}
+                                    label={t('admin.yourAttempts', { current: userAttempts, required: test.attemptsToUnlock })}
+                                    color="success"
+                                    size="small"
+                                    sx={{ ml: 'auto', borderRadius: 0 }}
+                                />
+                            )}
                         </Typography>
 
-                        <Stack spacing={3}>
-                            {test.questions.map((question, index) => {
-                                const isOpenQuestion = question.options.length === 1;
+                        {/* Проверка доступа к контенту */}
+                        {test.hideContent && !canViewContent ? (
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    p: 4,
+                                    border: `2px solid ${theme.palette.warning.main}`,
+                                    borderRadius: 0,
+                                    textAlign: 'center',
+                                    bgcolor: alpha(theme.palette.warning.main, 0.05),
+                                }}
+                            >
+                                <LockIcon sx={{ fontSize: 64, color: theme.palette.warning.main, mb: 2 }} />
+                                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                                    {t('admin.contentLocked')}
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                                    {t('admin.completeAttemptsToUnlock', { required: test.attemptsToUnlock })}
+                                </Typography>
+                                <Chip
+                                    icon={<LockIcon fontSize="small" />}
+                                    label={t('admin.yourAttempts', { current: userAttempts, required: test.attemptsToUnlock })}
+                                    color="warning"
+                                    sx={{ borderRadius: 0, fontWeight: 600 }}
+                                />
+                            </Paper>
+                        ) : (
+                            <Stack spacing={3}>
+                                {test.questions.map((question, index) => {
+                                    const isOpenQuestion = question.options.length === 1;
 
-                                return (
-                                    <Paper
-                                        key={index}
-                                        variant="outlined"
-                                        sx={{
-                                            p: 3,
-                                            borderRadius: 0,
-                                            border: `1px solid ${theme.palette.divider}`,
-                                            transition: 'all 0.2s ease',
-                                            '&:hover': {
-                                                borderColor: theme.palette.primary.main,
-                                                boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.1)}`
-                                            }
-                                        }}
-                                    >
-                                        <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-                                            <Chip
-                                                label={`#${index + 1}`}
-                                                size="small"
-                                                color="primary"
-                                                sx={{ borderRadius: 0, fontWeight: 600 }}
-                                            />
-                                            {question.time && (
+                                    return (
+                                        <Paper
+                                            key={index}
+                                            variant="outlined"
+                                            sx={{
+                                                p: 3,
+                                                borderRadius: 0,
+                                                border: `1px solid ${theme.palette.divider}`,
+                                                transition: 'all 0.2s ease',
+                                                '&:hover': {
+                                                    borderColor: theme.palette.primary.main,
+                                                    boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.1)}`
+                                                }
+                                            }}
+                                        >
+                                            <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
                                                 <Chip
-                                                    icon={<TimerIcon fontSize="small" />}
-                                                    label={`${question.time}s`}
+                                                    label={`#${index + 1}`}
                                                     size="small"
-                                                    variant="outlined"
-                                                    sx={{ borderRadius: 0 }}
+                                                    color="primary"
+                                                    sx={{ borderRadius: 0, fontWeight: 600 }}
                                                 />
-                                            )}
-                                        </Stack>
-
-                                        <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>
-                                            {question.text}
-                                        </Typography>
-
-                                        {isOpenQuestion ? (
-                                            <Box>
-                                                <Box
-                                                    sx={{
-                                                        p: 2,
-                                                        border: `1px dashed ${theme.palette.divider}`,
-                                                        borderRadius: 0,
-                                                        bgcolor: alpha(theme.palette.info.main, 0.05),
-                                                        mb: 2
-                                                    }}
-                                                >
-                                                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                                                        {t('test.enterAnswer')} ({t('test.textAnswer')})
-                                                    </Typography>
-                                                </Box>
-                                                <Box
-                                                    sx={{
-                                                        p: 2,
-                                                        border: `1px solid ${theme.palette.success.main}`,
-                                                        borderRadius: 0,
-                                                        bgcolor: alpha(theme.palette.success.light, 0.1),
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: 1.5
-                                                    }}
-                                                >
-                                                    <CheckCircleIcon
-                                                        fontSize="small"
-                                                        sx={{ color: theme.palette.success.main }}
+                                                {question.time && (
+                                                    <Chip
+                                                        icon={<TimerIcon fontSize="small" />}
+                                                        label={`${question.time}s`}
+                                                        size="small"
+                                                        variant="outlined"
+                                                        sx={{ borderRadius: 0 }}
                                                     />
-                                                    <Box>
-                                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                                                            {t('test.correctAnswer')}:
-                                                        </Typography>
-                                                        <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
-                                                            {question.options[0]}
+                                                )}
+                                            </Stack>
+
+                                            <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>
+                                                {question.text}
+                                            </Typography>
+
+                                            {isOpenQuestion ? (
+                                                <Box>
+                                                    <Box
+                                                        sx={{
+                                                            p: 2,
+                                                            border: `1px dashed ${theme.palette.divider}`,
+                                                            borderRadius: 0,
+                                                            bgcolor: alpha(theme.palette.info.main, 0.05),
+                                                            mb: 2
+                                                        }}
+                                                    >
+                                                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                                            {t('test.enterAnswer')} ({t('test.textAnswer')})
                                                         </Typography>
                                                     </Box>
-                                                </Box>
-                                            </Box>
-                                        ) : (
-                                            <Stack spacing={1}>
-                                                {question.options.map((option, optIndex) => {
-                                                    const isCorrect = optIndex === question.correctIndex;
-
-                                                    return (
-                                                        <Box
-                                                            key={optIndex}
-                                                            sx={{
-                                                                p: 2,
-                                                                border: `1px solid ${theme.palette.divider}`,
-                                                                borderRadius: 0,
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: 1.5,
-                                                                bgcolor: isCorrect
-                                                                    ? alpha(theme.palette.success.light, 0.1)
-                                                                    : theme.palette.background.paper
-                                                            }}
-                                                        >
-                                                            {isCorrect && (
-                                                                <CheckCircleIcon
-                                                                    fontSize="small"
-                                                                    sx={{ color: theme.palette.success.main }}
-                                                                />
-                                                            )}
-                                                            <Box
-                                                                sx={{
-                                                                    width: 24,
-                                                                    height: 24,
-                                                                    borderRadius: '50%',
-                                                                    border: `2px solid ${isCorrect ? theme.palette.success.main : theme.palette.divider}`,
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center',
-                                                                    fontSize: '0.75rem',
-                                                                    fontWeight: 600,
-                                                                    color: isCorrect ? theme.palette.success.main : theme.palette.text.secondary
-                                                                }}
-                                                            >
-                                                                {String.fromCharCode(65 + optIndex)}
-                                                            </Box>
-                                                            <Typography variant="body2">
-                                                                {option}
+                                                    <Box
+                                                        sx={{
+                                                            p: 2,
+                                                            border: `1px solid ${theme.palette.success.main}`,
+                                                            borderRadius: 0,
+                                                            bgcolor: alpha(theme.palette.success.light, 0.1),
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: 1.5
+                                                        }}
+                                                    >
+                                                        <CheckCircleIcon
+                                                            fontSize="small"
+                                                            sx={{ color: theme.palette.success.main }}
+                                                        />
+                                                        <Box>
+                                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                                                                {t('test.correctAnswer')}:
+                                                            </Typography>
+                                                            <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+                                                                {question.options[0]}
                                                             </Typography>
                                                         </Box>
-                                                    );
-                                                })}
-                                            </Stack>
-                                        )}
-                                    </Paper>
-                                );
-                            })}
-                        </Stack>
+                                                    </Box>
+                                                </Box>
+                                            ) : (
+                                                <Stack spacing={1}>
+                                                    {question.options.map((option, optIndex) => {
+                                                        const isCorrect = optIndex === question.correctIndex;
+
+                                                        return (
+                                                            <Box
+                                                                key={optIndex}
+                                                                sx={{
+                                                                    p: 2,
+                                                                    border: `1px solid ${theme.palette.divider}`,
+                                                                    borderRadius: 0,
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: 1.5,
+                                                                    bgcolor: isCorrect
+                                                                        ? alpha(theme.palette.success.light, 0.1)
+                                                                        : theme.palette.background.paper
+                                                                }}
+                                                            >
+                                                                {isCorrect && (
+                                                                    <CheckCircleIcon
+                                                                        fontSize="small"
+                                                                        sx={{ color: theme.palette.success.main }}
+                                                                    />
+                                                                )}
+                                                                <Box
+                                                                    sx={{
+                                                                        width: 24,
+                                                                        height: 24,
+                                                                        borderRadius: '50%',
+                                                                        border: `2px solid ${isCorrect ? theme.palette.success.main : theme.palette.divider}`,
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        fontSize: '0.75rem',
+                                                                        fontWeight: 600,
+                                                                        color: isCorrect ? theme.palette.success.main : theme.palette.text.secondary
+                                                                    }}
+                                                                >
+                                                                    {String.fromCharCode(65 + optIndex)}
+                                                                </Box>
+                                                                <Typography variant="body2">
+                                                                    {option}
+                                                                </Typography>
+                                                            </Box>
+                                                        );
+                                                    })}
+                                                </Stack>
+                                            )}
+                                        </Paper>
+                                    );
+                                })}
+                            </Stack>
+                        )}
                     </Paper>
                 </Box>
 
@@ -399,9 +508,10 @@ export default function TestHomePage() {
                             elevation={0}
                             sx={{
                                 p: 4,
-                                border: `2px solid ${theme.palette.info.main}`,
+                                border: `2px solid ${canAccessPractice ? theme.palette.info.main : theme.palette.grey[400]}`,
                                 borderRadius: 0,
-                                position: 'relative'
+                                position: 'relative',
+                                opacity: canAccessPractice ? 1 : 0.6
                             }}
                         >
                             <Stack spacing={3}>
@@ -416,34 +526,54 @@ export default function TestHomePage() {
 
                                 <Divider />
 
-                                <Stack spacing={2}>
-                                    <Stack direction="row" alignItems="center" spacing={1}>
-                                        <CheckCircleIcon fontSize="small" color="success" />
-                                        <Typography variant="body2">
-                                            {t('practice.skipQuestion')}
-                                        </Typography>
+                                {!canAccessPractice ? (
+                                    <Paper
+                                        elevation={0}
+                                        sx={{
+                                            p: 3,
+                                            bgcolor: alpha(theme.palette.warning.main, 0.05),
+                                            border: `1px solid ${theme.palette.warning.main}`,
+                                            borderRadius: 0,
+                                        }}
+                                    >
+                                        <Stack direction="row" spacing={2} alignItems="center">
+                                            <LockIcon sx={{ color: theme.palette.warning.main }} />
+                                            <Typography variant="body2" color="text.secondary">
+                                                {practiceMessage}
+                                            </Typography>
+                                        </Stack>
+                                    </Paper>
+                                ) : (
+                                    <Stack spacing={2}>
+                                        <Stack direction="row" alignItems="center" spacing={1}>
+                                            <CheckCircleIcon fontSize="small" color="success" />
+                                            <Typography variant="body2">
+                                                {t('practice.skipQuestion')}
+                                            </Typography>
+                                        </Stack>
+                                        <Stack direction="row" alignItems="center" spacing={1}>
+                                            <CheckCircleIcon fontSize="small" color="success" />
+                                            <Typography variant="body2">
+                                                {t('practice.viewAnswer')}
+                                            </Typography>
+                                        </Stack>
+                                        <Stack direction="row" alignItems="center" spacing={1}>
+                                            <CheckCircleIcon fontSize="small" color="success" />
+                                            <Typography variant="body2">
+                                                {t('practice.checkAnswer')}
+                                            </Typography>
+                                        </Stack>
                                     </Stack>
-                                    <Stack direction="row" alignItems="center" spacing={1}>
-                                        <CheckCircleIcon fontSize="small" color="success" />
-                                        <Typography variant="body2">
-                                            {t('practice.viewAnswer')}
-                                        </Typography>
-                                    </Stack>
-                                    <Stack direction="row" alignItems="center" spacing={1}>
-                                        <CheckCircleIcon fontSize="small" color="success" />
-                                        <Typography variant="body2">
-                                            {t('practice.checkAnswer')}
-                                        </Typography>
-                                    </Stack>
-                                </Stack>
+                                )}
 
                                 <Button
                                     variant="outlined"
                                     size="large"
                                     fullWidth
                                     color="info"
-                                    startIcon={<HelpOutlineIcon />}
+                                    startIcon={canAccessPractice ? <HelpOutlineIcon /> : <LockIcon />}
                                     onClick={() => navigate(`/test/${id}/practice`)}
+                                    disabled={!canAccessPractice}
                                     sx={{
                                         py: 1.5,
                                         borderRadius: 0,
@@ -451,7 +581,7 @@ export default function TestHomePage() {
                                         fontSize: '1.1rem',
                                         fontWeight: 600,
                                         '&:hover': {
-                                            transform: 'translateY(-2px)'
+                                            transform: canAccessPractice ? 'translateY(-2px)' : 'none'
                                         }
                                     }}
                                 >

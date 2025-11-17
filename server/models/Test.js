@@ -38,6 +38,29 @@ const TestSchema = new mongoose.Schema({
         type: Date,
         default: null,
     },
+    // Настройки скрытия содержимого
+    hideContent: {
+        type: Boolean,
+        default: false
+    },
+    // Количество попыток для разблокировки содержимого
+    attemptsToUnlock: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    // Настройки режима практики
+    practiceMode: {
+        type: String,
+        enum: ['enabled', 'disabled', 'locked'], // enabled - доступен всем, disabled - недоступен, locked - требует попыток
+        default: 'enabled'
+    },
+    // Количество попыток для разблокировки режима практики
+    practiceAttemptsRequired: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
     createdAt: {
         type: Date,
         default: Date.now,

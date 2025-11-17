@@ -72,6 +72,8 @@ export default function TestList() {
   useEffect(() => {
     setLoading(true);
 
+    const token = localStorage.getItem('token');
+
     // Загрузка категорий
     fetch('/api/categories')
       .then((res) => res.json())
@@ -80,8 +82,13 @@ export default function TestList() {
       })
       .catch((error) => console.error('Error fetching categories:', error));
 
-    // Загрузка тестов
-    fetch('/api/tests')
+    // Загрузка тестов с токеном авторизации
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    fetch('/api/tests', { headers })
       .then((res) => res.json())
       .then((data) => {
         setTests(data);
