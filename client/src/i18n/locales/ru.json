@@ -183,7 +183,25 @@
         "byTestAndUser": "По тестам и пользователям",
         "byTestAndCategory": "По тестам и категориям",
         "byUserAndCategory": "По пользователям и категориям",
-        "uncategorized": "Без категории"
+        "uncategorized": "Без категории",
+        "visibility": "Видимость",
+        "isVisible": "Тест виден пользователям",
+        "accessSettings": {
+            "availableForAll": "Доступен для всех пользователей",
+            "restrictedAccess": "Ограниченный доступ"
+        },
+        "restrictedAccess": "Ограниченный доступ",
+        "selectUsers": "Выберите пользователей",
+        "dateRestrictions": "Ограничение по датам",
+        "availableFrom": "Доступен с",
+        "availableUntil": "Доступен до",
+        "noDateRestrictions": "Без ограничений по датам",
+        "userAccess": "Доступ пользователей",
+        "allUsers": "Все пользователи",
+        "selectedUsers": "Выбранные пользователи",
+        "visibilitySettings": "Настройки видимости",
+        "editingVisibilityFor": "Редактирование видимости для",
+        "visibilityUpdated": "Настройки видимости обновлены"
     },
     "questionForm": {
         "questionNumber": "Вопрос #",

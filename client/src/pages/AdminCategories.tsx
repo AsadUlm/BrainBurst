@@ -18,7 +18,6 @@ import {
     Divider,
     CircularProgress,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import CategoryIcon from '@mui/icons-material/Category';
 import AddIcon from '@mui/icons-material/Add';
@@ -35,7 +34,6 @@ interface Category {
 
 export default function AdminCategories() {
     const theme = useTheme();
-    const navigate = useNavigate();
     const { t } = useTranslation();
 
     const [categories, setCategories] = useState<Category[]>([]);

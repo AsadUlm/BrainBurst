@@ -86,17 +86,7 @@ export default function AdminCreateTest() {
 
     setSubmitting(true);
 
-    const payload: {
-      title: string;
-      timeLimit?: number;
-      category?: string;
-      questions: {
-        text: string;
-        options: string[];
-        correctIndex: number;
-        time?: number;
-      }[];
-    } = {
+    const payload = {
       title,
       questions: useGlobalTimer
         ? questions.map(({ time, ...rest }) => rest)

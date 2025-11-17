@@ -13,12 +13,14 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import DescriptionIcon from '@mui/icons-material/Description';
 import QuizIcon from '@mui/icons-material/Quiz';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import CategoryIcon from '@mui/icons-material/Category';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import TestVisibilityModal from '../components/TestVisibilityModal';
 
 interface Category {
   _id: string;
@@ -36,6 +38,9 @@ interface Test {
 export default function AdminTestList() {
   const [tests, setTests] = useState<Test[]>([]);
   const [categories, setCategories] = useState<Record<string, Category>>({});
+  const [visibilityModalOpen, setVisibilityModalOpen] = useState(false);
+  const [selectedTestId, setSelectedTestId] = useState<string>('');
+  const [selectedTestTitle, setSelectedTestTitle] = useState<string>('');
   const navigate = useNavigate();
   const theme = useTheme();
   const { t } = useTranslation();
@@ -88,6 +93,31 @@ export default function AdminTestList() {
   const handleEdit = (testId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     navigate(`/admin/edit/${testId}`);
+  };
+
+  const handleVisibility = (testId: string, testTitle: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setSelectedTestId(testId);
+    setSelectedTestTitle(testTitle);
+    setVisibilityModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setVisibilityModalOpen(false);
+    setSelectedTestId('');
+    setSelectedTestTitle('');
+  };
+
+  const handleVisibilityUpdate = () => {
+    // Перезагрузка списка тестов после обновления
+    const token = localStorage.getItem('token');
+    fetch('/api/tests', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(res => res.json())
+      .then(data => setTests(data));
   };
 
   return (
@@ -146,6 +176,21 @@ export default function AdminTestList() {
                   zIndex: 1,
                 }}
               >
+                <IconButton
+                  size="small"
+                  sx={{
+                    bgcolor: alpha(theme.palette.background.paper, 0.9),
+                    color: theme.palette.text.secondary,
+                    '&:hover': {
+                      bgcolor: theme.palette.background.paper,
+                      color: theme.palette.info.main,
+                    }
+                  }}
+                  onClick={(e) => handleVisibility(test._id, test.title, e)}
+                  title={t('admin.visibilitySettings')}
+                >
+                  <VisibilityIcon fontSize="small" />
+                </IconButton>
                 <IconButton
                   size="small"
                   sx={{
@@ -277,6 +322,14 @@ export default function AdminTestList() {
           </Card>
         );
       })}
+
+      <TestVisibilityModal
+        open={visibilityModalOpen}
+        onClose={handleModalClose}
+        testId={selectedTestId}
+        testTitle={selectedTestTitle}
+        onUpdate={handleVisibilityUpdate}
+      />
     </Box>
   );
 }

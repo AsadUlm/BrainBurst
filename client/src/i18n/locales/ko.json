@@ -183,7 +183,25 @@
         "byTestAndUser": "테스트 및 사용자별",
         "byTestAndCategory": "테스트 및 카테고리별",
         "byUserAndCategory": "사용자 및 카테고리별",
-        "uncategorized": "카테고리 없음"
+        "uncategorized": "카테고리 없음",
+        "visibility": "가시성",
+        "isVisible": "사용자에게 테스트 표시",
+        "accessSettings": {
+            "availableForAll": "모든 사용자가 사용 가능",
+            "restrictedAccess": "제한된 액세스"
+        },
+        "restrictedAccess": "제한된 액세스",
+        "selectUsers": "사용자 선택",
+        "dateRestrictions": "날짜 제한",
+        "availableFrom": "사용 가능 시작",
+        "availableUntil": "사용 가능 종료",
+        "noDateRestrictions": "날짜 제한 없음",
+        "userAccess": "사용자 액세스",
+        "allUsers": "모든 사용자",
+        "selectedUsers": "선택된 사용자",
+        "visibilitySettings": "가시성 설정",
+        "editingVisibilityFor": "가시성 편집 대상",
+        "visibilityUpdated": "가시성 설정이 업데이트되었습니다"
     },
     "questionForm": {
         "questionNumber": "질문 #",

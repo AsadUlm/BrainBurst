@@ -19,6 +19,25 @@ const TestSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Category',
     },
+    // Настройки видимости
+    isVisible: {
+        type: Boolean,
+        default: true
+    },
+    // Доступ по пользователям (если пусто - доступен всем)
+    allowedUsers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+    }],
+    // Доступ по датам
+    availableFrom: {
+        type: Date,
+        default: null,
+    },
+    availableUntil: {
+        type: Date,
+        default: null,
+    },
     createdAt: {
         type: Date,
         default: Date.now,

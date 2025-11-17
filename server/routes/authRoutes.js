@@ -1,9 +1,20 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { verifyToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 const JWT_SECRET = 'super-secret-key'; // ❗в .env в будущем
+
+// Получить список всех пользователей (для админа)
+router.get('/users', verifyToken, async (req, res) => {
+    try {
+        const users = await User.find({}, 'email role _id');
+        res.json(users);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // Регистрация
 router.post('/register', async (req, res) => {
