@@ -11,6 +11,8 @@ export interface Test {
     title: string;
     questions: Question[];
     timeLimit?: number;
+    hideContent?: boolean;
+    attemptsToUnlock?: number;
 }
 
 // Тип для ответов: число для множественного выбора или строка для текстового ответа

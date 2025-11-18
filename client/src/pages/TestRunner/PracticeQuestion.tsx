@@ -14,7 +14,7 @@ import {
     Alert,
     Collapse
 } from '@mui/material';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Test, Answer } from './types';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
@@ -57,6 +57,15 @@ export default function PracticeQuestion({
 
     const isOpenQuestion = question.options.length === 1;
     const [textAnswer, setTextAnswer] = useState('');
+
+    // Загружаем сохраненный текстовый ответ при смене вопроса
+    useEffect(() => {
+        if (isOpenQuestion && typeof answers[current] === 'string') {
+            setTextAnswer(answers[current] as string);
+        } else {
+            setTextAnswer('');
+        }
+    }, [current, isOpenQuestion, answers]);
 
     // Используем состояния из массивов для текущего вопроса
     const showAnswer = showAnswerStates[current] || false;

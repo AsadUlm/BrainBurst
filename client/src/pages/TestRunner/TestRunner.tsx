@@ -16,6 +16,8 @@ export default function TestRunner() {
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [resumeAvailable, setResumeAvailable] = useState(false);
+  const [userAttempts, setUserAttempts] = useState(0);
+  const [canViewContent, setCanViewContent] = useState(true);
 
   const storageKey = `testProgress_${id}`;
 
@@ -30,33 +32,62 @@ export default function TestRunner() {
   }, [answers, current, test, showResult, storageKey]);
 
   useEffect(() => {
-    fetch(`/api/tests/${id}`)
-      .then(res => res.json())
-      .then((data: Test) => {
-        const shuffledQuestions = data.questions.map(q => {
-          const optionsWithTag = q.options.map((opt, i) => ({
-            text: opt,
-            isCorrect: i === q.correctIndex,
-          }));
-          const shuffled = optionsWithTag.sort(() => Math.random() - 0.5);
-          return {
-            text: q.text,
-            options: shuffled.map(o => o.text),
-            correctIndex: shuffled.findIndex(o => o.isCorrect),
-            time: q.time,
-          };
-        });
-        setTest({ ...data, questions: shuffledQuestions });
+    const loadData = async () => {
+      const token = localStorage.getItem('token');
 
-        const saved = localStorage.getItem(storageKey);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.answers?.length > 0 || parsed.current > 0) {
-            setResumeAvailable(true);
-          }
-        }
+      const testRes = await fetch(`/api/tests/${id}`);
+      const data: Test = await testRes.json();
+
+      const shuffledQuestions = data.questions.map(q => {
+        const optionsWithTag = q.options.map((opt, i) => ({
+          text: opt,
+          isCorrect: i === q.correctIndex,
+        }));
+        const shuffled = optionsWithTag.sort(() => Math.random() - 0.5);
+        return {
+          text: q.text,
+          options: shuffled.map(o => o.text),
+          correctIndex: shuffled.findIndex(o => o.isCorrect),
+          time: q.time,
+        };
       });
-  }, [id]);
+      setTest({ ...data, questions: shuffledQuestions });
+
+      // Load user attempts for content visibility
+      if (data.hideContent && token) {
+        try {
+          const attemptsRes = await fetch(`/api/results/attempts/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          const attemptsData = await attemptsRes.json();
+          setUserAttempts(attemptsData.attempts);
+
+          // Check if user can view content after test
+          const canView = (data.attemptsToUnlock ?? 0) > 0
+            ? attemptsData.attempts >= (data.attemptsToUnlock ?? 0)
+            : false;
+          setCanViewContent(canView);
+        } catch (err) {
+          console.error('Error loading attempts:', err);
+          setCanViewContent(false);
+        }
+      } else {
+        setCanViewContent(true);
+      }
+
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.answers?.length > 0 || parsed.current > 0) {
+          setResumeAvailable(true);
+        }
+      }
+    };
+
+    loadData();
+  }, [id, storageKey]);
 
   const finishTest = async (finalAnswers: Answer[]) => {
     if (!test) return;
@@ -131,7 +162,16 @@ export default function TestRunner() {
   }
 
   if (showResult) {
-    return <TestResultSummary test={test} answers={answers} score={score} isPracticeMode={false} />;
+    return (
+      <TestResultSummary
+        test={test}
+        answers={answers}
+        score={score}
+        isPracticeMode={false}
+        canViewContent={canViewContent}
+        userAttempts={userAttempts}
+      />
+    );
   }
 
   return (
@@ -147,6 +187,11 @@ export default function TestRunner() {
           finishTest(finalAnswers);
         } else {
           setCurrent(next);
+        }
+      }}
+      onPrevious={() => {
+        if (current > 0) {
+          setCurrent(current - 1);
         }
       }}
     />

@@ -209,17 +209,41 @@ router.get('/:id', verifyToken, async (req, res) => {
             return res.status(404).json({ error: 'Тест не найден' });
         }
 
-        res.json({
+        // Проверяем, скрыто ли содержимое и нужно ли проверять количество попыток
+        // Админы всегда имеют доступ к результатам
+        const isAdmin = req.user.role === 'admin';
+        let canViewDetails = true;
+        let currentAttempts = 0;
+
+        if (!isAdmin && test.hideContent && test.attemptsToUnlock > 0) {
+            const userEmail = req.user.email;
+            currentAttempts = await Result.countDocuments({
+                userEmail,
+                testId: test._id
+            });
+            canViewDetails = currentAttempts >= test.attemptsToUnlock;
+        }
+
+        const response = {
             _id: result._id,
             testTitle: result.testTitle,
             score: result.score,
             total: result.total,
             createdAt: result.createdAt,
-            answers: result.answers,
-            correctAnswers: result.correctAnswers,
-            mistakes: result.mistakes,
-            shuffledQuestions: result.shuffledQuestions, // <- Ключевой массив!
-        });
+            canViewDetails,
+            attemptsRequired: test.hideContent ? test.attemptsToUnlock : 0,
+            currentAttempts: currentAttempts,
+        };
+
+        // Отправляем детали только если пользователь имеет доступ
+        if (canViewDetails) {
+            response.answers = result.answers;
+            response.correctAnswers = result.correctAnswers;
+            response.mistakes = result.mistakes;
+            response.shuffledQuestions = result.shuffledQuestions;
+        }
+
+        res.json(response);
     } catch (error) {
         console.error('Ошибка получения полного результата', error);
         res.status(500).json({ error: 'Ошибка сервера' });

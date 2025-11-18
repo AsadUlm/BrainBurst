@@ -26,9 +26,10 @@ interface Props {
   answers: Answer[];
   setAnswers: (a: Answer[]) => void;
   onNext: (nextIndex: number, updatedAnswers?: Answer[]) => void;
+  onPrevious?: () => void;
 }
 
-export default function TestQuestion({ test, current, answers, setAnswers, onNext }: Props) {
+export default function TestQuestion({ test, current, answers, setAnswers, onNext, onPrevious }: Props) {
   const theme = useTheme();
   const question = test.questions[current];
   const { t } = useTranslation();
@@ -44,7 +45,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
     } else {
       setTextAnswer('');
     }
-  }, [current, isOpenQuestion]);
+  }, [current, isOpenQuestion, answers]);
 
   const [globalTimeLeft, setGlobalTimeLeft] = useState<number | null>(
     test.timeLimit ?? null
@@ -128,6 +129,19 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
     setAnswers(updated);
     // Передаем обновленный массив в onNext
     onNext(current + 1, updated);
+  };
+
+  const handlePrevious = () => {
+    // Сохраняем текущий ответ перед переходом назад
+    const updated = [...answers];
+    if (isOpenQuestion) {
+      updated[current] = textAnswer.trim();
+    }
+    setAnswers(updated);
+    // Вызываем onPrevious только после сохранения
+    if (onPrevious) {
+      onPrevious();
+    }
   };
 
   return (
@@ -239,7 +253,21 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
             </RadioGroup>
           )}
 
-          <Stack direction="row" justifyContent="flex-end">
+          <Stack direction="row" justifyContent="space-between">
+            {current > 0 && onPrevious && (
+              <Button
+                variant="outlined"
+                onClick={handlePrevious}
+                sx={{
+                  px: 6,
+                  borderRadius: 0,
+                  fontWeight: 600,
+                  textTransform: 'none'
+                }}
+              >
+                {t('test.previousQuestion')}
+              </Button>
+            )}
             <Button
               variant="contained"
               onClick={handleNext}
@@ -247,7 +275,8 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
                 px: 6,
                 borderRadius: 0,
                 fontWeight: 600,
-                textTransform: 'none'
+                textTransform: 'none',
+                ml: 'auto'
               }}
             >
               {current < test.questions.length - 1 ? t('test.nextQuestion') : t('test.finishTest')}

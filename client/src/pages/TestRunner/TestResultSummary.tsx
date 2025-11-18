@@ -9,7 +9,7 @@ import {
   Typography,
   useTheme
 } from '@mui/material';
-import { CheckCircle, ErrorOutline } from '@mui/icons-material';
+import { CheckCircle, ErrorOutline, Lock as LockIcon } from '@mui/icons-material';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import HomeIcon from '@mui/icons-material/Home';
 import { Test, Answer } from './types';
@@ -23,6 +23,8 @@ interface Props {
   onRestart?: () => void;
   onBackToTests?: () => void;
   isPracticeMode?: boolean;
+  canViewContent?: boolean;
+  userAttempts?: number;
 }
 
 export default function TestResultSummary({
@@ -31,7 +33,9 @@ export default function TestResultSummary({
   score,
   onRestart,
   onBackToTests,
-  isPracticeMode = false
+  isPracticeMode = false,
+  canViewContent = true,
+  userAttempts = 0
 }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -98,101 +102,137 @@ export default function TestResultSummary({
           <Typography variant="h5">
             {t('test.correctAnswersCount')} {calculatedScore} {t('test.of')} {test.questions.length}
           </Typography>
-        </Stack>        {test.questions.map((q, i) => {
-          const userAnswer = answers[i];
-          const isOpenQuestion = q.options.length === 1;
+        </Stack>
 
-          // Для открытых вопросов проверяем текстовое совпадение
-          const isCorrect = isOpenQuestion
-            ? typeof userAnswer === 'string' &&
-            userAnswer.toLowerCase().trim() === q.options[0].toLowerCase().trim()
-            : userAnswer === q.correctIndex;
+        {/* Show content lock message if needed */}
+        {!canViewContent && test.hideContent ? (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 4,
+              border: `2px solid ${theme.palette.warning.main}`,
+              borderRadius: 0,
+              textAlign: 'center',
+              bgcolor: alpha(theme.palette.warning.main, 0.05),
+              mb: 3
+            }}
+          >
+            <LockIcon sx={{ fontSize: 64, color: theme.palette.warning.main, mb: 2 }} />
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+              {t('admin.contentLocked')}
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+              {t('admin.completeAttemptsToUnlock', { required: test.attemptsToUnlock })}
+            </Typography>
+            <Chip
+              icon={<LockIcon fontSize="small" />}
+              label={t('admin.yourAttempts', {
+                current: userAttempts + 1,
+                required: test.attemptsToUnlock || 0
+              })}
+              color="warning"
+              sx={{ borderRadius: 0, fontWeight: 600 }}
+            />
+          </Paper>
+        ) : (
+          test.questions.map((q, i) => {
+            const userAnswer = answers[i];
+            const isOpenQuestion = q.options.length === 1;
 
-          return (
-            <Paper
-              key={i}
-              variant="outlined"
-              sx={{
-                p: 3,
-                mb: 3,
-                borderRadius: 0,
-                borderColor: isCorrect
-                  ? theme.palette.success.main
-                  : theme.palette.error.main,
-                bgcolor: alpha(
-                  isCorrect ? theme.palette.success.light : theme.palette.error.light,
-                  0.1
-                )
-              }}
-            >
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                {t('test.question')} {i + 1}: {q.text}
-              </Typography>
+            // Для открытых вопросов проверяем текстовое совпадение
+            const isCorrect = isOpenQuestion
+              ? typeof userAnswer === 'string' &&
+              userAnswer.toLowerCase().trim() === q.options[0].toLowerCase().trim()
+              : userAnswer === q.correctIndex;
 
-              {isOpenQuestion ? (
-                // Отображение для открытых вопросов
-                <Box sx={{ pl: 2 }}>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                      {t('test.yourAnswer')}:
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontWeight: 600,
-                        color: isCorrect
-                          ? theme.palette.success.main
-                          : theme.palette.error.main
-                      }}
-                    >
-                      {typeof userAnswer === 'string' ? userAnswer : t('test.noAnswer')}
-                      {isCorrect && <CheckCircle fontSize="small" sx={{ ml: 1, verticalAlign: 'middle' }} />}
-                      {!isCorrect && <ErrorOutline fontSize="small" sx={{ ml: 1, verticalAlign: 'middle' }} />}
-                    </Typography>
-                  </Box>
-                  {!isCorrect && (
-                    <Box>
+            return (
+              <Paper
+                key={i}
+                variant="outlined"
+                sx={{
+                  p: 3,
+                  mb: 3,
+                  borderRadius: 0,
+                  borderColor: isCorrect
+                    ? theme.palette.success.main
+                    : theme.palette.error.main,
+                  bgcolor: alpha(
+                    isCorrect ? theme.palette.success.light : theme.palette.error.light,
+                    0.1
+                  )
+                }}
+              >
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                  {t('test.question')} {i + 1}: {q.text}
+                </Typography>
+
+                {isOpenQuestion ? (
+                  // Отображение для открытых вопросов
+                  <Box sx={{ pl: 2 }}>
+                    <Box sx={{ mb: 2 }}>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                        {t('test.correctAnswer')}:
+                        {t('test.yourAnswer')}:
                       </Typography>
-                      <Typography sx={{ fontWeight: 600, color: theme.palette.success.main }}>
-                        {q.options[0]}
+                      <Typography
+                        sx={{
+                          fontWeight: 600,
+                          color: isCorrect
+                            ? theme.palette.success.main
+                            : theme.palette.error.main
+                        }}
+                      >
+                        {typeof userAnswer === 'string' ? userAnswer : t('test.noAnswer')}
+                        {isCorrect && <CheckCircle fontSize="small" sx={{ ml: 1, verticalAlign: 'middle' }} />}
+                        {!isCorrect && <ErrorOutline fontSize="small" sx={{ ml: 1, verticalAlign: 'middle' }} />}
                       </Typography>
                     </Box>
-                  )}
-                </Box>
-              ) : (
-                // Отображение для вопросов с множественным выбором
-                q.options.map((opt, idx) => {
-                  const isUser = userAnswer === idx;
-                  const isRight = q.correctIndex === idx;
+                    {!isCorrect && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                          {t('test.correctAnswer')}:
+                        </Typography>
+                        <Typography sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+                          {q.options[0]}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                ) : (
+                  // Отображение для вопросов с множественным выбором
+                  q.options.map((opt, idx: number) => {
+                    const isUser = userAnswer === idx;
+                    const isRight = q.correctIndex === idx;
 
-                  return (
-                    <Box
-                      key={idx}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        pl: 2,
-                        py: 1,
-                        color: isRight
-                          ? theme.palette.success.main
-                          : isUser
-                            ? theme.palette.error.main
-                            : theme.palette.text.primary,
-                        fontWeight: isUser ? 600 : 400
-                      }}
-                    >
-                      {isRight && <CheckCircle fontSize="small" />}
-                      {isUser && !isRight && <ErrorOutline fontSize="small" />}
-                      <Typography>{opt}</Typography>
-                    </Box>
-                  );
-                })
-              )}
-            </Paper>
-          );
-        })}
+                    return (
+                      <Box
+                        key={idx}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          pl: 2,
+                          py: 1,
+                          color: isRight
+                            ? theme.palette.success.main
+                            : isUser
+                              ? theme.palette.error.main
+                              : theme.palette.text.primary,
+                          fontWeight: isUser ? 600 : 400
+                        }}
+                      >
+                        {isRight && <CheckCircle fontSize="small" />}
+                        {isUser && !isRight && <ErrorOutline fontSize="small" />}
+                        <Typography>{opt}</Typography>
+                      </Box>
+                    );
+                  })
+                )}
+              </Paper>
+            );
+          })
+        )}
+
+        {/* End of content lock conditional */}
 
         {/* Кнопки для режима практики */}
         {isPracticeMode && (onRestart || onBackToTests) && (
