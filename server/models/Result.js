@@ -13,6 +13,11 @@ const ResultSchema = new mongoose.Schema({
         text: { type: String, required: true },
         options: [{ type: String, required: true }]
     }],
+    // Время прохождения теста
+    startTime: { type: Date },
+    endTime: { type: Date },
+    duration: { type: Number }, // Длительность в секундах
+    timePerQuestion: [Number], // Время на каждый вопрос в секундах
     createdAt: { type: Date, default: Date.now }
 });
 

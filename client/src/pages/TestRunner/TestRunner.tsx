@@ -14,6 +14,9 @@ export default function TestRunner() {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [questionTimesLeft, setQuestionTimesLeft] = useState<number[]>([]);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [questionStartTimes, setQuestionStartTimes] = useState<Date[]>([]);
+  const [timePerQuestion, setTimePerQuestion] = useState<number[]>([]);
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [resumeAvailable, setResumeAvailable] = useState(false);
@@ -28,10 +31,12 @@ export default function TestRunner() {
       localStorage.setItem(storageKey, JSON.stringify({
         answers,
         current,
-        questionTimesLeft
+        questionTimesLeft,
+        startTime: startTime?.toISOString(),
+        timePerQuestion
       }));
     }
-  }, [answers, current, questionTimesLeft, test, showResult, storageKey]);
+  }, [answers, current, questionTimesLeft, startTime, timePerQuestion, test, showResult, storageKey]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -58,6 +63,11 @@ export default function TestRunner() {
       // Инициализируем массив оставшегося времени для каждого вопроса
       const initialTimes = shuffledQuestions.map(q => q.time || 15);
       setQuestionTimesLeft(initialTimes);
+
+      // Инициализируем массивы для отслеживания времени
+      setTimePerQuestion(new Array(shuffledQuestions.length).fill(0));
+      setQuestionStartTimes(new Array(shuffledQuestions.length).fill(new Date()));
+      setStartTime(new Date());
 
       // Load user attempts for content visibility
       if (data.hideContent && token) {
@@ -119,6 +129,10 @@ export default function TestRunner() {
     setShowResult(true);
     localStorage.removeItem(storageKey);
 
+    // Вычисляем общую длительность
+    const endTime = new Date();
+    const duration = startTime ? Math.floor((endTime.getTime() - startTime.getTime()) / 1000) : 0;
+
     const resultPayload = {
       userEmail: localStorage.getItem('email') || 'unknown',
       testId: test._id,
@@ -137,6 +151,10 @@ export default function TestRunner() {
         return a !== correctAnswers[i] ? i : null;
       }).filter(x => x !== null),
       shuffledQuestions: test.questions,
+      startTime: startTime?.toISOString(),
+      endTime: endTime.toISOString(),
+      duration,
+      timePerQuestion
     };
 
     await fetch('/api/results', {
@@ -160,6 +178,9 @@ export default function TestRunner() {
           if (test) {
             const initialTimes = test.questions.map(q => q.time || 15);
             setQuestionTimesLeft(initialTimes);
+            setTimePerQuestion(new Array(test.questions.length).fill(0));
+            setQuestionStartTimes(new Array(test.questions.length).fill(new Date()));
+            setStartTime(new Date());
           }
         }}
         onResume={() => {
@@ -169,6 +190,12 @@ export default function TestRunner() {
           // Восстанавливаем сохраненное время или используем начальное
           if (saved.questionTimesLeft) {
             setQuestionTimesLeft(saved.questionTimesLeft);
+          }
+          if (saved.startTime) {
+            setStartTime(new Date(saved.startTime));
+          }
+          if (saved.timePerQuestion) {
+            setTimePerQuestion(saved.timePerQuestion);
           }
           setResumeAvailable(false);
         }}
@@ -198,11 +225,25 @@ export default function TestRunner() {
       questionTimesLeft={questionTimesLeft}
       setQuestionTimesLeft={setQuestionTimesLeft}
       onNext={(next, updatedAnswers) => {
+        // Сохраняем время, потраченное на текущий вопрос
+        const now = new Date();
+        const questionStart = questionStartTimes[current];
+        if (questionStart) {
+          const timeSpent = Math.floor((now.getTime() - questionStart.getTime()) / 1000);
+          const updatedTimes = [...timePerQuestion];
+          updatedTimes[current] = timeSpent;
+          setTimePerQuestion(updatedTimes);
+        }
+
         // Используем обновленные ответы, если они переданы
         const finalAnswers = updatedAnswers || answers;
         if (next >= test.questions.length) {
           finishTest(finalAnswers);
         } else {
+          // Устанавливаем время начала следующего вопроса
+          const newStartTimes = [...questionStartTimes];
+          newStartTimes[next] = new Date();
+          setQuestionStartTimes(newStartTimes);
           setCurrent(next);
         }
       }}

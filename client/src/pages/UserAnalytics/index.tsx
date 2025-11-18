@@ -20,6 +20,8 @@ import {
     EmojiEvents as TrophyIcon,
     CheckCircle as CheckCircleIcon,
     School as SchoolIcon,
+    Timer as TimerIcon,
+    Speed as SpeedIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import PerformanceChart from './components/PerformanceChart';
@@ -35,6 +37,9 @@ interface AnalyticsData {
     incorrectAnswers: number;
     bestScore: number;
     worstScore: number;
+    averageTime: number;
+    totalTimeSpent: number;
+    averageTimePerQuestion: number;
     recentResults: any[];
     categoryStats: any[];
     performanceData: any[];
@@ -100,6 +105,14 @@ export default function UserAnalytics() {
         ? ((analytics.correctAnswers / analytics.totalQuestions) * 100).toFixed(1)
         : 0;
 
+    // Форматирование времени в читабельный формат
+    const formatTime = (seconds: number) => {
+        if (seconds < 60) return `${seconds}с`;
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}м ${secs}с`;
+    };
+
     return (
         <Container maxWidth="xl" sx={{ py: 4 }}>
             {/* Header */}
@@ -137,7 +150,7 @@ export default function UserAnalytics() {
             {/* Statistics Cards */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
                 {/* Total Tests */}
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
                     <Card
                         elevation={0}
                         sx={{
@@ -180,7 +193,7 @@ export default function UserAnalytics() {
                 </Grid>
 
                 {/* Average Score */}
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
                     <Card
                         elevation={0}
                         sx={{
@@ -223,7 +236,7 @@ export default function UserAnalytics() {
                 </Grid>
 
                 {/* Accuracy Rate */}
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
                     <Card
                         elevation={0}
                         sx={{
@@ -266,7 +279,7 @@ export default function UserAnalytics() {
                 </Grid>
 
                 {/* Best Score */}
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
                     <Card
                         elevation={0}
                         sx={{
@@ -297,10 +310,96 @@ export default function UserAnalytics() {
                                 </Box>
                                 <Box>
                                     <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                                        {analytics.bestScore.toFixed(0)}%
+                                        {analytics.bestScore}%
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary">
                                         {t('analytics.bestScore')}
+                                    </Typography>
+                                </Box>
+                            </Stack>
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+                {/* Average Time */}
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+                    <Card
+                        elevation={0}
+                        sx={{
+                            height: '100%',
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: 0,
+                            transition: 'all 0.3s',
+                            '&:hover': {
+                                transform: 'translateY(-4px)',
+                                boxShadow: `0 8px 24px ${alpha(theme.palette.secondary.main, 0.15)}`,
+                            },
+                        }}
+                    >
+                        <CardContent>
+                            <Stack spacing={2}>
+                                <Box
+                                    sx={{
+                                        width: 48,
+                                        height: 48,
+                                        borderRadius: '50%',
+                                        bgcolor: alpha(theme.palette.secondary.main, 0.1),
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <TimerIcon sx={{ color: theme.palette.secondary.main }} />
+                                </Box>
+                                <Box>
+                                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                                        {formatTime(analytics.averageTime)}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {t('analytics.averageTime')}
+                                    </Typography>
+                                </Box>
+                            </Stack>
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+                {/* Average Time Per Question */}
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+                    <Card
+                        elevation={0}
+                        sx={{
+                            height: '100%',
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: 0,
+                            transition: 'all 0.3s',
+                            '&:hover': {
+                                transform: 'translateY(-4px)',
+                                boxShadow: `0 8px 24px ${alpha(theme.palette.error.main, 0.15)}`,
+                            },
+                        }}
+                    >
+                        <CardContent>
+                            <Stack spacing={2}>
+                                <Box
+                                    sx={{
+                                        width: 48,
+                                        height: 48,
+                                        borderRadius: '50%',
+                                        bgcolor: alpha(theme.palette.error.main, 0.1),
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <SpeedIcon sx={{ color: theme.palette.error.main }} />
+                                </Box>
+                                <Box>
+                                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                                        {formatTime(analytics.averageTimePerQuestion)}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {t('analytics.avgTimePerQuestion')}
                                     </Typography>
                                 </Box>
                             </Stack>

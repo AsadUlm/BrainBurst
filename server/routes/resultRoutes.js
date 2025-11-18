@@ -16,7 +16,11 @@ router.post('/', async (req, res) => {
             answers,
             correctAnswers,
             mistakes,
-            shuffledQuestions
+            shuffledQuestions,
+            startTime,
+            endTime,
+            duration,
+            timePerQuestion
         } = req.body;
 
         if (!userEmail || !testId || !testTitle || !answers || !correctAnswers || !mistakes || !shuffledQuestions) {
@@ -32,7 +36,11 @@ router.post('/', async (req, res) => {
             answers,
             correctAnswers,
             mistakes,
-            shuffledQuestions
+            shuffledQuestions,
+            startTime,
+            endTime,
+            duration,
+            timePerQuestion
         });
 
         await newResult.save();
@@ -69,6 +77,9 @@ router.get('/analytics', verifyToken, async (req, res) => {
                 incorrectAnswers: 0,
                 bestScore: 0,
                 worstScore: 0,
+                averageTime: 0,
+                totalTimeSpent: 0,
+                averageTimePerQuestion: 0,
                 recentResults: [],
                 categoryStats: [],
                 performanceData: [],
@@ -82,6 +93,9 @@ router.get('/analytics', verifyToken, async (req, res) => {
         let correctAnswers = 0;
         let bestScore = 0;
         let worstScore = 100;
+        let totalTimeSpent = 0;
+        let totalQuestionsAnswered = 0;
+        let totalTimeForAllQuestions = 0;
 
         // Статистика по категориям
         const categoryMap = new Map();
@@ -96,11 +110,21 @@ router.get('/analytics', verifyToken, async (req, res) => {
             if (percentage > bestScore) bestScore = percentage;
             if (percentage < worstScore) worstScore = percentage;
 
+            // Подсчет времени
+            if (result.duration) {
+                totalTimeSpent += result.duration;
+            }
+            if (result.timePerQuestion && Array.isArray(result.timePerQuestion)) {
+                totalQuestionsAnswered += result.timePerQuestion.length;
+                totalTimeForAllQuestions += result.timePerQuestion.reduce((sum, time) => sum + time, 0);
+            }
+
             return {
                 name: `Test ${index + 1}`,
                 score: Math.round(percentage),
                 date: result.createdAt,
                 testTitle: result.testTitle,
+                duration: result.duration || 0,
             };
         });
 
@@ -113,6 +137,15 @@ router.get('/analytics', verifyToken, async (req, res) => {
 
             if (percentage > bestScore) bestScore = percentage;
             if (percentage < worstScore) worstScore = percentage;
+
+            // Подсчет времени
+            if (result.duration) {
+                totalTimeSpent += result.duration;
+            }
+            if (result.timePerQuestion && Array.isArray(result.timePerQuestion)) {
+                totalQuestionsAnswered += result.timePerQuestion.length;
+                totalTimeForAllQuestions += result.timePerQuestion.reduce((sum, time) => sum + time, 0);
+            }
         });
 
         // Получаем категории тестов
@@ -150,6 +183,10 @@ router.get('/analytics', verifyToken, async (req, res) => {
 
         const averageScore = totalTests > 0 ? totalScore / totalTests : 0;
         const incorrectAnswers = totalQuestions - correctAnswers;
+        const averageTime = totalTests > 0 ? Math.round(totalTimeSpent / totalTests) : 0;
+        const averageTimePerQuestion = totalQuestionsAnswered > 0
+            ? Math.round(totalTimeForAllQuestions / totalQuestionsAnswered)
+            : 0;
 
         // Последние 5 результатов
         const recentResults = results.slice(0, 5).map(result => ({
@@ -159,6 +196,7 @@ router.get('/analytics', verifyToken, async (req, res) => {
             total: result.total,
             percentage: result.total > 0 ? Math.round((result.score / result.total) * 100) : 0,
             createdAt: result.createdAt,
+            duration: result.duration || 0,
         }));
 
         res.json({
@@ -169,6 +207,9 @@ router.get('/analytics', verifyToken, async (req, res) => {
             incorrectAnswers,
             bestScore: Math.round(bestScore),
             worstScore: totalTests > 0 ? Math.round(worstScore) : 0,
+            averageTime,
+            totalTimeSpent,
+            averageTimePerQuestion,
             recentResults,
             categoryStats,
             performanceData,

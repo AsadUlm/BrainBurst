@@ -106,7 +106,13 @@
         "bestScore": "Лучший результат",
         "avgScore": "Средний балл",
         "lastAttempt": "Последняя",
-        "attemptNumber": "#"
+        "attemptNumber": "#",
+        "avgTime": "Среднее время",
+        "bestTime": "Лучшее время",
+        "timeSpent": "Затрачено",
+        "noTime": "—",
+        "minutes": "м",
+        "seconds": "с"
     },
     "practice": {
         "correct": "Правильно!",
@@ -261,6 +267,8 @@
         "averageScore": "Средний балл",
         "accuracyRate": "Точность ответов",
         "bestScore": "Лучший результат",
+        "averageTime": "Среднее время",
+        "avgTimePerQuestion": "Время на вопрос",
         "score": "Результат",
         "performanceOverTime": "Динамика результатов",
         "noDataAvailable": "Нет данных",

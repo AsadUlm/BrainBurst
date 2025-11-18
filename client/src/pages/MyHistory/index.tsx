@@ -18,6 +18,7 @@ import {
 import HistoryIcon from '@mui/icons-material/History';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import TimerIcon from '@mui/icons-material/Timer';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SortIcon from '@mui/icons-material/Sort';
 import ViewListIcon from '@mui/icons-material/ViewList';
@@ -42,6 +43,10 @@ interface Result {
   score: number;
   total: number;
   createdAt: string;
+  duration?: number;
+  startTime?: string;
+  endTime?: string;
+  timePerQuestion?: number[];
 }
 
 interface ResultDetail extends Result {
@@ -115,6 +120,15 @@ export default function MyHistory() {
     return new Date(dateString).toLocaleString(locale, options);
   };
 
+  // Функция для форматирования времени в читабельный формат
+  const formatTime = (seconds: number) => {
+    if (!seconds || seconds === 0) return t('history.noTime');
+    if (seconds < 60) return `${seconds}${t('history.seconds')}`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return secs > 0 ? `${mins}${t('history.minutes')} ${secs}${t('history.seconds')}` : `${mins}${t('history.minutes')}`;
+  };
+
   // Группировка результатов по тестам
   const groupedResults = useMemo(() => {
     const groups: { [key: string]: Result[] } = {};
@@ -146,7 +160,13 @@ export default function MyHistory() {
     const total = results[0]?.total || 0;
     const lastAttempt = results[0];
 
-    return { attempts, bestScore, avgScore, total, lastAttempt };
+    // Статистика времени
+    const resultsWithTime = results.filter(r => r.duration && r.duration > 0);
+    const totalTime = resultsWithTime.reduce((sum, r) => sum + (r.duration || 0), 0);
+    const avgTime = resultsWithTime.length > 0 ? Math.round(totalTime / resultsWithTime.length) : 0;
+    const bestTime = resultsWithTime.length > 0 ? Math.min(...resultsWithTime.map(r => r.duration || Infinity)) : 0;
+
+    return { attempts, bestScore, avgScore, total, lastAttempt, avgTime, bestTime };
   };
 
   return (
@@ -326,6 +346,30 @@ export default function MyHistory() {
                             </Typography>
                           </Stack>
 
+                          {stats.avgTime > 0 && (
+                            <Stack direction="row" alignItems="center" spacing={1}>
+                              <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                              <Typography variant="body2" color="text.secondary">
+                                {t('history.avgTime')}:
+                              </Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {formatTime(stats.avgTime)}
+                              </Typography>
+                            </Stack>
+                          )}
+
+                          {stats.bestTime > 0 && (
+                            <Stack direction="row" alignItems="center" spacing={1}>
+                              <TimerIcon fontSize="small" sx={{ color: theme.palette.success.main }} />
+                              <Typography variant="body2" color="text.secondary">
+                                {t('history.bestTime')}:
+                              </Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {formatTime(stats.bestTime)}
+                              </Typography>
+                            </Stack>
+                          )}
+
                           <Stack direction="row" alignItems="center" spacing={1}>
                             <AccessTimeIcon fontSize="small" color="action" />
                             <Typography variant="body2" color="text.secondary">
@@ -372,6 +416,14 @@ export default function MyHistory() {
                                     {formatDate(r.createdAt)}
                                   </Typography>
                                 </Stack>
+                                {r.duration && r.duration > 0 && (
+                                  <Stack direction="row" alignItems="center" spacing={1}>
+                                    <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                                    <Typography variant="body2" color="text.secondary">
+                                      {t('history.timeSpent')}: {formatTime(r.duration)}
+                                    </Typography>
+                                  </Stack>
+                                )}
                               </Stack>
 
                               <Chip
@@ -427,11 +479,21 @@ export default function MyHistory() {
                     />
                   </Stack>
 
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <AccessTimeIcon fontSize="small" color="action" />
-                    <Typography variant="body2" color="text.secondary">
-                      {formatDate(r.createdAt)}
-                    </Typography>
+                  <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <AccessTimeIcon fontSize="small" color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        {formatDate(r.createdAt)}
+                      </Typography>
+                    </Stack>
+                    {r.duration && r.duration > 0 && (
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {t('history.timeSpent')}: <strong>{formatTime(r.duration)}</strong>
+                        </Typography>
+                      </Stack>
+                    )}
                   </Stack>
                 </Paper>
               ))}

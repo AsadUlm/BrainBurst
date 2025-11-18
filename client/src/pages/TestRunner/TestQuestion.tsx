@@ -26,7 +26,7 @@ interface Props {
   answers: Answer[];
   setAnswers: (a: Answer[]) => void;
   questionTimesLeft: number[];
-  setQuestionTimesLeft: (times: number[]) => void;
+  setQuestionTimesLeft: React.Dispatch<React.SetStateAction<number[]>>;
   onNext: (nextIndex: number, updatedAnswers?: Answer[]) => void;
   onPrevious?: () => void;
 }

@@ -106,7 +106,13 @@
         "bestScore": "최고 점수",
         "avgScore": "평균 점수",
         "lastAttempt": "마지막",
-        "attemptNumber": "#"
+        "attemptNumber": "#",
+        "avgTime": "평균 시간",
+        "bestTime": "최고 시간",
+        "timeSpent": "소요 시간",
+        "noTime": "—",
+        "minutes": "분",
+        "seconds": "초"
     },
     "practice": {
         "correct": "정답입니다!",
@@ -260,6 +266,8 @@
         "averageScore": "평균 점수",
         "accuracyRate": "정답률",
         "bestScore": "최고 점수",
+        "averageTime": "평균 시간",
+        "avgTimePerQuestion": "문제당 시간",
         "score": "점수",
         "performanceOverTime": "성적 추이",
         "noDataAvailable": "데이터 없음",
