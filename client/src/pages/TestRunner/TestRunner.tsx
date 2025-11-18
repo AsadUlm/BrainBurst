@@ -13,6 +13,7 @@ export default function TestRunner() {
   const [test, setTest] = useState<Test | null>(null);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
+  const [questionTimesLeft, setQuestionTimesLeft] = useState<number[]>([]);
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [resumeAvailable, setResumeAvailable] = useState(false);
@@ -26,10 +27,11 @@ export default function TestRunner() {
     if (test && !showResult && answers.length > 0) {
       localStorage.setItem(storageKey, JSON.stringify({
         answers,
-        current
+        current,
+        questionTimesLeft
       }));
     }
-  }, [answers, current, test, showResult, storageKey]);
+  }, [answers, current, questionTimesLeft, test, showResult, storageKey]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -52,6 +54,10 @@ export default function TestRunner() {
         };
       });
       setTest({ ...data, questions: shuffledQuestions });
+
+      // Инициализируем массив оставшегося времени для каждого вопроса
+      const initialTimes = shuffledQuestions.map(q => q.time || 15);
+      setQuestionTimesLeft(initialTimes);
 
       // Load user attempts for content visibility
       if (data.hideContent && token) {
@@ -150,11 +156,20 @@ export default function TestRunner() {
           setAnswers([]);
           setCurrent(0);
           setResumeAvailable(false);
+          // Сбрасываем время для всех вопросов
+          if (test) {
+            const initialTimes = test.questions.map(q => q.time || 15);
+            setQuestionTimesLeft(initialTimes);
+          }
         }}
         onResume={() => {
           const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
           setAnswers(saved.answers || []);
           setCurrent(saved.current || 0);
+          // Восстанавливаем сохраненное время или используем начальное
+          if (saved.questionTimesLeft) {
+            setQuestionTimesLeft(saved.questionTimesLeft);
+          }
           setResumeAvailable(false);
         }}
       />
@@ -180,6 +195,8 @@ export default function TestRunner() {
       current={current}
       answers={answers}
       setAnswers={setAnswers}
+      questionTimesLeft={questionTimesLeft}
+      setQuestionTimesLeft={setQuestionTimesLeft}
       onNext={(next, updatedAnswers) => {
         // Используем обновленные ответы, если они переданы
         const finalAnswers = updatedAnswers || answers;

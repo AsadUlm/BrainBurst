@@ -29,6 +29,12 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
             ...req.body,
             isVisible: req.body.isVisible !== undefined ? req.body.isVisible : true
         };
+
+        // Если timeLimit === null, удаляем его из объекта
+        if (testData.timeLimit === null) {
+            delete testData.timeLimit;
+        }
+
         const newTest = new Test(testData);
         await newTest.save();
         res.status(201).json(newTest);
@@ -52,7 +58,33 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
             });
         }
 
-        const updated = await Test.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const updateData = { ...req.body };
+        const updateOptions = { new: true };
+
+        // Если timeLimit === null, используем $unset для удаления поля из БД
+        // В этом случае используется режим "время на каждый вопрос", поэтому time должно остаться
+        if (updateData.timeLimit === null) {
+            delete updateData.timeLimit;
+
+            const updated = await Test.findByIdAndUpdate(
+                req.params.id,
+                { $set: updateData, $unset: { timeLimit: 1 } },
+                updateOptions
+            );
+            if (!updated) return res.status(404).json({ error: 'Test not found' });
+            console.log('✅ Тест обновлен (timeLimit удален, время на вопросы сохранено). allowedUsers в БД:', updated.allowedUsers);
+            return res.json(updated);
+        }
+
+        // Если есть timeLimit (глобальный таймер), удаляем time из всех вопросов
+        if (updateData.timeLimit !== undefined && updateData.questions && Array.isArray(updateData.questions)) {
+            updateData.questions = updateData.questions.map(q => {
+                const { time, ...rest } = q;
+                return rest;
+            });
+        }
+
+        const updated = await Test.findByIdAndUpdate(req.params.id, updateData, updateOptions);
         if (!updated) return res.status(404).json({ error: 'Test not found' });
 
         console.log('✅ Тест обновлен. allowedUsers в БД:', updated.allowedUsers);

@@ -55,6 +55,7 @@ export default function AdminEditTest() {
   const [title, setTitle] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [timeLimit, setTimeLimit] = useState<number>(60);
+  const [defaultQuestionTime, setDefaultQuestionTime] = useState(15);
   const [useGlobalTimer, setUseGlobalTimer] = useState(true);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -104,6 +105,11 @@ export default function AdminEditTest() {
     setQuestions(copy);
   };
 
+  const applyTimeToAllQuestions = (time: number) => {
+    const updated = questions.map(q => ({ ...q, time }));
+    setQuestions(updated);
+  };
+
   const handleSubmit = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -113,14 +119,22 @@ export default function AdminEditTest() {
 
     setSubmitting(true);
 
-    const payload: TestData = {
+    const payload: any = {
       title,
-      questions: questions.map((q) =>
-        useGlobalTimer ? { ...q, time: undefined } : q
-      ),
-      ...(useGlobalTimer && { timeLimit }),
+      questions: useGlobalTimer
+        ? questions.map(({ time, ...rest }) => rest)
+        : questions,
       ...(selectedCategory && { category: selectedCategory }),
     };
+
+    // Добавляем timeLimit только если используется глобальный таймер
+    if (useGlobalTimer) {
+      payload.timeLimit = timeLimit;
+    }
+    // Явно указываем, что timeLimit не должно быть, если используется время на вопрос
+    else {
+      payload.timeLimit = null;
+    }
 
     try {
       const res = await fetch(`/api/tests/${id}`, {
@@ -243,7 +257,7 @@ export default function AdminEditTest() {
             />
           </RadioGroup>
 
-          {useGlobalTimer && (
+          {useGlobalTimer ? (
             <TextField
               fullWidth
               label={t('admin.timeForTest')}
@@ -252,6 +266,30 @@ export default function AdminEditTest() {
               onChange={(e) => setTimeLimit(Number(e.target.value))}
               sx={{ mt: 3, maxWidth: 300 }}
             />
+          ) : (
+            <Box sx={{ mt: 3 }}>
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end', maxWidth: 600 }}>
+                <TextField
+                  label={t('admin.defaultTimePerQuestion')}
+                  type="number"
+                  value={defaultQuestionTime}
+                  onChange={(e) => {
+                    const newTime = Number(e.target.value);
+                    setDefaultQuestionTime(newTime);
+                  }}
+                  sx={{ flex: 1 }}
+                  helperText={t('admin.defaultTimeHelp')}
+                />
+                <Button
+                  variant="outlined"
+                  onClick={() => applyTimeToAllQuestions(defaultQuestionTime)}
+                  disabled={questions.length === 0}
+                  sx={{ px: 3, py: 1.5, whiteSpace: 'nowrap' }}
+                >
+                  {t('admin.applyToAll')}
+                </Button>
+              </Box>
+            </Box>
           )}
         </Box>
 
@@ -275,7 +313,7 @@ export default function AdminEditTest() {
             text: '',
             options: ['', '', '', ''],
             correctIndex: 0,
-            time: 15
+            time: defaultQuestionTime
           }])}
           sx={{
             width: '100%',

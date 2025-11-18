@@ -47,6 +47,7 @@ export default function AdminCreateTest() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [useGlobalTimer, setUseGlobalTimer] = useState(true);
   const [timeLimit, setTimeLimit] = useState(60);
+  const [defaultQuestionTime, setDefaultQuestionTime] = useState(15);
   const [submitting, setSubmitting] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -66,9 +67,14 @@ export default function AdminCreateTest() {
         text: '',
         options: ['', '', '', ''],
         correctIndex: 0,
-        time: 15,
+        time: defaultQuestionTime,
       },
     ]);
+  };
+
+  const applyTimeToAllQuestions = (time: number) => {
+    const updated = questions.map(q => ({ ...q, time }));
+    setQuestions(updated);
   };
 
   const updateQuestion = (index: number, data: Question) => {
@@ -86,14 +92,22 @@ export default function AdminCreateTest() {
 
     setSubmitting(true);
 
-    const payload = {
+    const payload: any = {
       title,
       questions: useGlobalTimer
         ? questions.map(({ time, ...rest }) => rest)
         : questions,
-      ...(useGlobalTimer && { timeLimit }),
       ...(selectedCategory && { category: selectedCategory }),
     };
+
+    // Добавляем timeLimit только если используется глобальный таймер
+    if (useGlobalTimer) {
+      payload.timeLimit = timeLimit;
+    }
+    // Явно указываем, что timeLimit не должно быть, если используется время на вопрос
+    else {
+      payload.timeLimit = null;
+    }
 
     try {
       const res = await fetch('/api/tests', {
@@ -221,7 +235,7 @@ export default function AdminCreateTest() {
             />
           </RadioGroup>
 
-          {useGlobalTimer && (
+          {useGlobalTimer ? (
             <TextField
               fullWidth
               label={t('admin.timeForTest')}
@@ -230,6 +244,30 @@ export default function AdminCreateTest() {
               onChange={(e) => setTimeLimit(Number(e.target.value))}
               sx={{ mt: 3, maxWidth: 300 }}
             />
+          ) : (
+            <Box sx={{ mt: 3 }}>
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end', maxWidth: 600 }}>
+                <TextField
+                  label={t('admin.defaultTimePerQuestion')}
+                  type="number"
+                  value={defaultQuestionTime}
+                  onChange={(e) => {
+                    const newTime = Number(e.target.value);
+                    setDefaultQuestionTime(newTime);
+                  }}
+                  sx={{ flex: 1 }}
+                  helperText={t('admin.defaultTimeHelp')}
+                />
+                <Button
+                  variant="outlined"
+                  onClick={() => applyTimeToAllQuestions(defaultQuestionTime)}
+                  disabled={questions.length === 0}
+                  sx={{ px: 3, py: 1.5, whiteSpace: 'nowrap' }}
+                >
+                  {t('admin.applyToAll')}
+                </Button>
+              </Box>
+            </Box>
           )}
         </Box>
 

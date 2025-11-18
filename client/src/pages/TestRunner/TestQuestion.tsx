@@ -25,11 +25,13 @@ interface Props {
   current: number;
   answers: Answer[];
   setAnswers: (a: Answer[]) => void;
+  questionTimesLeft: number[];
+  setQuestionTimesLeft: (times: number[]) => void;
   onNext: (nextIndex: number, updatedAnswers?: Answer[]) => void;
   onPrevious?: () => void;
 }
 
-export default function TestQuestion({ test, current, answers, setAnswers, onNext, onPrevious }: Props) {
+export default function TestQuestion({ test, current, answers, setAnswers, questionTimesLeft, setQuestionTimesLeft, onNext, onPrevious }: Props) {
   const theme = useTheme();
   const question = test.questions[current];
   const { t } = useTranslation();
@@ -50,9 +52,8 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
   const [globalTimeLeft, setGlobalTimeLeft] = useState<number | null>(
     test.timeLimit ?? null
   );
-  const [questionTimeLeft, setQuestionTimeLeft] = useState<number>(
-    question.time ?? 15
-  );
+  // Используем время из общего массива
+  const questionTimeLeft = questionTimesLeft[current] ?? (question.time || 15);
 
   const isGlobalTimer = !!test.timeLimit;
 
@@ -92,16 +93,20 @@ export default function TestQuestion({ test, current, answers, setAnswers, onNex
   useEffect(() => {
     if (isGlobalTimer) return;
 
-    setQuestionTimeLeft(question.time ?? 15);
-
     const timer = setInterval(() => {
-      setQuestionTimeLeft((prev) => {
-        if (prev <= 1) {
+      setQuestionTimesLeft((prevTimes) => {
+        const newTimes = [...prevTimes];
+        const currentTime = newTimes[current];
+
+        if (currentTime <= 1) {
           clearInterval(timer);
           handleTimeExpired();
-          return 0;
+          newTimes[current] = 0;
+        } else {
+          newTimes[current] = currentTime - 1;
         }
-        return prev - 1;
+
+        return newTimes;
       });
     }, 1000);
 
