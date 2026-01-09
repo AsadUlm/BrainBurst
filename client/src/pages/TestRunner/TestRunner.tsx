@@ -7,7 +7,11 @@ import TestResultSummary from './TestResultSummary';
 import { Test, Answer } from './types'; // вынесем типы отдельно
 import { Container } from '@mui/material';
 
-export default function TestRunner() {
+interface TestRunnerProps {
+  mode: 'standard' | 'exam';
+}
+
+export default function TestRunner({ mode }: TestRunnerProps) {
   const { id } = useParams();
   const { t } = useTranslation();
   const [test, setTest] = useState<Test | null>(null);
@@ -23,7 +27,7 @@ export default function TestRunner() {
   const [userAttempts, setUserAttempts] = useState(0);
   const [canViewContent, setCanViewContent] = useState(true);
 
-  const storageKey = `testProgress_${id}`;
+  const storageKey = `testProgress_${id}_${mode}`;
 
   // Автосохранение прогресса при изменении ответов или текущего вопроса
   useEffect(() => {
@@ -45,7 +49,13 @@ export default function TestRunner() {
       const testRes = await fetch(`/api/tests/${id}`);
       const data: Test = await testRes.json();
 
-      const shuffledQuestions = data.questions.map(q => {
+      // Перемешиваем сами вопросы для стандартного режима И режима экзамена
+      const shuffledQuestionsOrder = (mode === 'standard' || mode === 'exam')
+        ? [...data.questions].sort(() => Math.random() - 0.5)
+        : [...data.questions];
+
+      // Перемешиваем варианты ответов для каждого вопроса
+      const shuffledQuestions = shuffledQuestionsOrder.map(q => {
         const optionsWithTag = q.options.map((opt, i) => ({
           text: opt,
           isCorrect: i === q.correctIndex,
@@ -58,15 +68,43 @@ export default function TestRunner() {
           time: q.time,
         };
       });
-      setTest({ ...data, questions: shuffledQuestions });
+
+      const testToSet = { ...data, questions: shuffledQuestions };
+
+      // Применяем настройки времени в зависимости от режима
+      if (mode === 'standard') {
+        // Для стандартного режима
+        if (data.useStandardGlobalTimer && data.standardTimeLimit) {
+          testToSet.timeLimit = data.standardTimeLimit;
+        } else if (data.standardQuestionTime) {
+          // Применяем время на каждый вопрос
+          testToSet.questions = testToSet.questions.map(q => ({
+            ...q,
+            time: data.standardQuestionTime
+          }));
+        }
+      } else if (mode === 'exam') {
+        // Для режима экзамена
+        if (data.useExamGlobalTimer && data.examTimeLimit) {
+          testToSet.timeLimit = data.examTimeLimit;
+        } else if (data.examQuestionTime) {
+          // Применяем время на каждый вопрос
+          testToSet.questions = testToSet.questions.map(q => ({
+            ...q,
+            time: data.examQuestionTime
+          }));
+        }
+      }
+
+      setTest(testToSet);
 
       // Инициализируем массив оставшегося времени для каждого вопроса
-      const initialTimes = shuffledQuestions.map(q => q.time || 15);
+      const initialTimes = testToSet.questions.map(q => q.time || 15);
       setQuestionTimesLeft(initialTimes);
 
       // Инициализируем массивы для отслеживания времени
-      setTimePerQuestion(new Array(shuffledQuestions.length).fill(0));
-      setQuestionStartTimes(new Array(shuffledQuestions.length).fill(new Date()));
+      setTimePerQuestion(new Array(testToSet.questions.length).fill(0));
+      setQuestionStartTimes(new Array(testToSet.questions.length).fill(new Date()));
       setStartTime(new Date());
 
       // Load user attempts for content visibility
@@ -154,7 +192,8 @@ export default function TestRunner() {
       startTime: startTime?.toISOString(),
       endTime: endTime.toISOString(),
       duration,
-      timePerQuestion
+      timePerQuestion,
+      mode
     };
 
     await fetch('/api/results', {
@@ -210,6 +249,7 @@ export default function TestRunner() {
         answers={answers}
         score={score}
         isPracticeMode={false}
+        isExamMode={mode === 'exam'}
         canViewContent={canViewContent}
         userAttempts={userAttempts}
       />
@@ -224,6 +264,7 @@ export default function TestRunner() {
       setAnswers={setAnswers}
       questionTimesLeft={questionTimesLeft}
       setQuestionTimesLeft={setQuestionTimesLeft}
+      mode={mode}
       onNext={(next, updatedAnswers) => {
         // Сохраняем время, потраченное на текущий вопрос
         const now = new Date();
@@ -247,11 +288,11 @@ export default function TestRunner() {
           setCurrent(next);
         }
       }}
-      onPrevious={() => {
+      onPrevious={mode !== 'exam' ? () => {
         if (current > 0) {
           setCurrent(current - 1);
         }
-      }}
+      } : undefined}
     />
   );
 }

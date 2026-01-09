@@ -1,5 +1,4 @@
-import { Button, Menu, MenuItem, ListItemIcon, ListItemText, useTheme } from '@mui/material';
-import { useState } from 'react';
+import { Box, Typography, Stack, useTheme, ButtonBase } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import LanguageIcon from '@mui/icons-material/Language';
 
@@ -9,90 +8,54 @@ const languages = [
 ];
 
 export default function LanguageSwitcher() {
-    const { i18n } = useTranslation();
+    const { i18n, t } = useTranslation();
     const theme = useTheme();
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const open = Boolean(anchorEl);
-
-    const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-        setAnchorEl(event.currentTarget);
-    };
-
-    const handleClose = () => {
-        setAnchorEl(null);
-    };
 
     const handleLanguageChange = (langCode: string) => {
         i18n.changeLanguage(langCode);
-        handleClose();
     };
 
-    const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
-
     return (
-        <>
-            <Button
-                onClick={handleClick}
-                startIcon={<LanguageIcon fontSize="small" />}
-                sx={{
-                    px: 2,
-                    py: 1,
-                    borderRadius: 0,
-                    textTransform: 'none',
-                    color: theme.palette.text.primary,
-                    transition: 'all 0.2s ease',
-                    minWidth: 'auto',
-                    '&:hover': {
-                        backgroundColor: theme.palette.action.hover,
-                        transform: 'translateY(-1px)'
-                    }
-                }}
-            >
-                <span style={{ fontSize: '1.2em', marginLeft: 4 }}>{currentLanguage.flag}</span>
-            </Button>
-            <Menu
-                anchorEl={anchorEl}
-                open={open}
-                onClose={handleClose}
-                anchorOrigin={{
-                    vertical: 'bottom',
-                    horizontal: 'right',
-                }}
-                transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                }}
-                PaperProps={{
-                    sx: {
-                        borderRadius: 0,
-                        border: `1px solid ${theme.palette.divider}`,
-                        mt: 1
-                    }
-                }}
-            >
+        <Box>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                <LanguageIcon fontSize="small" color="action" />
+                <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                    {t('common.language')}
+                </Typography>
+            </Stack>
+            <Stack direction="row" spacing={1}>
                 {languages.map((language) => (
-                    <MenuItem
+                    <ButtonBase
                         key={language.code}
                         onClick={() => handleLanguageChange(language.code)}
-                        selected={i18n.language === language.code}
                         sx={{
-                            py: 1.5,
                             px: 2,
-                            '&.Mui-selected': {
-                                backgroundColor: theme.palette.action.selected,
-                            },
+                            py: 1,
+                            borderRadius: 1,
+                            border: `1px solid ${i18n.language === language.code ? theme.palette.primary.main : theme.palette.divider}`,
+                            backgroundColor: i18n.language === language.code ? theme.palette.primary.light : 'transparent',
+                            transition: 'all 0.2s ease',
                             '&:hover': {
-                                backgroundColor: theme.palette.action.hover,
+                                backgroundColor: i18n.language === language.code
+                                    ? theme.palette.primary.light
+                                    : theme.palette.action.hover,
+                                borderColor: theme.palette.primary.main
                             }
                         }}
                     >
-                        <ListItemIcon sx={{ minWidth: 36 }}>
-                            <span style={{ fontSize: '1.5em' }}>{language.flag}</span>
-                        </ListItemIcon>
-                        <ListItemText>{language.name}</ListItemText>
-                    </MenuItem>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                            <span style={{ fontSize: '1.2em' }}>{language.flag}</span>
+                            <Typography
+                                variant="body2"
+                                fontWeight={i18n.language === language.code ? 600 : 400}
+                                color={i18n.language === language.code ? 'primary' : 'text.primary'}
+                            >
+                                {language.name}
+                            </Typography>
+                        </Stack>
+                    </ButtonBase>
                 ))}
-            </Menu>
-        </>
+            </Stack>
+        </Box>
     );
 }

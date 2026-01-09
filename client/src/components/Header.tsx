@@ -6,11 +6,15 @@ import {
   Stack,
   Divider,
   useTheme,
-  IconButton
+  IconButton,
+  Menu,
+  MenuItem,
+  Avatar
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
 import HomeIcon from '@mui/icons-material/Home';
 import ArticleIcon from '@mui/icons-material/Article';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
@@ -19,6 +23,7 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import LoginIcon from '@mui/icons-material/Login';
+import InfoIcon from '@mui/icons-material/Info';
 import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Header() {
@@ -27,8 +32,19 @@ export default function Header() {
   const location = useLocation();
   const { isAuthenticated, isAdmin, role } = useAuth();
   const { t } = useTranslation();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const openMenu = Boolean(anchorEl);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
 
   const handleLogout = () => {
+    handleMenuClose();
     localStorage.clear();
     navigate('/login');
   };
@@ -129,37 +145,107 @@ export default function Header() {
             </>
           ) : (
             <>
-              <Typography
-                variant="body2"
-                sx={{
-                  px: 2,
-                  color: theme.palette.text.secondary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1
-                }}
-              >
-                {role === 'admin' ? (
-                  <AdminPanelSettingsIcon fontSize="small" />
-                ) : (
-                  <HomeIcon fontSize="small" />
-                )}
-                {role === 'admin' ? t('header.administrator') : t('header.user')}
-              </Typography>
-
-              <LanguageSwitcher />
-
               <IconButton
-                onClick={handleLogout}
+                onClick={handleMenuOpen}
                 sx={{
-                  color: theme.palette.error.main,
+                  p: 0.5,
+                  border: `2px solid ${theme.palette.divider}`,
+                  transition: 'all 0.2s ease',
                   '&:hover': {
-                    backgroundColor: theme.palette.error.light
+                    borderColor: theme.palette.primary.main,
+                    transform: 'scale(1.05)'
                   }
                 }}
               >
-                <ExitToAppIcon />
+                <Avatar
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    bgcolor: role === 'admin' ? theme.palette.primary.main : theme.palette.secondary.main,
+                    fontSize: '0.875rem',
+                    fontWeight: 600
+                  }}
+                >
+                  {role === 'admin' ? 'A' : 'U'}
+                </Avatar>
               </IconButton>
+
+              <Menu
+                anchorEl={anchorEl}
+                open={openMenu}
+                onClose={handleMenuClose}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                PaperProps={{
+                  sx: {
+                    mt: 1.5,
+                    minWidth: 240,
+                    borderRadius: 0,
+                    boxShadow: theme.shadows[3]
+                  }
+                }}
+              >
+                <Box sx={{ px: 2, py: 1.5, bgcolor: theme.palette.background.default }}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    {role === 'admin' ? (
+                      <AdminPanelSettingsIcon fontSize="small" color="primary" />
+                    ) : (
+                      <HomeIcon fontSize="small" color="secondary" />
+                    )}
+                    <Typography variant="subtitle2" fontWeight={600}>
+                      {role === 'admin' ? t('header.administrator') : t('header.user')}
+                    </Typography>
+                  </Stack>
+                </Box>
+
+                <Divider />
+
+                <Box sx={{ px: 2, py: 1.5 }}>
+                  <LanguageSwitcher />
+                </Box>
+
+                <Divider />
+
+                <MenuItem
+                  sx={{
+                    py: 1.5,
+                    px: 2,
+                    '&:hover': {
+                      backgroundColor: theme.palette.action.hover
+                    }
+                  }}
+                  disabled
+                >
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <InfoIcon fontSize="small" color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      {t('common.version')} 2.0.1
+                    </Typography>
+                  </Stack>
+                </MenuItem>
+
+                <Divider />
+
+                <MenuItem
+                  onClick={handleLogout}
+                  sx={{
+                    py: 1.5,
+                    px: 2,
+                    color: theme.palette.error.main,
+                    '&:hover': {
+                      backgroundColor: theme.palette.error.light,
+                      color: theme.palette.error.dark
+                    }
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <ExitToAppIcon fontSize="small" />
+                    <Typography variant="body2" fontWeight={500}>
+                      {t('header.logout')}
+                    </Typography>
+                  </Stack>
+                </MenuItem>
+              </Menu>
             </>
           )}
         </Stack>

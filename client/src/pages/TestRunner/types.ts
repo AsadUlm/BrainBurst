@@ -13,6 +13,12 @@ export interface Test {
     timeLimit?: number;
     hideContent?: boolean;
     attemptsToUnlock?: number;
+    useStandardGlobalTimer?: boolean;
+    standardTimeLimit?: number;
+    standardQuestionTime?: number;
+    useExamGlobalTimer?: boolean;
+    examTimeLimit?: number;
+    examQuestionTime?: number;
 }
 
 // Тип для ответов: число для множественного выбора или строка для текстового ответа

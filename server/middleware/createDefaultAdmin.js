@@ -19,19 +19,19 @@ module.exports = async function createDefaultAdmin() {
         }
 
         // ---- Проверка / создание обычного пользователя ----
-        const userExists = await User.findOne({ email: 'duyen@example.com' });
+        const userExists = await User.findOne({ email: 'user@example.com' });
 
         if (!userExists) {
             const user = new User({
-                email: 'duyen@example.com',
-                password: 'duyen123',
+                email: 'user@example.com',
+                password: 'user123',
                 role: 'user',
             });
 
             await user.save();
-            console.log('✅ Пользователь по умолчанию создан: duyen@example.com / duyen123');
+            console.log('✅ Пользователь по умолчанию создан: user@example.com / user123');
         } else {
-            console.log('ℹ️ Пользователь duyen уже существует');
+            console.log('ℹ️ Пользователь user уже существует');
         }
 
     } catch (err) {

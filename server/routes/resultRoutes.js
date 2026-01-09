@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Result = require('../models/Result');
 const Test = require('../models/Test');
+const User = require('../models/User');
 const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 
 // Сохраняем результат
@@ -20,7 +21,8 @@ router.post('/', async (req, res) => {
             startTime,
             endTime,
             duration,
-            timePerQuestion
+            timePerQuestion,
+            mode
         } = req.body;
 
         if (!userEmail || !testId || !testTitle || !answers || !correctAnswers || !mistakes || !shuffledQuestions) {
@@ -40,7 +42,8 @@ router.post('/', async (req, res) => {
             startTime,
             endTime,
             duration,
-            timePerQuestion
+            timePerQuestion,
+            mode
         });
 
         await newResult.save();
@@ -216,6 +219,183 @@ router.get('/analytics', verifyToken, async (req, res) => {
         });
     } catch (error) {
         console.error('Error loading analytics:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Получить список пользователей (только для админа)
+router.get('/users', verifyToken, requireAdmin, async (req, res) => {
+    try {
+        const users = await User.find({}, 'email _id').sort({ email: 1 });
+        res.json(users);
+    } catch (error) {
+        console.error('Error loading users:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Получить аналитику конкретного пользователя (только для админа)
+router.get('/analytics/:userId', verifyToken, requireAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Находим пользователя
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const userEmail = user.email;
+        const results = await Result.find({ userEmail }).sort({ createdAt: -1 });
+
+        if (results.length === 0) {
+            return res.json({
+                totalTests: 0,
+                averageScore: 0,
+                totalQuestions: 0,
+                correctAnswers: 0,
+                incorrectAnswers: 0,
+                bestScore: 0,
+                worstScore: 0,
+                averageTime: 0,
+                totalTimeSpent: 0,
+                averageTimePerQuestion: 0,
+                recentResults: [],
+                categoryStats: [],
+                performanceData: [],
+            });
+        }
+
+        // Общая статистика
+        const totalTests = results.length;
+        let totalScore = 0;
+        let totalQuestions = 0;
+        let correctAnswers = 0;
+        let bestScore = 0;
+        let worstScore = 100;
+        let totalTimeSpent = 0;
+        let totalQuestionsAnswered = 0;
+        let totalTimeForAllQuestions = 0;
+
+        // Статистика по категориям
+        const categoryMap = new Map();
+
+        // Performance data (последние 10 тестов)
+        const performanceData = results.slice(0, 10).reverse().map((result, index) => {
+            const percentage = result.total > 0 ? (result.score / result.total) * 100 : 0;
+            totalScore += percentage;
+            totalQuestions += result.total;
+            correctAnswers += result.score;
+
+            if (percentage > bestScore) bestScore = percentage;
+            if (percentage < worstScore) worstScore = percentage;
+
+            // Подсчет времени
+            if (result.duration) {
+                totalTimeSpent += result.duration;
+            }
+            if (result.timePerQuestion && Array.isArray(result.timePerQuestion)) {
+                totalQuestionsAnswered += result.timePerQuestion.length;
+                totalTimeForAllQuestions += result.timePerQuestion.reduce((sum, time) => sum + time, 0);
+            }
+
+            return {
+                name: `Test ${index + 1}`,
+                score: Math.round(percentage),
+                date: result.createdAt,
+                testTitle: result.testTitle,
+                duration: result.duration || 0,
+            };
+        });
+
+        // Процесс остальных результатов для полной статистики
+        results.slice(10).forEach(result => {
+            const percentage = result.total > 0 ? (result.score / result.total) * 100 : 0;
+            totalScore += percentage;
+            totalQuestions += result.total;
+            correctAnswers += result.score;
+
+            if (percentage > bestScore) bestScore = percentage;
+            if (percentage < worstScore) worstScore = percentage;
+
+            // Подсчет времени
+            if (result.duration) {
+                totalTimeSpent += result.duration;
+            }
+            if (result.timePerQuestion && Array.isArray(result.timePerQuestion)) {
+                totalQuestionsAnswered += result.timePerQuestion.length;
+                totalTimeForAllQuestions += result.timePerQuestion.reduce((sum, time) => sum + time, 0);
+            }
+        });
+
+        // Получаем категории тестов
+        const testIds = [...new Set(results.map(r => r.testId))];
+        const tests = await Test.find({ _id: { $in: testIds } }).populate('category');
+
+        // Группируем по категориям
+        results.forEach(result => {
+            const test = tests.find(t => t._id.toString() === result.testId);
+            if (test && test.category) {
+                const categoryName = test.category.name;
+                if (!categoryMap.has(categoryName)) {
+                    categoryMap.set(categoryName, {
+                        name: categoryName,
+                        color: test.category.color,
+                        tests: 0,
+                        avgScore: 0,
+                        totalScore: 0,
+                    });
+                }
+                const cat = categoryMap.get(categoryName);
+                cat.tests += 1;
+                const percentage = result.total > 0 ? (result.score / result.total) * 100 : 0;
+                cat.totalScore += percentage;
+                cat.avgScore = cat.totalScore / cat.tests;
+            }
+        });
+
+        const categoryStats = Array.from(categoryMap.values()).map(cat => ({
+            name: cat.name,
+            color: cat.color,
+            tests: cat.tests,
+            avgScore: Math.round(cat.avgScore),
+        }));
+
+        const averageScore = totalTests > 0 ? totalScore / totalTests : 0;
+        const incorrectAnswers = totalQuestions - correctAnswers;
+        const averageTime = totalTests > 0 ? Math.round(totalTimeSpent / totalTests) : 0;
+        const averageTimePerQuestion = totalQuestionsAnswered > 0
+            ? Math.round(totalTimeForAllQuestions / totalQuestionsAnswered)
+            : 0;
+
+        // Последние 5 результатов
+        const recentResults = results.slice(0, 5).map(result => ({
+            _id: result._id,
+            testTitle: result.testTitle,
+            score: result.score,
+            total: result.total,
+            percentage: result.total > 0 ? Math.round((result.score / result.total) * 100) : 0,
+            createdAt: result.createdAt,
+            duration: result.duration || 0,
+        }));
+
+        res.json({
+            totalTests,
+            averageScore: Math.round(averageScore * 10) / 10,
+            totalQuestions,
+            correctAnswers,
+            incorrectAnswers,
+            bestScore: Math.round(bestScore),
+            worstScore: totalTests > 0 ? Math.round(worstScore) : 0,
+            averageTime,
+            totalTimeSpent,
+            averageTimePerQuestion,
+            recentResults,
+            categoryStats,
+            performanceData,
+        });
+    } catch (error) {
+        console.error('Error loading user analytics:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });

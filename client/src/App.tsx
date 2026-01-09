@@ -49,7 +49,16 @@ export default function App() {
             path="/test/:id/run"
             element={
               <RequireAuth>
-                <TestRunner />
+                <TestRunner mode="standard" />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/test/:id/exam"
+            element={
+              <RequireAuth>
+                <TestRunner mode="exam" />
               </RequireAuth>
             }
           />

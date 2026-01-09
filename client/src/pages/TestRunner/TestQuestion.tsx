@@ -11,10 +11,12 @@ import {
   useTheme,
   Box,
   TextField,
-  Chip
+  Chip,
+  Alert,
+  CircularProgress
 } from '@mui/material';
-import { Timer } from '@mui/icons-material';
-import { useEffect, useState } from 'react';
+import { Timer, KeyboardOutlined } from '@mui/icons-material';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { LinearProgress } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 //import { alpha } from '@mui/material/styles';
@@ -29,9 +31,10 @@ interface Props {
   setQuestionTimesLeft: React.Dispatch<React.SetStateAction<number[]>>;
   onNext: (nextIndex: number, updatedAnswers?: Answer[]) => void;
   onPrevious?: () => void;
+  mode: 'standard' | 'exam';
 }
 
-export default function TestQuestion({ test, current, answers, setAnswers, questionTimesLeft, setQuestionTimesLeft, onNext, onPrevious }: Props) {
+export default function TestQuestion({ test, current, answers, setAnswers, questionTimesLeft, setQuestionTimesLeft, onNext, onPrevious, mode }: Props) {
   const theme = useTheme();
   const question = test.questions[current];
   const { t } = useTranslation();
@@ -39,6 +42,9 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
   // Определяем, является ли вопрос открытым (только один вариант ответа)
   const isOpenQuestion = question.options.length === 1;
   const [textAnswer, setTextAnswer] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const lastActionTime = useRef<number>(0);
+  const DEBOUNCE_DELAY = 800; // 800ms защита от двойного клика
 
   // Загружаем сохраненный текстовый ответ при смене вопроса
   useEffect(() => {
@@ -47,6 +53,8 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
     } else {
       setTextAnswer('');
     }
+    // Сбрасываем состояние обработки при смене вопроса
+    setIsProcessing(false);
   }, [current, isOpenQuestion, answers]);
 
   const [globalTimeLeft, setGlobalTimeLeft] = useState<number | null>(
@@ -123,7 +131,16 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
     setTextAnswer(text);
   };
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
+    // Дебаунс защита от двойного клика
+    const now = Date.now();
+    if (isProcessing || now - lastActionTime.current < DEBOUNCE_DELAY) {
+      return;
+    }
+
+    lastActionTime.current = now;
+    setIsProcessing(true);
+
     const updated = [...answers];
     if (isOpenQuestion) {
       // Для открытых вопросов сохраняем сам текст ответа
@@ -134,9 +151,14 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
     setAnswers(updated);
     // Передаем обновленный массив в onNext
     onNext(current + 1, updated);
-  };
 
-  const handlePrevious = () => {
+    // Сброс блокировки через небольшую задержку
+    setTimeout(() => setIsProcessing(false), 300);
+  }, [answers, current, isOpenQuestion, textAnswer, setAnswers, onNext, isProcessing]);
+
+  const handlePrevious = useCallback(() => {
+    if (isProcessing) return;
+
     // Сохраняем текущий ответ перед переходом назад
     const updated = [...answers];
     if (isOpenQuestion) {
@@ -147,7 +169,43 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
     if (onPrevious) {
       onPrevious();
     }
-  };
+  }, [answers, current, isOpenQuestion, textAnswer, setAnswers, onPrevious, isProcessing]);
+
+  // Обработка горячих клавиш
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Игнорируем если фокус в текстовом поле
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        if (e.key === 'Enter' && !e.shiftKey && !isOpenQuestion) {
+          e.preventDefault();
+          handleNext();
+        }
+        return;
+      }
+
+      // Открытые вопросы - только Enter для перехода
+      if (isOpenQuestion) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleNext();
+        }
+        return;
+      }
+
+      // Для закрытых вопросов: 1-9 для выбора
+      const num = parseInt(e.key);
+      if (num >= 1 && num <= Math.min(9, question.options.length)) {
+        e.preventDefault();
+        handleAnswerChange(num - 1);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        handleNext();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [current, question.options.length, isOpenQuestion, handleNext]);
 
   return (
     <Container maxWidth="md" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
@@ -166,8 +224,8 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
                 {t('test.question')} {current + 1} {t('test.of')} {test.questions.length}
               </Typography>
               <Chip
-                label={t('test.standardTest')}
-                color="primary"
+                label={mode === 'exam' ? t('test.examMode') : t('test.standardTest')}
+                color={mode === 'exam' ? 'error' : 'primary'}
                 variant="outlined"
                 size="small"
                 sx={{ borderRadius: 0 }}
@@ -214,6 +272,23 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
             {question.text}
           </Typography>
 
+          {/* Подсказка о горячих клавишах */}
+          {!isOpenQuestion && (
+            <Alert
+              icon={<KeyboardOutlined />}
+              severity="info"
+              sx={{
+                mb: 3,
+                borderRadius: 0,
+                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(33, 150, 243, 0.1)' : 'rgba(33, 150, 243, 0.05)'
+              }}
+            >
+              <Typography variant="body2">
+                {t('test.hotkeysHint')}: <strong>1-{question.options.length}</strong> {t('test.toSelect')}, <strong>Enter</strong> {t('test.toNext')}
+              </Typography>
+            </Alert>
+          )}
+
           {isOpenQuestion ? (
             // Открытый вопрос - текстовое поле для ввода
             <TextField
@@ -239,27 +314,61 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
               sx={{ mb: 4 }}
             >
               {question.options.map((opt, i) => (
-                <FormControlLabel
-                  key={i}
-                  value={i}
-                  control={<Radio />}
-                  label={<Typography variant="body1">{opt}</Typography>}
-                  sx={{
-                    p: 1,
-                    mb: 1,
-                    border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: 0,
-                    '&:hover': {
-                      backgroundColor: theme.palette.action.hover
-                    }
-                  }}
-                />
+                <Stack key={i} direction="row" spacing={1.5} sx={{ mb: 1.5, alignItems: 'stretch' }}>
+                  {/* Квадрат с номером */}
+                  <Box
+                    sx={{
+                      minWidth: 42,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: `2px solid ${answers[current] === i ? theme.palette.primary.main : theme.palette.divider}`,
+                      borderRadius: 0,
+                      backgroundColor: answers[current] === i
+                        ? theme.palette.primary.main
+                        : 'transparent',
+                      color: answers[current] === i
+                        ? theme.palette.primary.contrastText
+                        : theme.palette.text.primary,
+                      fontWeight: 700,
+                      fontSize: '1rem',
+                      transition: 'all 0.2s ease',
+                      flexShrink: 0
+                    }}
+                  >
+                    {i + 1}
+                  </Box>
+
+                  {/* Прямоугольник с вариантом ответа */}
+                  <FormControlLabel
+                    value={i}
+                    control={<Radio sx={{ display: 'none' }} />}
+                    label={<Typography variant="body1">{opt}</Typography>}
+                    sx={{
+                      m: 0,
+                      p: 1.5,
+                      flex: 1,
+                      border: `2px solid ${answers[current] === i ? theme.palette.primary.main : theme.palette.divider}`,
+                      borderRadius: 0,
+                      backgroundColor: answers[current] === i
+                        ? theme.palette.mode === 'dark' ? 'rgba(144, 202, 249, 0.08)' : 'rgba(25, 118, 210, 0.04)'
+                        : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        backgroundColor: answers[current] === i
+                          ? theme.palette.mode === 'dark' ? 'rgba(144, 202, 249, 0.12)' : 'rgba(25, 118, 210, 0.08)'
+                          : theme.palette.action.hover
+                      }
+                    }}
+                  />
+                </Stack>
               ))}
             </RadioGroup>
           )}
 
           <Stack direction="row" justifyContent="space-between">
-            {current > 0 && onPrevious && (
+            {current > 0 && onPrevious && mode !== 'exam' && (
               <Button
                 variant="outlined"
                 onClick={handlePrevious}
@@ -276,6 +385,8 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
             <Button
               variant="contained"
               onClick={handleNext}
+              disabled={isProcessing}
+              startIcon={isProcessing && <CircularProgress size={16} color="inherit" />}
               sx={{
                 px: 6,
                 borderRadius: 0,
@@ -284,7 +395,9 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
                 ml: 'auto'
               }}
             >
-              {current < test.questions.length - 1 ? t('test.nextQuestion') : t('test.finishTest')}
+              {isProcessing
+                ? t('test.processing')
+                : (current < test.questions.length - 1 ? t('test.nextQuestion') : t('test.finishTest'))}
             </Button>
           </Stack>
         </Paper>

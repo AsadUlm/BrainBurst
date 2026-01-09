@@ -18,6 +18,7 @@ const ResultSchema = new mongoose.Schema({
     endTime: { type: Date },
     duration: { type: Number }, // Длительность в секундах
     timePerQuestion: [Number], // Время на каждый вопрос в секундах
+    mode: { type: String, enum: ['standard', 'exam', 'practice'], default: 'standard' }, // Режим прохождения
     createdAt: { type: Date, default: Date.now }
 });
 

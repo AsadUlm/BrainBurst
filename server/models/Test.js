@@ -61,6 +61,32 @@ const TestSchema = new mongoose.Schema({
         default: 0,
         min: 0
     },
+    // Настройки времени для стандартного режима
+    useStandardGlobalTimer: {
+        type: Boolean,
+        default: true
+    },
+    standardTimeLimit: {
+        type: Number,
+        default: null
+    },
+    standardQuestionTime: {
+        type: Number,
+        default: null
+    },
+    // Настройки времени для режима экзамена
+    useExamGlobalTimer: {
+        type: Boolean,
+        default: true
+    },
+    examTimeLimit: {
+        type: Number,
+        default: null
+    },
+    examQuestionTime: {
+        type: Number,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now,

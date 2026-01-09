@@ -27,13 +27,17 @@ import {
   CardContent
 } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import PersonIcon from '@mui/icons-material/Person';
 import QuizIcon from '@mui/icons-material/Quiz';
 import CategoryIcon from '@mui/icons-material/Category';
+import TimerIcon from '@mui/icons-material/Timer';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import SchoolIcon from '@mui/icons-material/School';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import { LoadingPage } from './Loading/index';
 import TestResultDialog from './MyHistory/components/TestResultDialog';
 import { useTranslation } from 'react-i18next';
@@ -65,6 +69,11 @@ export interface Result {
   createdAt: string;
   mistakes: number[]; // оставляем для отображения в таблице
   test?: Test;
+  duration?: number;
+  startTime?: string;
+  endTime?: string;
+  timePerQuestion?: number[];
+  mode?: 'standard' | 'exam' | 'practice';
 }
 
 export interface ResultDetail extends Omit<Result, 'mistakes'> {
@@ -513,6 +522,40 @@ function RenderResultsTable({
   handleSort: (field: 'date' | 'score' | 'email' | 'test') => void;
   handleOpenDialog: (r: Result) => void;
 }) {
+  // Функция для форматирования времени
+  const formatTime = (seconds: number) => {
+    if (!seconds || seconds === 0) return '—';
+    if (seconds < 60) return `${seconds}с`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return secs > 0 ? `${mins}м ${secs}с` : `${mins}м`;
+  };
+
+  // Функция для получения иконки и цвета режима
+  const getModeDetails = (mode?: string) => {
+    switch (mode) {
+      case 'exam':
+        return {
+          icon: <SchoolIcon fontSize="small" />,
+          label: t('history.modeExam'),
+          color: '#d32f2f' // red
+        };
+      case 'practice':
+        return {
+          icon: <FitnessCenterIcon fontSize="small" />,
+          label: t('history.modePractice'),
+          color: '#1976d2' // blue
+        };
+      case 'standard':
+      default:
+        return {
+          icon: <AssignmentIcon fontSize="small" />,
+          label: t('history.modeStandard'),
+          color: '#388e3c' // green
+        };
+    }
+  };
+
   return (
     <Table>
       <TableHead>
@@ -553,6 +596,12 @@ function RenderResultsTable({
             </TableSortLabel>
           </TableCell>
           <TableCell sx={{ fontWeight: 700 }}>
+            <Stack direction="row" alignItems="center" spacing={0.5}>
+              <TimerIcon fontSize="small" />
+              <span>{t('history.timeSpent')}</span>
+            </Stack>
+          </TableCell>
+          <TableCell sx={{ fontWeight: 700 }}>
             {t('admin.errors')}
           </TableCell>
           <TableCell>
@@ -568,68 +617,171 @@ function RenderResultsTable({
         </TableRow>
       </TableHead>
       <TableBody>
-        {results.map((r) => (
-          <TableRow
-            key={r._id}
-            hover
-            sx={{
-              cursor: 'pointer',
-              '&:not(:last-child)': {
-                borderBottom: `1px solid ${theme.palette.divider}`,
-              },
-              transition: 'background-color 0.2s',
-            }}
-            onClick={() => handleOpenDialog(r)}
-          >
-            <TableCell sx={{ color: theme.palette.text.secondary }}>
-              {r.userEmail}
-            </TableCell>
-            <TableCell sx={{ fontWeight: 500 }}>{r.testTitle}</TableCell>
-            <TableCell>
-              <Chip
-                label={`${r.score} / ${r.total}`}
-                color={r.score === r.total ? 'success' : 'warning'}
-                variant="outlined"
-                size="small"
-                icon={
-                  r.score === r.total ? (
-                    <CheckCircleOutlineIcon fontSize="small" />
-                  ) : (
-                    <ErrorOutlineIcon fontSize="small" />
-                  )
-                }
-                sx={{ borderRadius: 0, fontWeight: 600 }}
-              />
-            </TableCell>
-            <TableCell>
-              {r.mistakes.length > 0 ? (
-                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                  {r.mistakes.map((m) => (
+        {results.map((r) => {
+          const percentage = r.total > 0 ? Math.round((r.score / r.total) * 100) : 0;
+          const isPerfect = r.score === r.total;
+          const isGood = percentage >= 70;
+
+          return (
+            <TableRow
+              key={r._id}
+              hover
+              sx={{
+                cursor: 'pointer',
+                '&:not(:last-child)': {
+                  borderBottom: `1px solid ${theme.palette.divider}`,
+                },
+                transition: 'background-color 0.2s',
+              }}
+              onClick={() => handleOpenDialog(r)}
+            >
+              <TableCell sx={{ color: theme.palette.text.secondary }}>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <PersonIcon fontSize="small" color="action" />
+                  <span>{r.userEmail}</span>
+                </Stack>
+              </TableCell>
+              <TableCell>
+                <Stack spacing={0.5}>
+                  <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {r.testTitle}
+                    </Typography>
+                    {r.mode && (() => {
+                      const modeDetails = getModeDetails(r.mode);
+                      return (
+                        <Chip
+                          icon={modeDetails.icon}
+                          label={modeDetails.label}
+                          size="small"
+                          sx={{
+                            borderRadius: 0,
+                            bgcolor: alpha(modeDetails.color, 0.1),
+                            color: modeDetails.color,
+                            fontWeight: 600,
+                            border: `1px solid ${alpha(modeDetails.color, 0.3)}`,
+                            height: 22,
+                          }}
+                        />
+                      );
+                    })()}
+                  </Stack>
+                  {r.test?.category && typeof r.test.category === 'object' && (
                     <Chip
-                      key={m}
-                      label={`#${m + 1}`}
-                      color="error"
+                      label={r.test.category.name}
                       size="small"
-                      variant="outlined"
-                      sx={{ borderRadius: 0 }}
+                      sx={{
+                        bgcolor: r.test.category.color || theme.palette.grey[300],
+                        color: 'white',
+                        fontSize: '0.7rem',
+                        height: 20,
+                        borderRadius: 0,
+                        alignSelf: 'flex-start',
+                      }}
                     />
-                  ))}
-                </Box>
-              ) : (
-                <Chip
-                  label={t('admin.noErrors')}
-                  color="success"
-                  size="small"
-                  icon={<CheckCircleOutlineIcon fontSize="small" />}
-                  sx={{ borderRadius: 0 }}
-                />
-              )}
-            </TableCell>
-            <TableCell sx={{ color: theme.palette.text.secondary }}>
-              {new Date(r.createdAt).toLocaleString('ru-RU')}
-            </TableCell>
-          </TableRow>
-        ))}
+                  )}
+                </Stack>
+              </TableCell>
+              <TableCell>
+                <Stack spacing={1}>
+                  <Chip
+                    label={`${r.score} / ${r.total}`}
+                    color={isPerfect ? 'success' : isGood ? 'warning' : 'error'}
+                    variant="outlined"
+                    size="small"
+                    icon={
+                      isPerfect ? (
+                        <CheckCircleOutlineIcon fontSize="small" />
+                      ) : (
+                        <TrendingUpIcon fontSize="small" />
+                      )
+                    }
+                    sx={{ borderRadius: 0, fontWeight: 600 }}
+                  />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box
+                      sx={{
+                        width: 60,
+                        height: 6,
+                        bgcolor: theme.palette.grey[200],
+                        position: 'relative',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          left: 0,
+                          top: 0,
+                          height: '100%',
+                          width: `${percentage}%`,
+                          bgcolor: isPerfect
+                            ? theme.palette.success.main
+                            : isGood
+                              ? theme.palette.warning.main
+                              : theme.palette.error.main,
+                          transition: 'width 0.3s ease',
+                        }}
+                      />
+                    </Box>
+                    <Typography variant="caption" sx={{ fontWeight: 600, minWidth: 40 }}>
+                      {percentage}%
+                    </Typography>
+                  </Box>
+                </Stack>
+              </TableCell>
+              <TableCell>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {formatTime(r.duration || 0)}
+                  </Typography>
+                </Stack>
+              </TableCell>
+              <TableCell>
+                {r.mistakes.length > 0 ? (
+                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    {r.mistakes.map((m) => (
+                      <Chip
+                        key={m}
+                        label={`#${m + 1}`}
+                        color="error"
+                        size="small"
+                        variant="outlined"
+                        sx={{ borderRadius: 0, minWidth: 32, height: 22 }}
+                      />
+                    ))}
+                  </Box>
+                ) : (
+                  <Chip
+                    label={t('admin.noErrors')}
+                    color="success"
+                    size="small"
+                    icon={<CheckCircleOutlineIcon fontSize="small" />}
+                    sx={{ borderRadius: 0 }}
+                  />
+                )}
+              </TableCell>
+              <TableCell>
+                <Stack spacing={0.5}>
+                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                    {new Date(r.createdAt).toLocaleDateString('ru-RU', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: theme.palette.text.disabled }}>
+                    {new Date(r.createdAt).toLocaleTimeString('ru-RU', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Typography>
+                </Stack>
+              </TableCell>
+            </TableRow>
+          );
+        })}
       </TableBody>
     </Table>
   );

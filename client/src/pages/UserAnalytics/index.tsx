@@ -12,6 +12,11 @@ import {
     useTheme,
     alpha,
     CircularProgress,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    SelectChangeEvent,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import {
@@ -22,8 +27,10 @@ import {
     School as SchoolIcon,
     Timer as TimerIcon,
     Speed as SpeedIcon,
+    Person as PersonIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../hooks/useAuth';
 import PerformanceChart from './components/PerformanceChart';
 import CategoryBreakdown from './components/CategoryBreakdown';
 import RecentTests from './components/RecentTests';
@@ -45,12 +52,48 @@ interface AnalyticsData {
     performanceData: any[];
 }
 
+interface User {
+    _id: string;
+    email: string;
+}
+
 export default function UserAnalytics() {
     const theme = useTheme();
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const { isAdmin } = useAuth();
     const [loading, setLoading] = useState(true);
     const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+    const [users, setUsers] = useState<User[]>([]);
+    const [selectedUserId, setSelectedUserId] = useState<string>('');
+    const [selectedUserEmail, setSelectedUserEmail] = useState<string>('');
+
+    // Загрузка списка пользователей для админа
+    useEffect(() => {
+        if (!isAdmin) return;
+
+        const loadUsers = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            try {
+                const response = await fetch('/api/results/users', {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setUsers(data);
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        };
+
+        loadUsers();
+    }, [isAdmin]);
 
     useEffect(() => {
         const loadAnalytics = async () => {
@@ -61,7 +104,12 @@ export default function UserAnalytics() {
             }
 
             try {
-                const response = await fetch('/api/results/analytics', {
+                // Если админ выбрал пользователя, загружаем его аналитику
+                const url = isAdmin && selectedUserId
+                    ? `/api/results/analytics/${selectedUserId}`
+                    : '/api/results/analytics';
+
+                const response = await fetch(url, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -81,7 +129,19 @@ export default function UserAnalytics() {
         };
 
         loadAnalytics();
-    }, [navigate]);
+    }, [navigate, isAdmin, selectedUserId]);
+
+    const handleUserChange = (event: SelectChangeEvent) => {
+        const userId = event.target.value;
+        setSelectedUserId(userId);
+
+        // Находим email выбранного пользователя
+        const user = users.find(u => u._id === userId);
+        setSelectedUserEmail(user?.email || '');
+
+        // Перезагружаем аналитику
+        setLoading(true);
+    };
 
     if (loading) {
         return (
@@ -136,14 +196,82 @@ export default function UserAnalytics() {
                     >
                         <AssessmentIcon sx={{ fontSize: 40 }} />
                     </Avatar>
-                    <Box>
+                    <Box sx={{ flex: 1 }}>
                         <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
                             {t('analytics.title')}
                         </Typography>
                         <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                            {t('analytics.subtitle')}
+                            {selectedUserEmail ? `${t('analytics.viewingUser')}: ${selectedUserEmail}` : t('analytics.subtitle')}
                         </Typography>
                     </Box>
+
+                    {/* User selector for admins */}
+                    {isAdmin && (
+                        <FormControl
+                            variant="outlined"
+                            size="small"
+                            sx={{
+                                minWidth: 280,
+                                bgcolor: alpha(theme.palette.common.white, 0.15),
+                                borderRadius: 0,
+                                '& .MuiOutlinedInput-root': {
+                                    color: 'white',
+                                    '& fieldset': {
+                                        borderColor: alpha(theme.palette.common.white, 0.3),
+                                        borderRadius: 0,
+                                    },
+                                    '&:hover fieldset': {
+                                        borderColor: alpha(theme.palette.common.white, 0.5),
+                                    },
+                                    '&.Mui-focused fieldset': {
+                                        borderColor: theme.palette.common.white,
+                                    },
+                                },
+                                '& .MuiSvgIcon-root': {
+                                    color: 'white',
+                                },
+                            }}
+                        >
+                            <InputLabel
+                                id="user-select-label"
+                                sx={{
+                                    color: alpha(theme.palette.common.white, 0.8),
+                                    '&.Mui-focused': {
+                                        color: 'white',
+                                    },
+                                }}
+                            >
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <PersonIcon fontSize="small" />
+                                    <span>{t('analytics.selectUser')}</span>
+                                </Stack>
+                            </InputLabel>
+                            <Select
+                                labelId="user-select-label"
+                                value={selectedUserId}
+                                onChange={handleUserChange}
+                                label={t('analytics.selectUser')}
+                                MenuProps={{
+                                    PaperProps: {
+                                        sx: {
+                                            borderRadius: 0,
+                                            mt: 1,
+                                            maxHeight: 400,
+                                        }
+                                    }
+                                }}
+                            >
+                                <MenuItem value="">
+                                    <em>{t('analytics.myAnalytics')}</em>
+                                </MenuItem>
+                                {users.map((user) => (
+                                    <MenuItem key={user._id} value={user._id}>
+                                        {user.email}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    )}
                 </Stack>
             </Paper>
 

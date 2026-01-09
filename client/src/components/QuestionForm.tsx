@@ -22,14 +22,12 @@ interface Props {
   index: number;
   question: Question;
   onChange: (q: Question) => void;
-  showTimeInput: boolean;
 }
 
 export default function QuestionForm({
   index,
   question,
   onChange,
-  showTimeInput,
 }: Props) {
   const { t } = useTranslation();
 
@@ -123,19 +121,6 @@ export default function QuestionForm({
         >
           {t('questionForm.addOption')}
         </Button>
-      )}
-
-      {showTimeInput && (
-        <TextField
-          fullWidth
-          type="number"
-          label={t('questionForm.timePerQuestion')}
-          value={question.time}
-          onChange={(e) =>
-            onChange({ ...question, time: Number(e.target.value) })
-          }
-          sx={{ mt: 2 }}
-        />
       )}
     </Box>
   );

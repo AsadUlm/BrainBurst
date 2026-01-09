@@ -25,6 +25,9 @@ import ViewListIcon from '@mui/icons-material/ViewList';
 import FolderIcon from '@mui/icons-material/Folder';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import StarIcon from '@mui/icons-material/Star';
+import SchoolIcon from '@mui/icons-material/School';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import TestResultDialog from './components/TestResultDialog';
 import { LoadingPage } from '../Loading/index';
 import { useTranslation } from 'react-i18next';
@@ -37,6 +40,18 @@ interface Question {
 
 type Answer = number | string;
 
+interface Category {
+  _id: string;
+  name: string;
+  color?: string;
+}
+
+interface Test {
+  _id: string;
+  title: string;
+  category?: Category | string;
+}
+
 interface Result {
   _id: string;
   testTitle: string;
@@ -47,6 +62,8 @@ interface Result {
   startTime?: string;
   endTime?: string;
   timePerQuestion?: number[];
+  test?: Test;
+  mode?: 'standard' | 'exam' | 'practice';
 }
 
 interface ResultDetail extends Result {
@@ -127,6 +144,31 @@ export default function MyHistory() {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return secs > 0 ? `${mins}${t('history.minutes')} ${secs}${t('history.seconds')}` : `${mins}${t('history.minutes')}`;
+  };
+
+  // Функция для получения иконки и цвета режима
+  const getModeDetails = (mode?: string) => {
+    switch (mode) {
+      case 'exam':
+        return {
+          icon: <SchoolIcon fontSize="small" />,
+          label: t('history.modeExam'),
+          color: '#d32f2f' // red
+        };
+      case 'practice':
+        return {
+          icon: <FitnessCenterIcon fontSize="small" />,
+          label: t('history.modePractice'),
+          color: '#1976d2' // blue
+        };
+      case 'standard':
+      default:
+        return {
+          icon: <AssignmentIcon fontSize="small" />,
+          label: t('history.modeStandard'),
+          color: '#388e3c' // green
+        };
+    }
   };
 
   // Группировка результатов по тестам
@@ -386,56 +428,140 @@ export default function MyHistory() {
                     <AccordionDetails sx={{ pt: 0 }}>
                       <Divider sx={{ mb: 2 }} />
                       <Stack spacing={2}>
-                        {sortedTestResults.map((r, index) => (
-                          <Paper
-                            key={r._id}
-                            elevation={0}
-                            sx={{
-                              p: 3,
-                              border: `1px solid ${theme.palette.divider}`,
-                              borderRadius: 0,
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease',
-                              '&:hover': {
-                                borderColor: theme.palette.primary.main,
-                                transform: 'translateX(4px)',
-                              },
-                            }}
-                            onClick={() => handleOpenDialog(r)}
-                          >
-                            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                              <Stack spacing={1}>
-                                <Stack direction="row" alignItems="center" spacing={2}>
-                                  <Chip
-                                    label={`${t('history.attemptNumber')}${sortedTestResults.length - index}`}
-                                    size="small"
-                                    color="primary"
-                                    sx={{ borderRadius: 0 }}
-                                  />
-                                  <Typography variant="body2" color="text.secondary">
-                                    {formatDate(r.createdAt)}
-                                  </Typography>
-                                </Stack>
-                                {r.duration && r.duration > 0 && (
-                                  <Stack direction="row" alignItems="center" spacing={1}>
-                                    <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
-                                    <Typography variant="body2" color="text.secondary">
-                                      {t('history.timeSpent')}: {formatTime(r.duration)}
-                                    </Typography>
-                                  </Stack>
-                                )}
-                              </Stack>
+                        {sortedTestResults.map((r, index) => {
+                          const percentage = r.total > 0 ? Math.round((r.score / r.total) * 100) : 0;
+                          const isPerfect = r.score === r.total;
+                          const isGood = percentage >= 70;
 
-                              <Chip
-                                label={`${r.score}/${r.total}`}
-                                color={r.score === r.total ? 'success' : r.score >= r.total * 0.7 ? 'warning' : 'error'}
-                                variant="outlined"
-                                icon={<EmojiEventsIcon />}
-                                sx={{ fontSize: '1rem', px: 1.5, borderRadius: 0 }}
-                              />
-                            </Stack>
-                          </Paper>
-                        ))}
+                          return (
+                            <Paper
+                              key={r._id}
+                              elevation={0}
+                              sx={{
+                                p: 3,
+                                border: `1px solid ${theme.palette.divider}`,
+                                borderRadius: 0,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  borderColor: theme.palette.primary.main,
+                                  transform: 'translateX(4px)',
+                                  boxShadow: `4px 0 0 ${theme.palette.primary.main}`,
+                                },
+                              }}
+                              onClick={() => handleOpenDialog(r)}
+                            >
+                              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                                <Stack spacing={1.5} sx={{ flex: 1 }}>
+                                  <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
+                                    <Chip
+                                      label={`${t('history.attemptNumber')}${sortedTestResults.length - index}`}
+                                      size="small"
+                                      color="primary"
+                                      sx={{ borderRadius: 0, fontWeight: 600 }}
+                                    />
+                                    {r.mode && (() => {
+                                      const modeDetails = getModeDetails(r.mode);
+                                      return (
+                                        <Chip
+                                          icon={modeDetails.icon}
+                                          label={modeDetails.label}
+                                          size="small"
+                                          sx={{
+                                            borderRadius: 0,
+                                            bgcolor: alpha(modeDetails.color, 0.1),
+                                            color: modeDetails.color,
+                                            fontWeight: 600,
+                                            border: `1px solid ${alpha(modeDetails.color, 0.3)}`,
+                                          }}
+                                        />
+                                      );
+                                    })()}
+                                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                                      <AccessTimeIcon fontSize="small" color="action" />
+                                      <Typography variant="body2" color="text.secondary">
+                                        {formatDate(r.createdAt)}
+                                      </Typography>
+                                    </Stack>
+                                  </Stack>
+
+                                  {/* Прогресс-бар с процентами */}
+                                  <Stack spacing={0.5}>
+                                    <Stack direction="row" alignItems="center" spacing={2}>
+                                      <Box
+                                        sx={{
+                                          flex: 1,
+                                          maxWidth: 200,
+                                          height: 8,
+                                          bgcolor: theme.palette.grey[200],
+                                          position: 'relative',
+                                          overflow: 'hidden',
+                                        }}
+                                      >
+                                        <Box
+                                          sx={{
+                                            position: 'absolute',
+                                            left: 0,
+                                            top: 0,
+                                            height: '100%',
+                                            width: `${percentage}%`,
+                                            bgcolor: isPerfect
+                                              ? theme.palette.success.main
+                                              : isGood
+                                                ? theme.palette.warning.main
+                                                : theme.palette.error.main,
+                                            transition: 'width 0.3s ease',
+                                          }}
+                                        />
+                                      </Box>
+                                      <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 50 }}>
+                                        {percentage}%
+                                      </Typography>
+                                    </Stack>
+                                  </Stack>
+
+                                  {r.duration && r.duration > 0 && (
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                      <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                                      <Typography variant="body2" color="text.secondary">
+                                        {t('history.timeSpent')}: <strong>{formatTime(r.duration)}</strong>
+                                      </Typography>
+                                    </Stack>
+                                  )}
+
+                                  {r.test?.category && typeof r.test.category === 'object' && (
+                                    <Chip
+                                      label={r.test.category.name}
+                                      size="small"
+                                      sx={{
+                                        bgcolor: r.test.category.color || theme.palette.grey[300],
+                                        color: 'white',
+                                        fontSize: '0.7rem',
+                                        height: 22,
+                                        borderRadius: 0,
+                                        alignSelf: 'flex-start',
+                                      }}
+                                    />
+                                  )}
+                                </Stack>
+
+                                <Chip
+                                  label={`${r.score}/${r.total}`}
+                                  color={isPerfect ? 'success' : isGood ? 'warning' : 'error'}
+                                  variant="outlined"
+                                  icon={<EmojiEventsIcon />}
+                                  sx={{
+                                    fontSize: '1rem',
+                                    px: 1.5,
+                                    borderRadius: 0,
+                                    fontWeight: 700,
+                                    minWidth: 80,
+                                  }}
+                                />
+                              </Stack>
+                            </Paper>
+                          );
+                        })}
                       </Stack>
                     </AccordionDetails>
                   </Accordion>
@@ -444,59 +570,134 @@ export default function MyHistory() {
             </Stack>
           ) : (
             <Stack spacing={3}>
-              {sortedResults.map((r) => (
-                <Paper
-                  key={r._id}
-                  elevation={0}
-                  sx={{
-                    p: 4,
-                    border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: 0,
-                    transition: 'all 0.2s ease',
-                    cursor: 'pointer',
-                    '&:hover': {
-                      borderColor: theme.palette.primary.main,
-                      transform: 'translateY(-2px)',
-                    },
-                  }}
-                  onClick={() => handleOpenDialog(r)}
-                >
-                  <Stack
-                    direction="row"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    sx={{ mb: 2 }}
-                  >
-                    <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                      {r.testTitle}
-                    </Typography>
-                    <Chip
-                      label={`${r.score}/${r.total}`}
-                      color={r.score === r.total ? 'success' : r.score >= r.total * 0.7 ? 'warning' : 'error'}
-                      variant="outlined"
-                      icon={<EmojiEventsIcon />}
-                      sx={{ fontSize: '1.1rem', px: 2, borderRadius: 0 }}
-                    />
-                  </Stack>
+              {sortedResults.map((r) => {
+                const percentage = r.total > 0 ? Math.round((r.score / r.total) * 100) : 0;
+                const isPerfect = r.score === r.total;
+                const isGood = percentage >= 70;
 
-                  <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <AccessTimeIcon fontSize="small" color="action" />
-                      <Typography variant="body2" color="text.secondary">
-                        {formatDate(r.createdAt)}
-                      </Typography>
-                    </Stack>
-                    {r.duration && r.duration > 0 && (
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {t('history.timeSpent')}: <strong>{formatTime(r.duration)}</strong>
+                return (
+                  <Paper
+                    key={r._id}
+                    elevation={0}
+                    sx={{
+                      p: 4,
+                      border: `1px solid ${theme.palette.divider}`,
+                      borderRadius: 0,
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        borderColor: theme.palette.primary.main,
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 4px 0 ${theme.palette.primary.main}`,
+                      },
+                    }}
+                    onClick={() => handleOpenDialog(r)}
+                  >
+                    <Stack spacing={2}>
+                      <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="flex-start"
+                      >
+                        <Stack spacing={1}>
+                          <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                              {r.testTitle}
+                            </Typography>
+                            {r.mode && (() => {
+                              const modeDetails = getModeDetails(r.mode);
+                              return (
+                                <Chip
+                                  icon={modeDetails.icon}
+                                  label={modeDetails.label}
+                                  size="small"
+                                  sx={{
+                                    borderRadius: 0,
+                                    bgcolor: alpha(modeDetails.color, 0.1),
+                                    color: modeDetails.color,
+                                    fontWeight: 600,
+                                    border: `1px solid ${alpha(modeDetails.color, 0.3)}`,
+                                  }}
+                                />
+                              );
+                            })()}
+                          </Stack>
+                          {r.test?.category && typeof r.test.category === 'object' && (
+                            <Chip
+                              label={r.test.category.name}
+                              size="small"
+                              sx={{
+                                bgcolor: r.test.category.color || theme.palette.grey[300],
+                                color: 'white',
+                                fontSize: '0.75rem',
+                                height: 24,
+                                borderRadius: 0,
+                                alignSelf: 'flex-start',
+                              }}
+                            />
+                          )}
+                        </Stack>
+                        <Chip
+                          label={`${r.score}/${r.total}`}
+                          color={isPerfect ? 'success' : isGood ? 'warning' : 'error'}
+                          variant="outlined"
+                          icon={<EmojiEventsIcon />}
+                          sx={{ fontSize: '1.1rem', px: 2, borderRadius: 0, fontWeight: 700 }}
+                        />
+                      </Stack>
+
+                      {/* Прогресс-бар с процентами */}
+                      <Stack direction="row" alignItems="center" spacing={2}>
+                        <Box
+                          sx={{
+                            flex: 1,
+                            height: 10,
+                            bgcolor: theme.palette.grey[200],
+                            position: 'relative',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              left: 0,
+                              top: 0,
+                              height: '100%',
+                              width: `${percentage}%`,
+                              bgcolor: isPerfect
+                                ? theme.palette.success.main
+                                : isGood
+                                  ? theme.palette.warning.main
+                                  : theme.palette.error.main,
+                              transition: 'width 0.3s ease',
+                            }}
+                          />
+                        </Box>
+                        <Typography variant="h6" sx={{ fontWeight: 700, minWidth: 60 }}>
+                          {percentage}%
                         </Typography>
                       </Stack>
-                    )}
-                  </Stack>
-                </Paper>
-              ))}
+
+                      <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <AccessTimeIcon fontSize="small" color="action" />
+                          <Typography variant="body2" color="text.secondary">
+                            {formatDate(r.createdAt)}
+                          </Typography>
+                        </Stack>
+                        {r.duration && r.duration > 0 && (
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {t('history.timeSpent')}: <strong>{formatTime(r.duration)}</strong>
+                            </Typography>
+                          </Stack>
+                        )}
+                      </Stack>
+                    </Stack>
+                  </Paper>
+                );
+              })}
             </Stack>
           )}
         </>

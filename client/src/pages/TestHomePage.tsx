@@ -46,6 +46,12 @@ interface Test {
     attemptsToUnlock?: number;
     practiceMode?: 'enabled' | 'disabled' | 'locked';
     practiceAttemptsRequired?: number;
+    useStandardGlobalTimer?: boolean;
+    standardTimeLimit?: number;
+    standardQuestionTime?: number;
+    useExamGlobalTimer?: boolean;
+    examTimeLimit?: number;
+    examQuestionTime?: number;
 }
 
 export default function TestHomePage() {
@@ -590,28 +596,71 @@ export default function TestHomePage() {
                             </Stack>
                         </Paper>
 
-                        {/* Будущий режим экзамена */}
+                        {/* Режим экзамена - доступен всегда */}
                         <Paper
                             elevation={0}
                             sx={{
                                 p: 4,
-                                border: `1px solid ${theme.palette.divider}`,
+                                border: `2px solid ${theme.palette.error.main}`,
                                 borderRadius: 0,
-                                opacity: 0.6
+                                position: 'relative'
                             }}
                         >
-                            <Chip
-                                label={t('test.comingSoon')}
-                                size="small"
-                                variant="outlined"
-                                sx={{ borderRadius: 0, mb: 2 }}
-                            />
-                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                                {t('test.examMode')}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                {t('test.examModeDescription')}
-                            </Typography>
+                            <Stack spacing={3}>
+                                <Box>
+                                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, color: theme.palette.error.main }}>
+                                        {t('test.examMode')}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                        {t('test.examModeDescription')}
+                                    </Typography>
+                                </Box>
+
+                                <Divider />
+
+                                <Stack spacing={2}>
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                        <CheckCircleIcon fontSize="small" color="error" />
+                                        <Typography variant="body2">
+                                            {t('test.noGoingBack')}
+                                        </Typography>
+                                    </Stack>
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                        <CheckCircleIcon fontSize="small" color="error" />
+                                        <Typography variant="body2">
+                                            {t('test.hiddenResults')}
+                                        </Typography>
+                                    </Stack>
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                        <CheckCircleIcon fontSize="small" color="error" />
+                                        <Typography variant="body2">
+                                            {t('test.shuffledQuestions')}
+                                        </Typography>
+                                    </Stack>
+                                </Stack>
+
+                                <Button
+                                    variant="outlined"
+                                    size="large"
+                                    fullWidth
+                                    color="error"
+                                    startIcon={<PlayArrowIcon />}
+                                    onClick={() => navigate(`/test/${id}/exam`)}
+                                    sx={{
+                                        py: 1.5,
+                                        borderRadius: 0,
+                                        textTransform: 'none',
+                                        fontSize: '1.1rem',
+                                        fontWeight: 600,
+                                        '&:hover': {
+                                            transform: 'translateY(-2px)',
+                                            borderWidth: 2
+                                        }
+                                    }}
+                                >
+                                    {t('test.startTest')}
+                                </Button>
+                            </Stack>
                         </Paper>
                     </Stack>
                 </Box>

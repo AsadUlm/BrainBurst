@@ -23,6 +23,7 @@ interface Props {
   onRestart?: () => void;
   onBackToTests?: () => void;
   isPracticeMode?: boolean;
+  isExamMode?: boolean;
   canViewContent?: boolean;
   userAttempts?: number;
 }
@@ -34,6 +35,7 @@ export default function TestResultSummary({
   onRestart,
   onBackToTests,
   isPracticeMode = false,
+  isExamMode = false,
   canViewContent = true,
   userAttempts = 0
 }: Props) {
@@ -73,7 +75,15 @@ export default function TestResultSummary({
               sx={{ borderRadius: 0, fontSize: '1rem', px: 2, py: 1 }}
             />
           )}
-          {!isPracticeMode && (
+          {isExamMode && (
+            <Chip
+              label={t('test.examMode')}
+              color="error"
+              variant="outlined"
+              sx={{ borderRadius: 0, fontSize: '1rem', px: 2, py: 1 }}
+            />
+          )}
+          {!isPracticeMode && !isExamMode && (
             <Chip
               label={t('test.standardTest')}
               color="primary"
@@ -104,8 +114,28 @@ export default function TestResultSummary({
           </Typography>
         </Stack>
 
-        {/* Show content lock message if needed */}
-        {!canViewContent && test.hideContent ? (
+        {/* В режиме экзамена не показываем детали */}
+        {isExamMode ? (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 4,
+              border: `2px solid ${theme.palette.info.main}`,
+              borderRadius: 0,
+              textAlign: 'center',
+              bgcolor: alpha(theme.palette.info.main, 0.05),
+              mb: 3
+            }}
+          >
+            <CheckCircle sx={{ fontSize: 64, color: theme.palette.success.main, mb: 2 }} />
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+              {t('test.examCompleted')}
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              {t('test.examResultsHidden')}
+            </Typography>
+          </Paper>
+        ) : !canViewContent && test.hideContent ? (
           <Paper
             elevation={0}
             sx={{
