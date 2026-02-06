@@ -4,10 +4,12 @@ import { Container, CircularProgress, Typography } from '@mui/material';
 import PracticeQuestion from './PracticeQuestion';
 import TestResultSummary from './TestResultSummary';
 import { Test, Answer } from './types';
+import { useUserSettings } from '../../contexts/SettingsContext';
 
 export default function PracticeRunner() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { settings } = useUserSettings();
     const [test, setTest] = useState<Test | null>(null);
     const [loading, setLoading] = useState(true);
     const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -34,7 +36,9 @@ export default function PracticeRunner() {
         };
 
         fetchTest();
-    }, [id]); const handleNext = () => {
+    }, [id]);
+
+    const handleNext = () => {
         if (currentQuestion < test!.questions.length - 1) {
             setCurrentQuestion(currentQuestion + 1);
         }
@@ -47,6 +51,14 @@ export default function PracticeRunner() {
     };
 
     const handleFinish = () => {
+        // Check for unanswered questions and return to first unanswered if setting enabled
+        if (settings.returnToUnanswered) {
+            const firstUnanswered = answers.findIndex(ans => ans === null || ans === undefined || ans === -1);
+            if (firstUnanswered !== -1) {
+                setCurrentQuestion(firstUnanswered);
+                return; // Don't finish yet, go to unanswered question
+            }
+        }
         setFinished(true);
     };
 
@@ -61,6 +73,24 @@ export default function PracticeRunner() {
     const handleBackToTests = () => {
         navigate('/');
     };
+
+    // Handle beforeunload for exit confirmation
+    useEffect(() => {
+        if (finished) return;
+
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            const isTestIncomplete = answers.some((ans, i) => i <= currentQuestion && (ans === null || ans === undefined || ans === -1 || ans === ''));
+
+            if (settings.confirmBeforeExit === 'always' ||
+                (settings.confirmBeforeExit === 'if-incomplete' && isTestIncomplete)) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [finished, answers, currentQuestion, settings.confirmBeforeExit]);
 
     if (loading) {
         return (

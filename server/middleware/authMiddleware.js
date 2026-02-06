@@ -13,6 +13,7 @@ function verifyToken(req, res, next) {
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         req.user = decoded; // добавим пользователя в req.user
+        req.userId = decoded.id; // для совместимости со старым кодом
         next();
     } catch (err) {
         return res.status(401).json({ error: 'Недействительный токен' });

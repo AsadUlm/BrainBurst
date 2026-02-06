@@ -17,144 +17,147 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminResults from './pages/AdminResults';
 import MyHistory from './pages/MyHistory';
 import UserAnalytics from './pages/UserAnalytics';
+import { SettingsProvider } from './contexts/SettingsContext';
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Header />
-      <main style={{ width: '100%', flex: 1, padding: '32px' }}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+    <SettingsProvider>
+      <BrowserRouter>
+        <Header />
+        <main style={{ width: '100%', flex: 1, padding: '32px' }}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
-          <Route
-            path="/"
-            element={
-              <RequireAuth>
-                <TestList />
-              </RequireAuth>
-            }
-          />
+            <Route
+              path="/"
+              element={
+                <RequireAuth>
+                  <TestList />
+                </RequireAuth>
+              }
+            />
 
-          <Route
-            path="/test/:id"
-            element={
-              <RequireAuth>
-                <TestHomePage />
-              </RequireAuth>
-            }
-          />
+            <Route
+              path="/test/:id"
+              element={
+                <RequireAuth>
+                  <TestHomePage />
+                </RequireAuth>
+              }
+            />
 
-          <Route
-            path="/test/:id/run"
-            element={
-              <RequireAuth>
-                <TestRunner mode="standard" />
-              </RequireAuth>
-            }
-          />
+            <Route
+              path="/test/:id/run"
+              element={
+                <RequireAuth>
+                  <TestRunner mode="standard" />
+                </RequireAuth>
+              }
+            />
 
-          <Route
-            path="/test/:id/exam"
-            element={
-              <RequireAuth>
-                <TestRunner mode="exam" />
-              </RequireAuth>
-            }
-          />
+            <Route
+              path="/test/:id/exam"
+              element={
+                <RequireAuth>
+                  <TestRunner mode="exam" />
+                </RequireAuth>
+              }
+            />
 
-          <Route
-            path="/test/:id/practice"
-            element={
-              <RequireAuth>
-                <PracticeRunner />
-              </RequireAuth>
-            }
-          />
+            <Route
+              path="/test/:id/practice"
+              element={
+                <RequireAuth>
+                  <PracticeRunner />
+                </RequireAuth>
+              }
+            />
 
-          <Route
-            path="/myresults"
-            element={
-              <RequireAuth>
-                <MyHistory />
-              </RequireAuth>
-            }
-          />
+            <Route
+              path="/myresults"
+              element={
+                <RequireAuth>
+                  <MyHistory />
+                </RequireAuth>
+              }
+            />
 
-          <Route
-            path="/analytics"
-            element={
-              <RequireAuth>
-                <UserAnalytics />
-              </RequireAuth>
-            }
-          />
+            <Route
+              path="/analytics"
+              element={
+                <RequireAuth>
+                  <UserAnalytics />
+                </RequireAuth>
+              }
+            />
 
-          <Route
-            path="/admin/create"
-            element={
-              <RequireAuth>
+            <Route
+              path="/admin/create"
+              element={
+                <RequireAuth>
+                  <RequireAdmin>
+                    <AdminCreateTest />
+                  </RequireAdmin>
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/admin"
+              element={
+                <RequireAuth>
+                  <RequireAdmin>
+                    <AdminDashboard />
+                  </RequireAdmin>
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/admin/results"
+              element={
+                <RequireAuth>
+                  <RequireAdmin>
+                    <AdminResults />
+                  </RequireAdmin>
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/admin/edit/:id"
+              element={
                 <RequireAdmin>
-                  <AdminCreateTest />
+                  <AdminEditTest />
                 </RequireAdmin>
-              </RequireAuth>
-            }
-          />
+              }
+            />
 
-          <Route
-            path="/admin"
-            element={
-              <RequireAuth>
+            <Route
+              path="/admin/tests"
+              element={
                 <RequireAdmin>
-                  <AdminDashboard />
+                  <AdminTestList />
                 </RequireAdmin>
-              </RequireAuth>
-            }
-          />
+              }
+            />
 
-          <Route
-            path="/admin/results"
-            element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminResults />
-                </RequireAdmin>
-              </RequireAuth>
-            }
-          />
-
-          <Route
-            path="/admin/edit/:id"
-            element={
-              <RequireAdmin>
-                <AdminEditTest />
-              </RequireAdmin>
-            }
-          />
-
-          <Route
-            path="/admin/tests"
-            element={
-              <RequireAdmin>
-                <AdminTestList />
-              </RequireAdmin>
-            }
-          />
-
-          <Route
-            path="/admin/categories"
-            element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminCategories />
-                </RequireAdmin>
-              </RequireAuth>
-            }
-          />
+            <Route
+              path="/admin/categories"
+              element={
+                <RequireAuth>
+                  <RequireAdmin>
+                    <AdminCategories />
+                  </RequireAdmin>
+                </RequireAuth>
+              }
+            />
 
 
-        </Routes>
-      </main>
-    </BrowserRouter>
+          </Routes>
+        </main>
+      </BrowserRouter>
+    </SettingsProvider>
   );
 }

@@ -24,7 +24,9 @@ import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import LoginIcon from '@mui/icons-material/Login';
 import InfoIcon from '@mui/icons-material/Info';
+import SettingsIcon from '@mui/icons-material/Settings';
 import LanguageSwitcher from './LanguageSwitcher';
+import UserSettingsDialog from './UserSettingsDialog';
 
 export default function Header() {
   const theme = useTheme();
@@ -34,6 +36,7 @@ export default function Header() {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -41,6 +44,11 @@ export default function Header() {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleSettingsOpen = () => {
+    setSettingsOpen(true);
+    handleMenuClose();
   };
 
   const handleLogout = () => {
@@ -207,6 +215,26 @@ export default function Header() {
                 <Divider />
 
                 <MenuItem
+                  onClick={handleSettingsOpen}
+                  sx={{
+                    py: 1.5,
+                    px: 2,
+                    '&:hover': {
+                      backgroundColor: theme.palette.action.hover
+                    }
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <SettingsIcon fontSize="small" />
+                    <Typography variant="body2" fontWeight={500}>
+                      {t('header.settings')}
+                    </Typography>
+                  </Stack>
+                </MenuItem>
+
+                <Divider />
+
+                <MenuItem
                   sx={{
                     py: 1.5,
                     px: 2,
@@ -250,6 +278,8 @@ export default function Header() {
           )}
         </Stack>
       </Toolbar>
+
+      <UserSettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </Box>
   );
 }

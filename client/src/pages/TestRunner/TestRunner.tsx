@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import TestResumePrompt from './TestResumePrompt';
@@ -6,6 +6,7 @@ import TestQuestion from './TestQuestion';
 import TestResultSummary from './TestResultSummary';
 import { Test, Answer } from './types'; // вынесем типы отдельно
 import { Container } from '@mui/material';
+import { useUserSettings } from '../../contexts/SettingsContext';
 
 interface TestRunnerProps {
   mode: 'standard' | 'exam';
@@ -14,6 +15,7 @@ interface TestRunnerProps {
 export default function TestRunner({ mode }: TestRunnerProps) {
   const { id } = useParams();
   const { t } = useTranslation();
+  const { settings } = useUserSettings();
   const [test, setTest] = useState<Test | null>(null);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -26,6 +28,7 @@ export default function TestRunner({ mode }: TestRunnerProps) {
   const [resumeAvailable, setResumeAvailable] = useState(false);
   const [userAttempts, setUserAttempts] = useState(0);
   const [canViewContent, setCanViewContent] = useState(true);
+  const isSavingRef = useRef(false);
 
   const storageKey = `testProgress_${id}_${mode}`;
 
@@ -143,8 +146,50 @@ export default function TestRunner({ mode }: TestRunnerProps) {
     loadData();
   }, [id, storageKey]);
 
+  // Handle beforeunload for exit confirmation - MUST be before early returns
+  useEffect(() => {
+    if (showResult) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const isTestIncomplete = answers.some((ans, i) => i <= current && (ans === null || ans === undefined || ans === -1 || ans === ''));
+
+      if (settings.confirmBeforeExit === 'always' ||
+        (settings.confirmBeforeExit === 'if-incomplete' && isTestIncomplete)) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [showResult, answers, current, settings.confirmBeforeExit]);
+
   const finishTest = async (finalAnswers: Answer[]) => {
     if (!test) return;
+
+    // Защита от двойного вызова
+    if (isSavingRef.current) {
+      console.log('finishTest already in progress, ignoring duplicate call');
+      return;
+    }
+    isSavingRef.current = true;
+
+    // Check for unanswered questions and return to first unanswered if setting enabled
+    // Только в стандартном режиме и только если у вопроса осталось время
+    if (settings.returnToUnanswered && mode !== 'exam') {
+      const firstUnanswered = finalAnswers.findIndex((ans, index) => {
+        const hasNoAnswer = ans === null || ans === undefined || ans === -1 || ans === '';
+        const hasTimeLeft = questionTimesLeft[index] > 0;
+        return hasNoAnswer && hasTimeLeft;
+      });
+
+      if (firstUnanswered !== -1) {
+        console.log(`Returning to unanswered question ${firstUnanswered + 1} with ${questionTimesLeft[firstUnanswered]}s remaining`);
+        isSavingRef.current = false;
+        setCurrent(firstUnanswered);
+        return; // Don't finish yet, go to unanswered question
+      }
+    }
 
     const correctAnswers = test.questions.map(q => q.correctIndex);
 
@@ -201,6 +246,9 @@ export default function TestRunner({ mode }: TestRunnerProps) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(resultPayload),
     });
+
+    // Сбрасываем флаг после успешного сохранения
+    isSavingRef.current = false;
   };
 
   if (!test) return <Container>{t('test.loading')}</Container>;

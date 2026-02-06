@@ -12,7 +12,8 @@
         "register": "회원가입",
         "logout": "로그아웃",
         "administrator": "관리자",
-        "user": "사용자"
+        "user": "사용자",
+        "settings": "설정"
     },
     "auth": {
         "email": "이메일",
@@ -59,6 +60,7 @@
         "nextQuestion": "다음 질문",
         "previousQuestion": "이전 질문",
         "finishTest": "테스트 완료",
+        "answerRequired": "다음 질문으로 넘어가기 전에 답변을 선택해 주세요",
         "testResult": "테스트 결과",
         "correctAnswersCount": "정답 수:",
         "continueTestPrompt": "테스트 「{{title}}」를 계속하시겠습니까?",
@@ -325,5 +327,35 @@
         "totalCategories": "전체 카테고리",
         "noCategories": "카테고리 없음",
         "createFirst": "첫 번째 카테고리 생성"
+    },
+    "exitConfirmation": {
+        "title": "정말 나가시겠습니까?",
+        "message": "저장되지 않은 진행 상황이 있습니다. 지금 나가면 답변이 손실됩니다.",
+        "stay": "머물기",
+        "leave": "나가기"
+    },
+    "settings": {
+        "title": "설정",
+        "testSettings": "테스트 설정",
+        "showKeyboardHints": "키보드 단축키 표시",
+        "showKeyboardHintsDesc": "답변 선택지 위에 1-9 및 Enter 키 사용법 표시",
+        "disableHotkeys": "단축키 비활성화",
+        "disableHotkeysDesc": "답변 선택을 위한 1-9 키 및 다음 질문으로 이동하기 위한 Enter 키 사용 비활성화",
+        "autoAdvanceAfterSelect": "선택 후 자동 진행",
+        "autoAdvanceAfterSelectDesc": "답변 선택 후 자동으로 다음 질문으로 이동 (지연 시간 포함)",
+        "autoAdvanceDelay": "자동 진행 지연 시간",
+        "confirmBeforeExit": "종료 전 확인",
+        "confirmBeforeExitDesc": "완료되지 않은 테스트를 나가려고 할 때 경고 표시",
+        "confirmAlways": "항상",
+        "confirmIfIncomplete": "미완료 시만",
+        "confirmNever": "표시 안 함",
+        "hideTimer": "타이머 숨기기",
+        "hideTimerDesc": "타이머 표시 숨김 (시간은 계속 기록됨)",
+        "requireAnswerBeforeNext": "답변 필수",
+        "requireAnswerBeforeNextDesc": "답변을 선택하지 않으면 다음 질문으로 이동할 수 없음",
+        "returnToUnanswered": "미답변 질문으로 돌아가기",
+        "returnToUnansweredDesc": "테스트 마지막에 건너뛬 질문으로 돌아가기",
+        "showProgressGrid": "진행 표시표 보기",
+        "showProgressGridDesc": "각 질문에 대한 사각형으로 시각적 진행 표시표 표시"
     }
 }

@@ -6,6 +6,7 @@ const testRoutes = require('./routes/testRoutes');
 const resultRoutes = require('./routes/resultRoutes');
 const authRoutes = require('./routes/authRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 const createDefaultAdmin = require('./middleware/createDefaultAdmin');
 
 const app = express();
@@ -20,6 +21,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tests', testRoutes);
 app.use('/api/results', resultRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/settings', settingsRoutes);
 createDefaultAdmin();
 
 const clientPath = path.join(__dirname, "./frontend/dist");

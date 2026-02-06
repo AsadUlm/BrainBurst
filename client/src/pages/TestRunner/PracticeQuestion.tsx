@@ -25,6 +25,8 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import { KeyboardOutlined } from '@mui/icons-material';
+import { useUserSettings } from '../../contexts/SettingsContext';
+import ProgressGrid from '../../components/ProgressGrid';
 
 interface Props {
     test: Test;
@@ -56,15 +58,22 @@ export default function PracticeQuestion({
     const theme = useTheme();
     const question = test.questions[current];
     const { t } = useTranslation();
+    const { settings } = useUserSettings();
 
     const isOpenQuestion = question.options.length === 1;
     const [textAnswer, setTextAnswer] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const lastActionTime = useRef<number>(0);
+    const autoAdvanceTimerRef = useRef<number | null>(null);
+    const questionMountTime = useRef<number>(Date.now());
     const DEBOUNCE_DELAY = 800;
+    const GRACE_PERIOD = 400; // 400ms блокировка клавиш после перехода
 
     // Загружаем сохраненный текстовый ответ при смене вопроса
     useEffect(() => {
+        // Обновляем время монтирования вопроса
+        questionMountTime.current = Date.now();
+
         if (isOpenQuestion && typeof answers[current] === 'string') {
             setTextAnswer(answers[current] as string);
         } else {
@@ -73,6 +82,15 @@ export default function PracticeQuestion({
         // Сбрасываем состояние обработки при смене вопроса
         setIsProcessing(false);
     }, [current, isOpenQuestion, answers]);
+
+    // Cleanup auto-advance timer
+    useEffect(() => {
+        return () => {
+            if (autoAdvanceTimerRef.current) {
+                clearTimeout(autoAdvanceTimerRef.current);
+            }
+        };
+    }, []);
 
     // Используем состояния из массивов для текущего вопроса
     const showAnswer = showAnswerStates[current] || false;
@@ -95,6 +113,19 @@ export default function PracticeQuestion({
         const updatedShow = [...showAnswerStates];
         updatedShow[current] = false;
         setShowAnswerStates(updatedShow);
+
+        // Auto-advance after selection if enabled
+        if (settings.autoAdvanceAfterSelect && !showAnswer) {
+            // Clear any existing timer
+            if (autoAdvanceTimerRef.current) {
+                clearTimeout(autoAdvanceTimerRef.current);
+            }
+
+            // Set new timer
+            autoAdvanceTimerRef.current = setTimeout(() => {
+                handleNextWithDebounce();
+            }, settings.autoAdvanceDelay);
+        }
     };
 
     const handleTextAnswerChange = (text: string) => {
@@ -140,7 +171,17 @@ export default function PracticeQuestion({
 
     // Обработка горячих клавиш
     useEffect(() => {
+        if (settings.disableHotkeys) {
+            return;
+        }
+
         const handleKeyPress = (e: KeyboardEvent) => {
+            // Grace Period: игнорируем нажатия в первые 400ms после монтирования вопроса
+            const timeSinceMount = Date.now() - questionMountTime.current;
+            if (timeSinceMount < GRACE_PERIOD) {
+                return;
+            }
+
             // Игнорируем если фокус в текстовом поле
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
                 return;
@@ -170,7 +211,7 @@ export default function PracticeQuestion({
 
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [current, question.options.length, isOpenQuestion, hasChecked, isLastQuestion, onNext, onFinish]);
+    }, [current, question.options.length, isOpenQuestion, hasChecked, isLastQuestion, onNext, onFinish, settings.disableHotkeys]);
 
     const handleNextWithDebounce = useCallback(() => {
         const now = Date.now();
@@ -218,13 +259,23 @@ export default function PracticeQuestion({
                         />
                     </Stack>
 
+                    {/* Шкала прогресса */}
+                    {settings.showProgressGrid && (
+                        <ProgressGrid
+                            total={test.questions.length}
+                            current={current}
+                            answers={answers}
+                            mode="practice"
+                        />
+                    )}
+
                     {/* Текст вопроса */}
                     <Typography variant="h6" sx={{ mb: 3 }}>
                         {question.text}
                     </Typography>
 
                     {/* Подсказка о горячих клавишах */}
-                    {!isOpenQuestion && !hasChecked && (
+                    {!isOpenQuestion && !hasChecked && settings.showKeyboardHints && !settings.disableHotkeys && (
                         <Alert
                             icon={<KeyboardOutlined />}
                             severity="info"

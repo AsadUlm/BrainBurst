@@ -4,7 +4,21 @@ const bcrypt = require('bcryptjs');
 const UserSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, default: 'user' } // user | admin
+    role: { type: String, default: 'user' }, // user | admin
+    settings: {
+        // Настройки тестов
+        disableHotkeys: { type: Boolean, default: false },
+        autoAdvanceAfterSelect: { type: Boolean, default: false },
+        autoAdvanceDelay: { type: Number, default: 1000 }, // мс
+        showKeyboardHints: { type: Boolean, default: true },
+        confirmBeforeExit: { type: String, default: 'if-incomplete' }, // 'always' | 'if-incomplete' | 'never'
+        hideTimer: { type: Boolean, default: false },
+
+        // Настройки прогресса
+        requireAnswerBeforeNext: { type: Boolean, default: false },
+        returnToUnanswered: { type: Boolean, default: true },
+        showProgressGrid: { type: Boolean, default: true }
+    }
 });
 
 // Хэшируем пароль перед сохранением
