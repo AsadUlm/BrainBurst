@@ -386,7 +386,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
             <ProgressGrid
               total={test.questions.length}
               current={current}
-              answers={answers}
+              answers={answers as (number | string)[]}
               mode={mode}
             />
           )}

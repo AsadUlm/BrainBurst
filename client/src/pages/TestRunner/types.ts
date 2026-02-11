@@ -1,9 +1,16 @@
 // components/TestRunner/types.ts
+
+// Тип вопроса
+export type QuestionType = 'multiple-choice' | 'open-text' | 'puzzle';
+
 export interface Question {
     text: string;
     options: string[];
     correctIndex: number;
     time?: number;
+    questionType?: QuestionType;
+    puzzleWords?: string[]; // Массив слов в правильном порядке (для puzzle)
+    correctSentence?: string; // Правильное предложение для отображения
 }
 
 export interface Test {
@@ -21,5 +28,8 @@ export interface Test {
     examQuestionTime?: number;
 }
 
-// Тип для ответов: число для множественного выбора или строка для текстового ответа
-export type Answer = number | string;
+// Тип для ответов: 
+// - number для множественного выбора (индекс)
+// - string для текстового ответа
+// - string[] для пазла (массив слов в выбранном порядке)
+export type Answer = number | string | string[];

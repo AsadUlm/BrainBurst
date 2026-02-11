@@ -2,12 +2,52 @@ const mongoose = require('mongoose');
 
 const QuestionSchema = new mongoose.Schema({
     text: { type: String, required: true },
+    // Тип вопроса: множественный выбор, открытый текст или пазл
+    questionType: {
+        type: String,
+        enum: ['multiple-choice', 'open-text', 'puzzle'],
+        default: 'multiple-choice'
+    },
+    // Варианты ответов (для multiple-choice и open-text)
     options: {
         type: [String],
-        required: true,
-        validate: (arr) => arr.length >= 1 && arr.length <= 8,
+        required: function () {
+            return this.questionType !== 'puzzle';
+        },
+        validate: function (arr) {
+            // Для пазла options не нужны
+            if (this.questionType === 'puzzle') return true;
+            return arr && arr.length >= 1 && arr.length <= 8;
+        },
     },
-    correctIndex: { type: Number, required: true },
+    // Индекс правильного ответа (для multiple-choice)
+    correctIndex: {
+        type: Number,
+        required: function () {
+            return this.questionType === 'multiple-choice';
+        }
+    },
+    // Массив слов в правильном порядке (для puzzle)
+    puzzleWords: {
+        type: [String],
+        required: function () {
+            return this.questionType === 'puzzle';
+        },
+        validate: function (arr) {
+            // Для пазла нужно минимум 2 слова
+            if (this.questionType === 'puzzle') {
+                return arr && arr.length >= 2;
+            }
+            return true;
+        }
+    },
+    // Правильное предложение (для отображения и справки)
+    correctSentence: {
+        type: String,
+        required: function () {
+            return this.questionType === 'puzzle';
+        }
+    },
     time: { type: Number },
 });
 

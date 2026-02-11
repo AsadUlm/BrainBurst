@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     History as HistoryIcon,
     CheckCircle as CheckCircleIcon,
+    Timer as TimerIcon,
 } from '@mui/icons-material';
 
 interface RecentTestsProps {
@@ -27,6 +28,30 @@ export default function RecentTests({ results }: RecentTestsProps) {
         if (percentage >= 80) return theme.palette.success.main;
         if (percentage >= 60) return theme.palette.warning.main;
         return theme.palette.error.main;
+    };
+
+    const getModeColor = (mode: string): 'primary' | 'error' | 'info' => {
+        switch (mode) {
+            case 'exam': return 'error';
+            case 'practice': return 'info';
+            default: return 'primary';
+        }
+    };
+
+    const getModeLabel = (mode: string) => {
+        switch (mode) {
+            case 'exam': return t('analytics.modeExam');
+            case 'practice': return t('analytics.modePractice');
+            default: return t('analytics.modeStandard');
+        }
+    };
+
+    const formatDuration = (seconds: number) => {
+        if (!seconds) return '';
+        if (seconds < 60) return `${seconds}s`;
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${String(secs).padStart(2, '0')}`;
     };
 
     const handleViewResult = () => {
@@ -123,6 +148,23 @@ export default function RecentTests({ results }: RecentTestsProps) {
                                         <Typography variant="body2" color="text.secondary">
                                             {result.score}/{result.total}
                                         </Typography>
+                                        {result.mode && (
+                                            <Chip
+                                                label={getModeLabel(result.mode)}
+                                                size="small"
+                                                color={getModeColor(result.mode)}
+                                                variant="outlined"
+                                                sx={{ borderRadius: 0, height: 22, fontSize: '0.7rem' }}
+                                            />
+                                        )}
+                                        {result.duration > 0 && (
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
+                                                <TimerIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {formatDuration(result.duration)}
+                                                </Typography>
+                                            </Box>
+                                        )}
                                     </Box>
                                     <Typography variant="caption" color="text.secondary">
                                         {new Date(result.createdAt).toLocaleDateString()}

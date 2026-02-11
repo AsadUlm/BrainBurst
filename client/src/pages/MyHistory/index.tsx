@@ -36,9 +36,12 @@ interface Question {
   text: string;
   options: string[];
   correctIndex: number;
+  questionType?: 'multiple-choice' | 'open-text' | 'puzzle';
+  puzzleWords?: string[];
+  correctSentence?: string;
 }
 
-type Answer = number | string;
+type Answer = number | string | string[];
 
 interface Category {
   _id: string;

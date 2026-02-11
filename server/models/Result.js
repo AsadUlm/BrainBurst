@@ -11,7 +11,10 @@ const ResultSchema = new mongoose.Schema({
     mistakes: [Number],
     shuffledQuestions: [{
         text: { type: String, required: true },
-        options: [{ type: String, required: true }]
+        options: [{ type: String, required: true }],
+        questionType: { type: String, enum: ['multiple-choice', 'open-text', 'puzzle'] },
+        puzzleWords: [String],
+        correctSentence: String
     }],
     // Время прохождения теста
     startTime: { type: Date },

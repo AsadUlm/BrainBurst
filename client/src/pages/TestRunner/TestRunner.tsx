@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import TestResumePrompt from './TestResumePrompt';
 import TestQuestion from './TestQuestion';
+import PuzzleQuestion from './PuzzleQuestion';
 import TestResultSummary from './TestResultSummary';
 import { Test, Answer } from './types'; // вынесем типы отдельно
 import { Container } from '@mui/material';
@@ -59,6 +60,19 @@ export default function TestRunner({ mode }: TestRunnerProps) {
 
       // Перемешиваем варианты ответов для каждого вопроса
       const shuffledQuestions = shuffledQuestionsOrder.map(q => {
+        const questionType = q.questionType || 'multiple-choice';
+
+        // Для пазлов не перемешиваем options, сохраняем все поля
+        if (questionType === 'puzzle') {
+          return {
+            ...q,
+            questionType: q.questionType,
+            puzzleWords: q.puzzleWords,
+            correctSentence: q.correctSentence,
+          };
+        }
+
+        // Для обычных вопросов перемешиваем варианты ответов
         const optionsWithTag = q.options.map((opt, i) => ({
           text: opt,
           isCorrect: i === q.correctIndex,
@@ -69,6 +83,7 @@ export default function TestRunner({ mode }: TestRunnerProps) {
           options: shuffled.map(o => o.text),
           correctIndex: shuffled.findIndex(o => o.isCorrect),
           time: q.time,
+          questionType: q.questionType,
         };
       });
 
@@ -144,7 +159,7 @@ export default function TestRunner({ mode }: TestRunnerProps) {
     };
 
     loadData();
-  }, [id, storageKey]);
+  }, [id, storageKey, mode]);
 
   // Handle beforeunload for exit confirmation - MUST be before early returns
   useEffect(() => {
@@ -193,12 +208,23 @@ export default function TestRunner({ mode }: TestRunnerProps) {
 
     const correctAnswers = test.questions.map(q => q.correctIndex);
 
-    // Подсчет правильных ответов с учетом текстовых ответов
+    // Подсчет правильных ответов с учетом текстовых ответов и пазлов
     const points = finalAnswers.reduce<number>((sum, ans, i) => {
       const question = test.questions[i];
+      const questionType = question.questionType || 'multiple-choice';
 
-      // Если вопрос с открытым ответом (options.length === 1)
-      if (question.options.length === 1) {
+      // Пазл - сравниваем массив слов
+      if (questionType === 'puzzle') {
+        if (Array.isArray(ans) && question.puzzleWords) {
+          const userSentence = (ans as string[]).join(' ');
+          const correctSentence = question.correctSentence || question.puzzleWords.join(' ');
+          return userSentence === correctSentence ? sum + 1 : sum;
+        }
+        return sum; // Нет ответа или неправильный формат
+      }
+
+      // Текстовый ответ (options.length === 1)
+      if (questionType === 'open-text' || question.options.length === 1) {
         const correctAnswer = question.options[0].toLowerCase().trim();
         const userAnswer = typeof ans === 'string' ? ans.toLowerCase().trim() : '';
         return userAnswer === correctAnswer ? sum + 1 : sum;
@@ -226,11 +252,26 @@ export default function TestRunner({ mode }: TestRunnerProps) {
       correctAnswers,
       mistakes: finalAnswers.map((a, i) => {
         const question = test.questions[i];
-        if (question.options.length === 1) {
+        const questionType = question.questionType || 'multiple-choice';
+
+        // Пазл
+        if (questionType === 'puzzle') {
+          if (Array.isArray(a) && question.puzzleWords) {
+            const userSentence = (a as string[]).join(' ');
+            const correctSentence = question.correctSentence || question.puzzleWords.join(' ');
+            return userSentence !== correctSentence ? i : null;
+          }
+          return i; // Нет ответа = ошибка
+        }
+
+        // Текстовый ответ
+        if (questionType === 'open-text' || question.options.length === 1) {
           const correctAnswer = question.options[0].toLowerCase().trim();
           const userAnswer = typeof a === 'string' ? a.toLowerCase().trim() : '';
           return userAnswer !== correctAnswer ? i : null;
         }
+
+        // Множественный выбор
         return a !== correctAnswers[i] ? i : null;
       }).filter(x => x !== null),
       shuffledQuestions: test.questions,
@@ -300,6 +341,52 @@ export default function TestRunner({ mode }: TestRunnerProps) {
         isExamMode={mode === 'exam'}
         canViewContent={canViewContent}
         userAttempts={userAttempts}
+      />
+    );
+  }
+
+  const currentQuestion = test.questions[current];
+  const questionType = currentQuestion.questionType || 'multiple-choice';
+
+  // Рендерим компонент в зависимости от типа вопроса
+  if (questionType === 'puzzle') {
+    return (
+      <PuzzleQuestion
+        test={test}
+        current={current}
+        answers={answers}
+        setAnswers={setAnswers}
+        questionTimesLeft={questionTimesLeft}
+        setQuestionTimesLeft={setQuestionTimesLeft}
+        mode={mode}
+        onNext={(next, updatedAnswers) => {
+          // Сохраняем время, потраченное на текущий вопрос
+          const now = new Date();
+          const questionStart = questionStartTimes[current];
+          if (questionStart) {
+            const timeSpent = Math.floor((now.getTime() - questionStart.getTime()) / 1000);
+            const updatedTimes = [...timePerQuestion];
+            updatedTimes[current] = timeSpent;
+            setTimePerQuestion(updatedTimes);
+          }
+
+          // Используем обновленные ответы, если они переданы
+          const finalAnswers = updatedAnswers || answers;
+          if (next >= test.questions.length) {
+            finishTest(finalAnswers);
+          } else {
+            // Устанавливаем время начала следующего вопроса
+            const newStartTimes = [...questionStartTimes];
+            newStartTimes[next] = new Date();
+            setQuestionStartTimes(newStartTimes);
+            setCurrent(next);
+          }
+        }}
+        onPrevious={mode !== 'exam' ? () => {
+          if (current > 0) {
+            setCurrent(current - 1);
+          }
+        } : undefined}
       />
     );
   }

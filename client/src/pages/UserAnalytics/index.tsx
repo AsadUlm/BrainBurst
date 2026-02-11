@@ -1,22 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Container,
-    Paper,
-    Typography,
-    Box,
-    Card,
-    CardContent,
-    Stack,
-    Avatar,
-    useTheme,
-    alpha,
-    CircularProgress,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-    SelectChangeEvent,
+    Container, Paper, Typography, Box, Card, CardContent, Stack, Avatar, useTheme,
+    alpha, CircularProgress, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import {
@@ -35,6 +21,37 @@ import PerformanceChart from './components/PerformanceChart';
 import CategoryBreakdown from './components/CategoryBreakdown';
 import RecentTests from './components/RecentTests';
 import ProgressOverview from './components/ProgressOverview';
+import ScoreDistribution from './components/ScoreDistribution';
+import ModeBreakdown from './components/ModeBreakdown';
+import StreakStats from './components/StreakStats';
+import WeeklyActivity from './components/WeeklyActivity';
+
+interface RecentResult {
+    _id: string;
+    testTitle: string;
+    score: number;
+    total: number;
+    percentage: number;
+    createdAt: string;
+    duration: number;
+    mode: string;
+}
+
+interface CategoryStat {
+    name: string;
+    color: string;
+    tests: number;
+    avgScore: number;
+}
+
+interface PerformanceData {
+    name: string;
+    score: number;
+    date: string;
+    testTitle: string;
+    duration: number;
+    mode: string;
+}
 
 interface AnalyticsData {
     totalTests: number;
@@ -47,9 +64,14 @@ interface AnalyticsData {
     averageTime: number;
     totalTimeSpent: number;
     averageTimePerQuestion: number;
-    recentResults: any[];
-    categoryStats: any[];
-    performanceData: any[];
+    uniqueTests: number;
+    recentResults: RecentResult[];
+    categoryStats: CategoryStat[];
+    performanceData: PerformanceData[];
+    modeStats: { standard: number; exam: number; practice: number };
+    scoreDistribution: { excellent: number; good: number; average: number; poor: number };
+    streakData: { currentStreak: number; bestStreak: number; passingThreshold: number };
+    weeklyActivity: Array<{ week: string; tests: number; avgScore: number }>;
 }
 
 interface User {
@@ -534,6 +556,92 @@ export default function UserAnalytics() {
                         </CardContent>
                     </Card>
                 </Grid>
+
+                {/* Unique Tests */}
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+                    <Card
+                        elevation={0}
+                        sx={{
+                            height: '100%',
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: 0,
+                            transition: 'all 0.3s',
+                            '&:hover': {
+                                transform: 'translateY(-4px)',
+                                boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.15)}`,
+                            },
+                        }}
+                    >
+                        <CardContent>
+                            <Stack spacing={2}>
+                                <Box
+                                    sx={{
+                                        width: 48,
+                                        height: 48,
+                                        borderRadius: '50%',
+                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <SchoolIcon sx={{ color: theme.palette.primary.main }} />
+                                </Box>
+                                <Box>
+                                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                                        {analytics.uniqueTests ?? 0}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {t('analytics.uniqueTests')}
+                                    </Typography>
+                                </Box>
+                            </Stack>
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+                {/* Worst Score */}
+                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+                    <Card
+                        elevation={0}
+                        sx={{
+                            height: '100%',
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: 0,
+                            transition: 'all 0.3s',
+                            '&:hover': {
+                                transform: 'translateY(-4px)',
+                                boxShadow: `0 8px 24px ${alpha(theme.palette.error.main, 0.15)}`,
+                            },
+                        }}
+                    >
+                        <CardContent>
+                            <Stack spacing={2}>
+                                <Box
+                                    sx={{
+                                        width: 48,
+                                        height: 48,
+                                        borderRadius: '50%',
+                                        bgcolor: alpha(theme.palette.error.main, 0.1),
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <TrendingUpIcon sx={{ color: theme.palette.error.main, transform: 'rotate(180deg)' }} />
+                                </Box>
+                                <Box>
+                                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                                        {analytics.worstScore ?? 0}%
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {t('analytics.worstScore')}
+                                    </Typography>
+                                </Box>
+                            </Stack>
+                        </CardContent>
+                    </Card>
+                </Grid>
             </Grid>
 
             {/* Charts and Details */}
@@ -552,13 +660,40 @@ export default function UserAnalytics() {
                     />
                 </Grid>
 
+                {/* Weekly Activity */}
+                <Grid size={{ xs: 12, lg: 8 }}>
+                    <WeeklyActivity data={analytics.weeklyActivity || []} />
+                </Grid>
+
+                {/* Streak & Achievements */}
+                <Grid size={{ xs: 12, lg: 4 }}>
+                    <StreakStats
+                        currentStreak={analytics.streakData?.currentStreak ?? 0}
+                        bestStreak={analytics.streakData?.bestStreak ?? 0}
+                        passingThreshold={analytics.streakData?.passingThreshold ?? 70}
+                        uniqueTests={analytics.uniqueTests ?? 0}
+                        totalTimeSpent={analytics.totalTimeSpent ?? 0}
+                        worstScore={analytics.worstScore ?? 0}
+                    />
+                </Grid>
+
+                {/* Score Distribution */}
+                <Grid size={{ xs: 12, md: 4 }}>
+                    <ScoreDistribution data={analytics.scoreDistribution ?? { excellent: 0, good: 0, average: 0, poor: 0 }} />
+                </Grid>
+
+                {/* Mode Breakdown */}
+                <Grid size={{ xs: 12, md: 4 }}>
+                    <ModeBreakdown data={analytics.modeStats ?? { standard: 0, exam: 0, practice: 0 }} />
+                </Grid>
+
                 {/* Category Breakdown */}
-                <Grid size={{ xs: 12, md: 6 }}>
+                <Grid size={{ xs: 12, md: 4 }}>
                     <CategoryBreakdown data={analytics.categoryStats} />
                 </Grid>
 
                 {/* Recent Tests */}
-                <Grid size={{ xs: 12, md: 6 }}>
+                <Grid size={{ xs: 12 }}>
                     <RecentTests results={analytics.recentResults} />
                 </Grid>
             </Grid>

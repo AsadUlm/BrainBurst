@@ -58,6 +58,9 @@ export interface Question {
   text: string;
   options: string[];
   correctIndex: number;
+  questionType?: 'multiple-choice' | 'open-text' | 'puzzle';
+  puzzleWords?: string[];
+  correctSentence?: string;
 }
 
 export interface Result {
@@ -77,11 +80,14 @@ export interface Result {
 }
 
 export interface ResultDetail extends Omit<Result, 'mistakes'> {
-  answers: number[];
+  answers: (number | string | string[])[]; // Обновлено для поддержки puzzle
   correctAnswers: number[];
   shuffledQuestions: {
     text: string;
     options: string[];
+    questionType?: 'multiple-choice' | 'open-text' | 'puzzle';
+    puzzleWords?: string[];
+    correctSentence?: string;
   }[];
 }
 

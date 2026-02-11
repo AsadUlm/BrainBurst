@@ -1,26 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    TextField,
-    Typography,
-    FormControlLabel,
-    Switch,
-    Divider,
-    CircularProgress,
-    MenuItem,
-    Select,
-    FormControl,
-    InputLabel,
-    Chip,
-    Stack,
-    Box,
-    IconButton,
-    useTheme,
-    alpha,
+    Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Typography, FormControlLabel, Switch,
+    Divider, CircularProgress, MenuItem, Select, FormControl, InputLabel, Chip,
+    Stack, Box, IconButton, useTheme, alpha,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import CloseIcon from '@mui/icons-material/Close';
@@ -98,7 +80,7 @@ export default function TestVisibilityModal({
                 if (data.allowedUsers && data.allowedUsers.length > 0) {
                     setRestrictAccess(true);
                     // Извлекаем только ID из объектов пользователей
-                    const userIds = data.allowedUsers.map((u: any) =>
+                    const userIds = data.allowedUsers.map((u: string | User) =>
                         typeof u === 'string' ? u : u._id
                     );
                     setSelectedUsers(userIds);

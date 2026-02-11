@@ -25,12 +25,17 @@ import LockIcon from '@mui/icons-material/Lock';
 import { EmojiEvents, AccessTime, FilterList, ExpandMore, ExpandLess } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 
+type QuestionType = 'multiple-choice' | 'open-text' | 'puzzle';
+
 interface Question {
   text: string;
   options: string[];
+  questionType?: QuestionType;
+  puzzleWords?: string[];
+  correctSentence?: string;
 }
 
-type Answer = number | string;
+type Answer = number | string | string[];
 
 interface ResultDetail {
   _id: string;
@@ -70,12 +75,22 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
     result.shuffledQuestions.forEach((q, idx) => {
       const userAnswer = result.answers?.[idx];
       const correctAnswer = result.correctAnswers?.[idx];
-      const isOpenQuestion = q.options.length === 1;
+      const isOpenQuestion = q.options.length === 1 && q.questionType !== 'puzzle';
+      const isPuzzleQuestion = q.questionType === 'puzzle';
 
-      const isCorrect = isOpenQuestion
-        ? typeof userAnswer === 'string' &&
-        userAnswer.toLowerCase().trim() === q.options[0].toLowerCase().trim()
-        : userAnswer === correctAnswer;
+      let isCorrect = false;
+
+      if (isPuzzleQuestion) {
+        // Для puzzle проверяем массив слов
+        const userSentence = Array.isArray(userAnswer) ? userAnswer.join(' ') : '';
+        const correctSentence = q.correctSentence || '';
+        isCorrect = userSentence === correctSentence;
+      } else if (isOpenQuestion) {
+        isCorrect = typeof userAnswer === 'string' &&
+          userAnswer.toLowerCase().trim() === q.options[0].toLowerCase().trim();
+      } else {
+        isCorrect = userAnswer === correctAnswer;
+      }
 
       if (isCorrect) correct++;
       else incorrect++;
@@ -95,12 +110,21 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
 
         const userAnswer = result.answers?.[idx];
         const correctAnswer = result.correctAnswers?.[idx];
-        const isOpenQuestion = q.options.length === 1;
+        const isOpenQuestion = q.options.length === 1 && q.questionType !== 'puzzle';
+        const isPuzzleQuestion = q.questionType === 'puzzle';
 
-        const isCorrect = isOpenQuestion
-          ? typeof userAnswer === 'string' &&
-          userAnswer.toLowerCase().trim() === q.options[0].toLowerCase().trim()
-          : userAnswer === correctAnswer;
+        let isCorrect = false;
+
+        if (isPuzzleQuestion) {
+          const userSentence = Array.isArray(userAnswer) ? userAnswer.join(' ') : '';
+          const correctSentence = q.correctSentence || '';
+          isCorrect = userSentence === correctSentence;
+        } else if (isOpenQuestion) {
+          isCorrect = typeof userAnswer === 'string' &&
+            userAnswer.toLowerCase().trim() === q.options[0].toLowerCase().trim();
+        } else {
+          isCorrect = userAnswer === correctAnswer;
+        }
 
         return filter === 'correct' ? isCorrect : !isCorrect;
       });
@@ -328,14 +352,23 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
             {paginatedQuestions.map(({ q, idx }) => {
               const userAnswer = result.answers?.[idx];
               const correctAnswer = result.correctAnswers?.[idx];
-              const isOpenQuestion = q.options.length === 1;
+              const isOpenQuestion = q.options && q.options.length === 1 && q.questionType !== 'puzzle';
+              const isPuzzleQuestion = q.questionType === 'puzzle';
               const isExpanded = expandedQuestions.has(idx);
 
-              // Для открытых вопросов проверяем текстовое совпадение
-              const isCorrect = isOpenQuestion
-                ? typeof userAnswer === 'string' &&
-                userAnswer.toLowerCase().trim() === q.options[0].toLowerCase().trim()
-                : userAnswer === correctAnswer;
+              // Проверяем правильность ответа в зависимости от типа вопроса
+              let isCorrect = false;
+
+              if (isPuzzleQuestion) {
+                const userSentence = Array.isArray(userAnswer) ? userAnswer.join(' ') : '';
+                const correctSentence = q.correctSentence || '';
+                isCorrect = userSentence === correctSentence;
+              } else if (isOpenQuestion) {
+                isCorrect = typeof userAnswer === 'string' &&
+                  userAnswer.toLowerCase().trim() === q.options[0].toLowerCase().trim();
+              } else {
+                isCorrect = userAnswer === correctAnswer;
+              }
 
               return (
                 <Paper
@@ -402,7 +435,94 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
                   {/* Развернутое содержимое */}
                   <Collapse in={isExpanded}>
                     <Box sx={{ p: 3, pt: 2 }}>
-                      {isOpenQuestion ? (
+                      {isPuzzleQuestion && (!q.correctSentence || !q.puzzleWords) ? (
+                        // Fallback для старых результатов без данных puzzle
+                        <Box
+                          sx={{
+                            p: 3,
+                            border: '1px solid',
+                            borderRadius: 0,
+                            borderColor: theme.palette.warning.main,
+                            bgcolor: alpha(theme.palette.warning.light, 0.1),
+                            textAlign: 'center'
+                          }}
+                        >
+                          <Typography variant="body1" color="text.secondary">
+                            {t('test.oldResultNoData')}
+                          </Typography>
+                        </Box>
+                      ) : isPuzzleQuestion ? (
+                        // Отображение для puzzle вопросов
+                        <Box>
+                          <Box
+                            sx={{
+                              p: 2,
+                              border: '1px solid',
+                              borderRadius: 0,
+                              borderColor: isCorrect
+                                ? theme.palette.success.main
+                                : theme.palette.error.main,
+                              bgcolor: alpha(
+                                isCorrect ? theme.palette.success.light : theme.palette.error.light,
+                                0.15
+                              ),
+                              mb: 2
+                            }}
+                          >
+                            <Stack direction="row" alignItems="center" spacing={1.5}>
+                              {isCorrect ? (
+                                <CheckCircleIcon color="success" />
+                              ) : (
+                                <CancelIcon color="error" />
+                              )}
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                  {t('test.yourAnswer')}:
+                                </Typography>
+                                <Typography
+                                  variant="body1"
+                                  sx={{
+                                    fontWeight: 600,
+                                    color: isCorrect
+                                      ? theme.palette.success.main
+                                      : theme.palette.error.main
+                                  }}
+                                >
+                                  {Array.isArray(userAnswer) && userAnswer.length > 0
+                                    ? userAnswer.join(' ')
+                                    : t('test.noAnswer')}
+                                </Typography>
+                              </Box>
+                            </Stack>
+                          </Box>
+                          {!isCorrect && (
+                            <Box
+                              sx={{
+                                p: 2,
+                                border: '1px solid',
+                                borderRadius: 0,
+                                borderColor: theme.palette.success.main,
+                                bgcolor: alpha(theme.palette.success.light, 0.15)
+                              }}
+                            >
+                              <Stack direction="row" alignItems="center" spacing={1.5}>
+                                <CheckCircleIcon color="success" />
+                                <Box sx={{ flex: 1 }}>
+                                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                    {t('test.correctAnswer')}:
+                                  </Typography>
+                                  <Typography
+                                    variant="body1"
+                                    sx={{ fontWeight: 600, color: theme.palette.success.main }}
+                                  >
+                                    {q.correctSentence || t('test.dataNotAvailable')}
+                                  </Typography>
+                                </Box>
+                              </Stack>
+                            </Box>
+                          )}
+                        </Box>
+                      ) : isOpenQuestion ? (
                         // Отображение для открытых вопросов
                         <Box>
                           <Box
@@ -474,7 +594,7 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
                       ) : (
                         // Отображение для вопросов с множественным выбором
                         <Stack spacing={1}>
-                          {q.options.map((opt, i) => {
+                          {(q.options || []).map((opt, i) => {
                             const isUserAnswer = userAnswer === i;
                             const isCorrectAnswer = correctAnswer === i;
                             const isWrongUserAnswer = isUserAnswer && !isCorrectAnswer;

@@ -1,14 +1,5 @@
 // components/TestRunner/TestResultSummary.tsx
-import {
-  Box,
-  Button,
-  Chip,
-  Container,
-  Paper,
-  Stack,
-  Typography,
-  useTheme
-} from '@mui/material';
+import { Box, Button, Chip, Container, Paper, Stack, Typography, useTheme } from '@mui/material';
 import { CheckCircle, ErrorOutline, Lock as LockIcon } from '@mui/icons-material';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import HomeIcon from '@mui/icons-material/Home';
@@ -45,12 +36,23 @@ export default function TestResultSummary({
   // Подсчет правильных ответов если score не передан
   const calculatedScore = score ?? answers.filter((answer, i) => {
     const question = test.questions[i];
-    const isOpenQuestion = question.options.length === 1;
+    const questionType = question.questionType || 'multiple-choice';
 
+    // Пазл
+    if (questionType === 'puzzle' && Array.isArray(answer)) {
+      const userSentence = (answer as string[]).join(' ');
+      const correctSentence = question.correctSentence || (question.puzzleWords?.join(' ') || '');
+      return userSentence === correctSentence;
+    }
+
+    // Открытый текст
+    const isOpenQuestion = questionType === 'open-text' || question.options.length === 1;
     if (isOpenQuestion) {
       return typeof answer === 'string' &&
         answer.toLowerCase().trim() === question.options[0].toLowerCase().trim();
     }
+
+    // Множественный выбор
     return answer === question.correctIndex;
   }).length;
 
@@ -167,13 +169,22 @@ export default function TestResultSummary({
         ) : (
           test.questions.map((q, i) => {
             const userAnswer = answers[i];
-            const isOpenQuestion = q.options.length === 1;
+            const questionType = q.questionType || 'multiple-choice';
+            const isOpenQuestion = questionType === 'open-text' || q.options.length === 1;
+            const isPuzzle = questionType === 'puzzle';
 
-            // Для открытых вопросов проверяем текстовое совпадение
-            const isCorrect = isOpenQuestion
-              ? typeof userAnswer === 'string' &&
-              userAnswer.toLowerCase().trim() === q.options[0].toLowerCase().trim()
-              : userAnswer === q.correctIndex;
+            // Проверка правильности в зависимости от типа
+            let isCorrect = false;
+            if (isPuzzle && Array.isArray(userAnswer)) {
+              const userSentence = (userAnswer as string[]).join(' ');
+              const correctSentence = q.correctSentence || (q.puzzleWords?.join(' ') || '');
+              isCorrect = userSentence === correctSentence;
+            } else if (isOpenQuestion) {
+              isCorrect = typeof userAnswer === 'string' &&
+                userAnswer.toLowerCase().trim() === q.options[0].toLowerCase().trim();
+            } else {
+              isCorrect = userAnswer === q.correctIndex;
+            }
 
             return (
               <Paper
@@ -196,7 +207,38 @@ export default function TestResultSummary({
                   {t('test.question')} {i + 1}: {q.text}
                 </Typography>
 
-                {isOpenQuestion ? (
+                {isPuzzle ? (
+                  // Отображение для пазлов
+                  <Box sx={{ pl: 2 }}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                        {t('test.yourAnswer')}:
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontWeight: 600,
+                          color: isCorrect
+                            ? theme.palette.success.main
+                            : theme.palette.error.main
+                        }}
+                      >
+                        {Array.isArray(userAnswer) ? (userAnswer as string[]).join(' ') : t('test.noAnswer')}
+                        {isCorrect && <CheckCircle fontSize="small" sx={{ ml: 1, verticalAlign: 'middle' }} />}
+                        {!isCorrect && <ErrorOutline fontSize="small" sx={{ ml: 1, verticalAlign: 'middle' }} />}
+                      </Typography>
+                    </Box>
+                    {!isCorrect && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                          {t('test.correctAnswer')}:
+                        </Typography>
+                        <Typography sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+                          {q.correctSentence || (q.puzzleWords?.join(' ') || '')}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                ) : isOpenQuestion ? (
                   // Отображение для открытых вопросов
                   <Box sx={{ pl: 2 }}>
                     <Box sx={{ mb: 2 }}>

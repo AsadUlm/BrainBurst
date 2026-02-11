@@ -2,14 +2,14 @@ import {
   Box,
   Toolbar,
   Typography,
-  Button,
   Stack,
   Divider,
   useTheme,
   IconButton,
   Menu,
   MenuItem,
-  Avatar
+  Avatar,
+  Tooltip
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -38,6 +38,11 @@ export default function Header() {
   const openMenu = Boolean(anchorEl);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // Скрываем Header для незалогиненных пользователей
+  if (!isAuthenticated) {
+    return null;
+  }
+
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -57,227 +62,300 @@ export default function Header() {
     navigate('/login');
   };
 
-  const MenuButton = ({ label, path, icon }: { label: string; path: string; icon?: React.ReactNode }) => (
-    <Button
-      onClick={() => navigate(path)}
-      sx={{
-        px: 2,
-        py: 1,
-        borderRadius: 0,
-        textTransform: 'none',
-        color: location.pathname === path
-          ? theme.palette.primary.main
-          : theme.palette.text.primary,
-        borderBottom: location.pathname === path
-          ? `2px solid ${theme.palette.primary.main}`
-          : 'none',
-        transition: 'all 0.2s ease',
-        '&:hover': {
-          backgroundColor: theme.palette.action.hover,
-          transform: 'translateY(-1px)'
-        }
-      }}
-      startIcon={icon}
-    >
-      {label}
-    </Button>
-  );
+  const NavIconButton = ({ label, path, icon }: { label: string; path: string; icon: React.ReactNode }) => {
+    const isActive = location.pathname === path ||
+      (path !== '/' && location.pathname.startsWith(path));
+
+    return (
+      <Tooltip title={label} arrow placement="bottom">
+        <IconButton
+          onClick={() => navigate(path)}
+          sx={{
+            width: 44,
+            height: 44,
+            borderRadius: '12px',
+            color: isActive ? theme.palette.primary.contrastText : theme.palette.text.secondary,
+            backgroundColor: isActive ? theme.palette.primary.main : 'transparent',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              backgroundColor: isActive
+                ? theme.palette.primary.dark
+                : theme.palette.action.hover,
+              transform: 'scale(1.05)'
+            }
+          }}
+        >
+          {icon}
+        </IconButton>
+      </Tooltip>
+    );
+  };
 
   return (
     <Box
       component="header"
       sx={{
-        borderBottom: `1px solid ${theme.palette.divider}`,
-        backgroundColor: theme.palette.background.paper,
-        boxShadow: theme.shadows[1]
+        pt: { xs: 1.5, sm: 2 },
+        px: { xs: 1.5, sm: 2, md: 3 },
+        backgroundColor: 'transparent'
       }}
     >
-      <Toolbar sx={{
-        maxWidth: 1280,
-        mx: 'auto',
-        width: '100%',
-        px: 3
-      }}>
-        <Stack direction="row" alignItems="center" spacing={2} sx={{ flexGrow: 1 }}>
-          <Typography
-            variant="h5"
+      <Box
+        sx={{
+          maxWidth: 1400,
+          mx: 'auto',
+          borderRadius: '16px',
+          border: `1px solid ${theme.palette.divider}`,
+          backgroundColor: theme.palette.background.paper,
+          /* boxShadow: theme.shadows[2], */
+          overflow: 'hidden'
+        }}
+      >
+        <Toolbar
+          sx={{
+            width: '100%',
+            px: { xs: 2, sm: 3 },
+            minHeight: { xs: 64, sm: 70 },
+            gap: 2
+          }}
+        >
+          {/* Logo / Brand */}
+          <Box
             onClick={() => navigate('/')}
             sx={{
               cursor: 'pointer',
-              fontWeight: 700,
-              color: theme.palette.primary.main,
-              '&:hover': { opacity: 0.8 }
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              mr: 1,
+              '&:hover': { opacity: 0.8 },
+              transition: 'opacity 0.2s'
             }}
           >
-            {t('app.title')}
-          </Typography>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '10px',
+                bgcolor: theme.palette.primary.main,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '1.25rem',
+                color: theme.palette.primary.contrastText
+              }}
+            >
+              BB
+            </Box>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                color: theme.palette.text.primary,
+                display: { xs: 'none', sm: 'block' }
+              }}
+            >
+              {t('app.title')}
+            </Typography>
+          </Box>
 
-          <Divider orientation="vertical" flexItem sx={{ height: 28 }} />
+          <Divider orientation="vertical" flexItem sx={{ height: 36, my: 'auto' }} />
 
-          <MenuButton label={t('header.home')} path="/" icon={<HomeIcon fontSize="small" />} />
+          {/* Navigation Icons */}
+          <Stack direction="row" spacing={0.5} sx={{ flexGrow: 1 }}>
+            <NavIconButton label={t('header.home')} path="/" icon={<HomeIcon />} />
 
-          <MenuButton label={t('header.history')} path="/myresults" icon={<ArticleIcon fontSize="small" />} />
+            <NavIconButton label={t('header.history')} path="/myresults" icon={<ArticleIcon />} />
 
-          <MenuButton label={t('header.analytics')} path="/analytics" icon={<BarChartIcon fontSize="small" />} />
+            <NavIconButton label={t('header.analytics')} path="/analytics" icon={<BarChartIcon />} />
 
-          {isAdmin && (
-            <>
-              <MenuButton
-                label={t('header.admin')}
-                path="/admin"
-                icon={<AdminPanelSettingsIcon fontSize="small" />}
-              />
-              <MenuButton
-                label={t('header.results')}
-                path="/admin/results"
-                icon={<AssessmentIcon fontSize="small" />}
-              />
-            </>
-          )}
-        </Stack>
+            {isAdmin && (
+              <>
+                <NavIconButton
+                  label={t('header.admin')}
+                  path="/admin"
+                  icon={<AdminPanelSettingsIcon />}
+                />
+                <NavIconButton
+                  label={t('header.results')}
+                  path="/admin/results"
+                  icon={<AssessmentIcon />}
+                />
+              </>
+            )}
+          </Stack>
 
-        <Stack direction="row" spacing={1} alignItems="center">
-          {!isAuthenticated ? (
-            <>
-              <MenuButton
-                label={t('header.login')}
-                path="/login"
-                icon={<LoginIcon fontSize="small" />}
-              />
-              <Divider orientation="vertical" flexItem sx={{ height: 24 }} />
-              <MenuButton
-                label={t('header.register')}
-                path="/register"
-                icon={<HowToRegIcon fontSize="small" />}
-              />
-            </>
-          ) : (
-            <>
-              <IconButton
-                onClick={handleMenuOpen}
-                sx={{
-                  p: 0.5,
-                  border: `2px solid ${theme.palette.divider}`,
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    borderColor: theme.palette.primary.main,
-                    transform: 'scale(1.05)'
-                  }
-                }}
-              >
-                <Avatar
+          {/* Right Side Actions */}
+          <Stack direction="row" spacing={1} alignItems="center">
+            {!isAuthenticated ? (
+              <>
+                <Tooltip title={t('header.login')} arrow>
+                  <IconButton
+                    onClick={() => navigate('/login')}
+                    sx={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: '12px',
+                      color: theme.palette.text.secondary,
+                      '&:hover': {
+                        backgroundColor: theme.palette.action.hover
+                      }
+                    }}
+                  >
+                    <LoginIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title={t('header.register')} arrow>
+                  <IconButton
+                    onClick={() => navigate('/register')}
+                    sx={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: '12px',
+                      bgcolor: theme.palette.primary.main,
+                      color: theme.palette.primary.contrastText,
+                      '&:hover': {
+                        bgcolor: theme.palette.primary.dark
+                      }
+                    }}
+                  >
+                    <HowToRegIcon />
+                  </IconButton>
+                </Tooltip>
+              </>
+            ) : (
+              <>
+                <Tooltip title={t('header.settings')} arrow>
+                  <IconButton
+                    onClick={handleSettingsOpen}
+                    sx={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: '12px',
+                      color: theme.palette.text.secondary,
+                      '&:hover': {
+                        backgroundColor: theme.palette.action.hover
+                      }
+                    }}
+                  >
+                    <SettingsIcon />
+                  </IconButton>
+                </Tooltip>
+
+                <IconButton
+                  onClick={handleMenuOpen}
                   sx={{
-                    width: 32,
-                    height: 32,
-                    bgcolor: role === 'admin' ? theme.palette.primary.main : theme.palette.secondary.main,
-                    fontSize: '0.875rem',
-                    fontWeight: 600
-                  }}
-                >
-                  {role === 'admin' ? 'A' : 'U'}
-                </Avatar>
-              </IconButton>
-
-              <Menu
-                anchorEl={anchorEl}
-                open={openMenu}
-                onClose={handleMenuClose}
-                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                PaperProps={{
-                  sx: {
-                    mt: 1.5,
-                    minWidth: 240,
-                    borderRadius: 0,
-                    boxShadow: theme.shadows[3]
-                  }
-                }}
-              >
-                <Box sx={{ px: 2, py: 1.5, bgcolor: theme.palette.background.default }}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    {role === 'admin' ? (
-                      <AdminPanelSettingsIcon fontSize="small" color="primary" />
-                    ) : (
-                      <HomeIcon fontSize="small" color="secondary" />
-                    )}
-                    <Typography variant="subtitle2" fontWeight={600}>
-                      {role === 'admin' ? t('header.administrator') : t('header.user')}
-                    </Typography>
-                  </Stack>
-                </Box>
-
-                <Divider />
-
-                <Box sx={{ px: 2, py: 1.5 }}>
-                  <LanguageSwitcher />
-                </Box>
-
-                <Divider />
-
-                <MenuItem
-                  onClick={handleSettingsOpen}
-                  sx={{
-                    py: 1.5,
-                    px: 2,
+                    p: 0,
+                    borderRadius: '12px',
+                    transition: 'all 0.2s ease',
                     '&:hover': {
-                      backgroundColor: theme.palette.action.hover
+                      transform: 'scale(1.05)'
                     }
                   }}
                 >
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <SettingsIcon fontSize="small" />
-                    <Typography variant="body2" fontWeight={500}>
-                      {t('header.settings')}
-                    </Typography>
-                  </Stack>
-                </MenuItem>
+                  <Avatar
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      bgcolor: role === 'admin' ? theme.palette.primary.main : theme.palette.secondary.main,
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      border: `2px solid ${theme.palette.divider}`
+                    }}
+                  >
+                    {role === 'admin' ? 'A' : 'U'}
+                  </Avatar>
+                </IconButton>
 
-                <Divider />
-
-                <MenuItem
-                  sx={{
-                    py: 1.5,
-                    px: 2,
-                    '&:hover': {
-                      backgroundColor: theme.palette.action.hover
-                    }
-                  }}
-                  disabled
-                >
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <InfoIcon fontSize="small" color="action" />
-                    <Typography variant="body2" color="text.secondary">
-                      {t('common.version')} 2.0.1
-                    </Typography>
-                  </Stack>
-                </MenuItem>
-
-                <Divider />
-
-                <MenuItem
-                  onClick={handleLogout}
-                  sx={{
-                    py: 1.5,
-                    px: 2,
-                    color: theme.palette.error.main,
-                    '&:hover': {
-                      backgroundColor: theme.palette.error.light,
-                      color: theme.palette.error.dark
+                <Menu
+                  anchorEl={anchorEl}
+                  open={openMenu}
+                  onClose={handleMenuClose}
+                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                  PaperProps={{
+                    sx: {
+                      mt: 1,
+                      minWidth: 220,
+                      borderRadius: '12px',
+                      boxShadow: theme.shadows[3],
+                      border: `1px solid ${theme.palette.divider}`
                     }
                   }}
                 >
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <ExitToAppIcon fontSize="small" />
-                    <Typography variant="body2" fontWeight={500}>
-                      {t('header.logout')}
-                    </Typography>
-                  </Stack>
-                </MenuItem>
-              </Menu>
-            </>
-          )}
-        </Stack>
-      </Toolbar>
+                  <Box sx={{ px: 2, py: 1.5, bgcolor: theme.palette.background.default }}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      {role === 'admin' ? (
+                        <AdminPanelSettingsIcon fontSize="small" color="primary" />
+                      ) : (
+                        <HomeIcon fontSize="small" color="secondary" />
+                      )}
+                      <Typography variant="subtitle2" fontWeight={600}>
+                        {role === 'admin' ? t('header.administrator') : t('header.user')}
+                      </Typography>
+                    </Stack>
+                  </Box>
+
+                  <Divider />
+
+                  <Box sx={{ px: 2, py: 1.5 }}>
+                    <LanguageSwitcher />
+                  </Box>
+
+                  <Divider />
+
+                  <MenuItem
+                    sx={{
+                      py: 1.5,
+                      px: 2,
+                      borderRadius: '8px',
+                      mx: 1,
+                      my: 0.5,
+                      '&:hover': {
+                        backgroundColor: theme.palette.action.hover
+                      }
+                    }}
+                    disabled
+                  >
+                    <Stack direction="row" alignItems="center" spacing={1.5}>
+                      <InfoIcon fontSize="small" color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        v3.1.3
+                      </Typography>
+                    </Stack>
+                  </MenuItem>
+
+                  <Divider sx={{ my: 0.5 }} />
+
+                  <MenuItem
+                    onClick={handleLogout}
+                    sx={{
+                      py: 1.5,
+                      px: 2,
+                      borderRadius: '8px',
+                      mx: 1,
+                      my: 0.5,
+                      color: theme.palette.error.main,
+                      '&:hover': {
+                        backgroundColor: theme.palette.error.light,
+                        color: theme.palette.error.dark
+                      }
+                    }}
+                  >
+                    <Stack direction="row" alignItems="center" spacing={1.5}>
+                      <ExitToAppIcon fontSize="small" />
+                      <Typography variant="body2" fontWeight={500}>
+                        {t('header.logout')}
+                      </Typography>
+                    </Stack>
+                  </MenuItem>
+                </Menu>
+              </>
+            )}
+          </Stack>
+        </Toolbar>
+      </Box>
 
       <UserSettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </Box>

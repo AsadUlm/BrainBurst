@@ -1,19 +1,6 @@
 import {
-    Button,
-    Container,
-    FormControlLabel,
-    Paper,
-    Radio,
-    RadioGroup,
-    Stack,
-    Typography,
-    useTheme,
-    Box,
-    TextField,
-    Chip,
-    Alert,
-    Collapse,
-    CircularProgress
+    Button, Container, FormControlLabel, Paper, Radio, RadioGroup,
+    Stack, Typography, useTheme, Box, TextField, Chip, Alert, Collapse, CircularProgress
 } from '@mui/material';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -264,7 +251,7 @@ export default function PracticeQuestion({
                         <ProgressGrid
                             total={test.questions.length}
                             current={current}
-                            answers={answers}
+                            answers={answers as (number | string)[]}
                             mode="practice"
                         />
                     )}

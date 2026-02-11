@@ -1,32 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import {
-  Typography,
-  Divider,
-  Card,
-  CardContent,
-  Box,
-  useTheme,
-  alpha,
-  Stack,
-  CircularProgress,
-  Chip,
-  TextField,
-  InputAdornment,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Paper,
-  Switch,
-  FormControlLabel,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Collapse,
-  IconButton,
-  Badge
+  Typography, Divider, Card, CardContent, Box, useTheme, alpha, Stack, CircularProgress,
+  Chip, TextField, InputAdornment, FormControl, InputLabel, Select, MenuItem, Paper, Switch, FormControlLabel,
+  Accordion, AccordionSummary, AccordionDetails, Collapse, IconButton, Badge, Theme
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, NavigateFunction } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import QuizIcon from '@mui/icons-material/Quiz';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -36,6 +14,9 @@ import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import SortIcon from '@mui/icons-material/Sort';
+import EditNoteIcon from '@mui/icons-material/EditNote';
+import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
+import ExtensionIcon from '@mui/icons-material/Extension';
 
 interface Category {
   _id: string;
@@ -43,13 +24,25 @@ interface Category {
   color?: string;
 }
 
+interface Question {
+  time?: number;
+  questionType?: 'multiple-choice' | 'open' | 'puzzle';
+  options?: string[];
+}
+
 interface Test {
   _id: string;
   title: string;
   description?: string;
-  questions: any[];
+  questions: Question[];
   timeLimit?: number;
   category?: Category;
+  useStandardGlobalTimer?: boolean;
+  standardTimeLimit?: number;
+  standardQuestionTime?: number;
+  useExamGlobalTimer?: boolean;
+  examTimeLimit?: number;
+  examQuestionTime?: number;
 }
 
 export default function TestList() {
@@ -102,7 +95,7 @@ export default function TestList() {
 
   // Фильтрация и сортировка
   const filteredAndSortedTests = useMemo(() => {
-    let filtered = tests.filter(test => {
+    const filtered = tests.filter(test => {
       // Поиск
       const matchesSearch = searchQuery === '' ||
         test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -113,7 +106,12 @@ export default function TestList() {
         (test.category && typeof test.category === 'object' && selectedCategories.includes(test.category._id));
 
       // Фильтр по времени
-      const hasTimeLimit = !!test.timeLimit || test.questions?.some((q: any) => q.time);
+      const hasTimeLimit = !!test.timeLimit ||
+        !!test.useStandardGlobalTimer ||
+        !!test.useExamGlobalTimer ||
+        !!test.standardQuestionTime ||
+        !!test.examQuestionTime ||
+        test.questions?.some((q: Question) => q.time);
       const matchesTimeLimit = !showTimeLimitOnly || hasTimeLimit;
 
       return matchesSearch && matchesCategory && matchesTimeLimit;
@@ -126,10 +124,13 @@ export default function TestList() {
           return a.title.localeCompare(b.title);
         case 'questions':
           return (b.questions?.length || 0) - (a.questions?.length || 0);
-        case 'time':
-          const timeA = a.timeLimit || a.questions?.reduce((sum: number, q: any) => sum + (q.time || 0), 0) || 0;
-          const timeB = b.timeLimit || b.questions?.reduce((sum: number, q: any) => sum + (q.time || 0), 0) || 0;
+        case 'time': {
+          const timeA = a.standardTimeLimit || a.examTimeLimit || a.timeLimit ||
+            a.questions?.reduce((sum: number, q: Question) => sum + (q.time || 0), 0) || 0;
+          const timeB = b.standardTimeLimit || b.examTimeLimit || b.timeLimit ||
+            b.questions?.reduce((sum: number, q: Question) => sum + (q.time || 0), 0) || 0;
           return timeB - timeA;
+        }
         default:
           return 0;
       }
@@ -234,7 +235,7 @@ export default function TestList() {
             <Select
               value={sortBy}
               label={t('test.sortBy')}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as 'name' | 'questions' | 'time')}
               sx={{ borderRadius: 0 }}
               startAdornment={<SortIcon sx={{ ml: 1, mr: -0.5, color: 'action.active' }} />}
             >
@@ -356,7 +357,7 @@ export default function TestList() {
       ) : filteredAndSortedTests.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Typography variant="h5" color="text.secondary">
-            {tests.length === 0 ? t('test.noTests') : 'Нет тестов по выбранным фильтрам'}
+            {tests.length === 0 ? t('test.noTests') : t('test.noTestsMatchFilter')}
           </Typography>
         </Box>
       ) : (
@@ -395,6 +396,7 @@ export default function TestList() {
                           size="small"
                           sx={{
                             ml: 1,
+                            borderRadius: 0,
                             bgcolor: alpha(categoryColor, 0.1),
                             color: categoryColor,
                             fontWeight: 600,
@@ -428,9 +430,9 @@ function TestGrid({
   t,
 }: {
   tests: Test[];
-  navigate: any;
-  theme: any;
-  t: any;
+  navigate: NavigateFunction;
+  theme: Theme;
+  t: (key: string) => string;
 }) {
   return (
     <Box
@@ -442,8 +444,26 @@ function TestGrid({
     >
       {tests.map((test) => {
         const totalQuestions = test.questions?.length || 0;
-        const hasTimeLimit = !!test.timeLimit || test.questions?.some((q: any) => q.time);
-        const totalTime = test.timeLimit || test.questions?.reduce((sum: number, q: any) => sum + (q.time || 0), 0) || 0;
+
+        // Подсчет типов вопросов
+        const multipleChoiceCount = test.questions?.filter(q => {
+          const type = q.questionType || 'multiple-choice';
+          return type === 'multiple-choice' && (q.options?.length || 0) > 1;
+        }).length || 0;
+        const openQuestionsCount = test.questions?.filter(q => {
+          const type = q.questionType || ((q.options?.length || 0) === 1 ? 'open' : 'multiple-choice');
+          return type === 'open' || (type === 'multiple-choice' && (q.options?.length || 0) === 1);
+        }).length || 0;
+        const puzzleQuestionsCount = test.questions?.filter(q => q.questionType === 'puzzle').length || 0;
+
+        const hasTimeLimit = !!test.timeLimit ||
+          !!test.useStandardGlobalTimer ||
+          !!test.useExamGlobalTimer ||
+          !!test.standardQuestionTime ||
+          !!test.examQuestionTime ||
+          test.questions?.some((q: Question) => q.time);
+        const totalTime = test.standardTimeLimit || test.examTimeLimit || test.timeLimit ||
+          test.questions?.reduce((sum: number, q: Question) => sum + (q.time || 0), 0) || 0;
         const category = test.category && typeof test.category === 'object' ? test.category : null;
         const categoryColor = category?.color || theme.palette.primary.main;
 
@@ -497,9 +517,9 @@ function TestGrid({
                 <ChevronRightIcon sx={{ color: theme.palette.action.disabled }} />
               </Stack>
 
-              {/* Категория теста */}
-              {category && (
-                <Box sx={{ mb: 2 }}>
+              {/* Категория и типы вопросов */}
+              <Stack direction="row" spacing={0.5} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
+                {category && (
                   <Chip
                     icon={<CategoryIcon fontSize="small" />}
                     label={category.name}
@@ -512,8 +532,38 @@ function TestGrid({
                       fontWeight: 600,
                     }}
                   />
-                </Box>
-              )}
+                )}
+                {multipleChoiceCount > 0 && (
+                  <Chip
+                    icon={<RadioButtonCheckedIcon fontSize="small" />}
+                    label={multipleChoiceCount}
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                    sx={{ borderRadius: 0 }}
+                  />
+                )}
+                {openQuestionsCount > 0 && (
+                  <Chip
+                    icon={<EditNoteIcon fontSize="small" />}
+                    label={openQuestionsCount}
+                    size="small"
+                    variant="outlined"
+                    color="info"
+                    sx={{ borderRadius: 0 }}
+                  />
+                )}
+                {puzzleQuestionsCount > 0 && (
+                  <Chip
+                    icon={<ExtensionIcon fontSize="small" />}
+                    label={puzzleQuestionsCount}
+                    size="small"
+                    variant="outlined"
+                    color="success"
+                    sx={{ borderRadius: 0 }}
+                  />
+                )}
+              </Stack>
 
               {/* Описание теста */}
               {test.description && (

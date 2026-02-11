@@ -33,7 +33,10 @@ export default function ProgressGrid({
     const getBoxColor = (index: number) => {
         const answer = answers[index];
         // Проверяем что ответ существует и не равен -1 (пропущен)
-        const isAnswered = (typeof answer === 'number' && answer >= 0) || (typeof answer === 'string' && answer.trim() !== '');
+        // Для режима пазла answer может быть массивом string[]
+        const isAnswered = Array.isArray(answer)
+            ? answer.length > 0
+            : ((typeof answer === 'number' && answer >= 0) || (typeof answer === 'string' && answer.trim() !== ''));
         const isCurrent = index === current;
         const isPassed = index < current; // Вопрос уже был пройден
 
@@ -59,7 +62,9 @@ export default function ProgressGrid({
     const getTooltipText = (index: number) => {
 
         const answer = answers[index];
-        const isAnswered = (typeof answer === 'number' && answer >= 0) || (typeof answer === 'string' && answer.trim() !== '');
+        const isAnswered = Array.isArray(answer)
+            ? answer.length > 0
+            : ((typeof answer === 'number' && answer >= 0) || (typeof answer === 'string' && answer.trim() !== ''));
         const isCurrent = index === current;
 
         if (correctAnswers && correctAnswers[index] !== undefined) {

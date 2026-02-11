@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Container, CircularProgress, Typography } from '@mui/material';
 import PracticeQuestion from './PracticeQuestion';
+import PuzzleQuestion from './PuzzleQuestion';
 import TestResultSummary from './TestResultSummary';
 import { Test, Answer } from './types';
 import { useUserSettings } from '../../contexts/SettingsContext';
@@ -116,6 +117,44 @@ export default function PracticeRunner() {
                 onRestart={handleRestart}
                 onBackToTests={handleBackToTests}
                 isPracticeMode={true}
+            />
+        );
+    }
+
+    const currentQuestionData = test.questions[currentQuestion];
+    const questionType = currentQuestionData.questionType || 'multiple-choice';
+
+    // Рендерим компонент в зависимости от типа вопроса
+    if (questionType === 'puzzle') {
+        return (
+            <PuzzleQuestion
+                test={test}
+                current={currentQuestion}
+                answers={answers}
+                setAnswers={setAnswers}
+                questionTimesLeft={[]} // Нет таймера в практике
+                setQuestionTimesLeft={() => { }} // Нет таймера в практике
+                mode="practice"
+                showAnswer={showAnswerStates[currentQuestion]}
+                isAnswerChecked={hasCheckedStates[currentQuestion]}
+                onShowAnswer={() => {
+                    const newStates = [...showAnswerStates];
+                    newStates[currentQuestion] = true;
+                    setShowAnswerStates(newStates);
+                }}
+                onCheckAnswer={() => {
+                    const newStates = [...hasCheckedStates];
+                    newStates[currentQuestion] = true;
+                    setHasCheckedStates(newStates);
+                }}
+                onNext={(next) => {
+                    if (next >= test.questions.length) {
+                        handleFinish();
+                    } else {
+                        setCurrentQuestion(next);
+                    }
+                }}
+                onPrevious={handlePrevious}
             />
         );
     }

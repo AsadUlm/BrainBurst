@@ -5,16 +5,31 @@ import {
   Typography,
   Button,
   Alert,
+  Container,
+  Paper,
+  Stack,
+  InputAdornment,
+  IconButton,
+  Link,
+  useTheme,
+  alpha
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import EmailIcon from '@mui/icons-material/Email';
+import LockIcon from '@mui/icons-material/Lock';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 
 export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const theme = useTheme();
 
   const handleRegister = async () => {
     setError('');
@@ -41,44 +56,275 @@ export default function Register() {
   return (
     <Box
       sx={{
-        width: '100%',
+        minHeight: '100vh',
         display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        px: 2,
+        backgroundColor: theme.palette.background.default
       }}
     >
-      <Box sx={{ width: '100%', maxWidth: 400 }}>
-        <Typography variant="h4" gutterBottom>
-          {t('auth.registerTitle')}
-        </Typography>
+      {/* Left Side - Welcome Section */}
+      <Box
+        sx={{
+          flex: 1,
+          display: { xs: 'none', md: 'flex' },
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          p: 6,
+          background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.secondary.dark} 100%)`,
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: -100,
+            right: -100,
+            width: 300,
+            height: 300,
+            background: alpha(theme.palette.common.white, 0.1),
+            borderRadius: '50%',
+            transform: 'rotate(-15deg)'
+          },
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            bottom: -150,
+            left: -150,
+            width: 400,
+            height: 400,
+            background: alpha(theme.palette.common.white, 0.05),
+            borderRadius: '50%',
+            transform: 'rotate(15deg)'
+          }
+        }}
+      >
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 6 }}>
+            <Box
+              sx={{
+                width: 60,
+                height: 60,
+                borderRadius: '15px',
+                bgcolor: alpha(theme.palette.common.white, 0.2),
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '1.75rem'
+              }}
+            >
+              BB
+            </Box>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              BrainBurst
+            </Typography>
+          </Box>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          <Typography
+            variant="h2"
+            sx={{
+              fontWeight: 700,
+              mb: 2,
+              lineHeight: 1.2
+            }}
+          >
+            {t('auth.startJourney')} <RocketLaunchIcon sx={{ fontSize: '3rem', ml: 1 }} />
+          </Typography>
 
-        <TextField
-          fullWidth
-          label={t('auth.email')}
-          margin="normal"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <TextField
-          fullWidth
-          label={t('auth.password')}
-          type="password"
-          margin="normal"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <Typography
+            variant="h6"
+            sx={{
+              opacity: 0.9,
+              fontWeight: 400,
+              maxWidth: 500,
+              lineHeight: 1.6
+            }}
+          >
+            {t('auth.registerDesc')}
+          </Typography>
+        </Box>
 
-        <Button
-          fullWidth
-          variant="contained"
-          sx={{ mt: 2 }}
-          onClick={handleRegister}
+        <Typography
+          variant="body2"
+          sx={{
+            opacity: 0.7,
+            position: 'relative',
+            zIndex: 1
+          }}
         >
-          {t('auth.register')}
-        </Button>
+          © 2026 BrainBurst. {t('common.allRights')}
+        </Typography>
+      </Box>
+
+      {/* Right Side - Register Form */}
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: 3
+        }}
+      >
+        <Container maxWidth="sm">
+          <Paper
+            elevation={0}
+            sx={{
+              p: { xs: 3, sm: 5 },
+              borderRadius: '20px',
+              border: `1px solid ${theme.palette.divider}`,
+              backgroundColor: theme.palette.background.paper
+            }}
+          >
+            <Stack spacing={3}>
+              <Box>
+                <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+                  {t('auth.registerTitle')}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {t('auth.haveAccount')}{' '}
+                  <Link
+                    component="button"
+                    variant="body2"
+                    onClick={() => navigate('/login')}
+                    sx={{
+                      fontWeight: 600,
+                      color: theme.palette.secondary.main,
+                      textDecoration: 'none',
+                      '&:hover': {
+                        textDecoration: 'underline'
+                      }
+                    }}
+                  >
+                    {t('auth.loginHere')}
+                  </Link>
+                </Typography>
+              </Box>
+
+              {error && (
+                <Alert severity="error" sx={{ borderRadius: '12px' }}>
+                  {error}
+                </Alert>
+              )}
+
+              <TextField
+                label={t('auth.email')}
+                fullWidth
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  sx: {
+                    borderRadius: '12px',
+                    backgroundColor: 'background.paper'
+                  }
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '12px',
+                    backgroundColor: 'background.paper',
+                    '& input': {
+                      backgroundColor: 'transparent !important'
+                    },
+                    '& input:-webkit-autofill': {
+                      WebkitBoxShadow: (theme) => `0 0 0 100px ${theme.palette.background.paper} inset !important`,
+                      WebkitTextFillColor: (theme) => `${theme.palette.text.primary} !important`,
+                      transition: 'background-color 5000s ease-in-out 0s'
+                    },
+                    '& input:-webkit-autofill:hover': {
+                      WebkitBoxShadow: (theme) => `0 0 0 100px ${theme.palette.background.paper} inset !important`
+                    },
+                    '& input:-webkit-autofill:focus': {
+                      WebkitBoxShadow: (theme) => `0 0 0 100px ${theme.palette.background.paper} inset !important`
+                    },
+                    '& input:-webkit-autofill:active': {
+                      WebkitBoxShadow: (theme) => `0 0 0 100px ${theme.palette.background.paper} inset !important`
+                    }
+                  }
+                }}
+              />
+
+              <TextField
+                label={t('auth.password')}
+                type={showPassword ? 'text' : 'password'}
+                fullWidth
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleRegister()}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        size="small"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                  sx: {
+                    borderRadius: '12px',
+                    backgroundColor: 'background.paper'
+                  }
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '12px',
+                    backgroundColor: 'background.paper',
+                    '& input': {
+                      backgroundColor: 'transparent !important'
+                    },
+                    '& input:-webkit-autofill': {
+                      WebkitBoxShadow: (theme) => `0 0 0 100px ${theme.palette.background.paper} inset !important`,
+                      WebkitTextFillColor: (theme) => `${theme.palette.text.primary} !important`,
+                      transition: 'background-color 5000s ease-in-out 0s'
+                    },
+                    '& input:-webkit-autofill:hover': {
+                      WebkitBoxShadow: (theme) => `0 0 0 100px ${theme.palette.background.paper} inset !important`
+                    },
+                    '& input:-webkit-autofill:focus': {
+                      WebkitBoxShadow: (theme) => `0 0 0 100px ${theme.palette.background.paper} inset !important`
+                    },
+                    '& input:-webkit-autofill:active': {
+                      WebkitBoxShadow: (theme) => `0 0 0 100px ${theme.palette.background.paper} inset !important`
+                    }
+                  }
+                }}
+              />
+
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={handleRegister}
+                size="large"
+                sx={{
+                  py: 1.5,
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  boxShadow: theme.shadows[4],
+                  '&:hover': {
+                    boxShadow: theme.shadows[8],
+                    transform: 'translateY(-2px)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {t('auth.register')}
+              </Button>
+            </Stack>
+          </Paper>
+        </Container>
       </Box>
     </Box>
   );
