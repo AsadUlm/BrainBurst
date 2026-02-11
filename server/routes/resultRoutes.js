@@ -56,8 +56,24 @@ router.post('/', async (req, res) => {
 });
 
 router.get('/', verifyToken, requireAdmin, async (req, res) => {
-    const results = await Result.find().sort({ createdAt: -1 });
-    res.json(results);
+    try {
+        const results = await Result.find()
+            .select('-shuffledQuestions -answers -correctAnswers -timePerQuestion')
+            .populate({ path: 'testId', select: 'title category', populate: { path: 'category', select: 'name color' } })
+            .sort({ createdAt: -1 })
+            .lean();
+
+        // Map testId to test for frontend compatibility
+        const mapped = results.map(r => ({
+            ...r,
+            test: r.testId && typeof r.testId === 'object' ? r.testId : undefined
+        }));
+
+        res.json(mapped);
+    } catch (error) {
+        console.error('Error fetching results:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 router.get('/mine', verifyToken, async (req, res) => {
@@ -83,7 +99,7 @@ async function buildAnalytics(results) {
         recentResults: [],
         categoryStats: [],
         performanceData: [],
-        modeStats: { standard: 0, exam: 0, practice: 0 },
+        modeStats: { standard: 0, exam: 0, practice: 0, game: 0 },
         scoreDistribution: { excellent: 0, good: 0, average: 0, poor: 0 },
         streakData: { currentStreak: 0, bestStreak: 0, passingThreshold: 70 },
         weeklyActivity: [],
@@ -102,7 +118,7 @@ async function buildAnalytics(results) {
     let totalTimeForAllQuestions = 0;
 
     // Mode stats
-    const modeStats = { standard: 0, exam: 0, practice: 0 };
+    const modeStats = { standard: 0, exam: 0, practice: 0, game: 0 };
 
     // Score distribution (percentage ranges)
     const scoreDistribution = { excellent: 0, good: 0, average: 0, poor: 0 };
@@ -332,6 +348,7 @@ router.get('/analytics/:userId', verifyToken, requireAdmin, async (req, res) => 
 });
 
 // Получить количество попыток для конкретного теста
+// Считаются только стандартный и экзаменационный режимы
 router.get('/attempts/:testId', verifyToken, async (req, res) => {
     try {
         const userEmail = req.user.email;
@@ -339,7 +356,8 @@ router.get('/attempts/:testId', verifyToken, async (req, res) => {
 
         const count = await Result.countDocuments({
             userEmail,
-            testId
+            testId,
+            mode: { $in: ['standard', 'exam'] }
         });
 
         res.json({ attempts: count });
@@ -377,7 +395,7 @@ router.get('/test/:testId/analytics', verifyToken, async (req, res) => {
                 worstScore: 0,
                 averageTime: 0,
                 totalTimeSpent: 0,
-                modeStats: { standard: 0, exam: 0, practice: 0 },
+                modeStats: { standard: 0, exam: 0, practice: 0, game: 0 },
                 progressData: [],
                 questionStats: [],
                 recentAttempts: [],
@@ -390,7 +408,7 @@ router.get('/test/:testId/analytics', verifyToken, async (req, res) => {
         let bestScore = 0;
         let worstScore = 100;
         let totalTimeSpent = 0;
-        const modeStats = { standard: 0, exam: 0, practice: 0 };
+        const modeStats = { standard: 0, exam: 0, practice: 0, game: 0 };
         const questionMap = new Map();
 
         results.forEach((result) => {
@@ -538,9 +556,11 @@ router.get('/test/:testId/analytics', verifyToken, async (req, res) => {
  *     _id: string,
  *     score: number,
  *     totalQuestions: number,
- *     mode: 'standard' | 'exam' | 'practice',
+ *     mode: 'standard' | 'exam' | 'practice' | 'game',
  *     completedAt: Date,
- *     timeTaken: number (в секундах)
+ *     timeTaken: number (в секундах),
+ *     moves?: number (для игрового режима),
+ *     gameCardCount?: number (для игрового режима)
  *   }
  * ]
  */
@@ -559,7 +579,7 @@ router.get('/test/:testId', verifyToken, async (req, res) => {
             testId
         })
             .sort({ createdAt: -1 })
-            .select('_id score total mode createdAt endTime duration')
+            .select('_id score total mode createdAt endTime duration moves gameCardCount')
             .lean();
 
         // Преобразуем данные для клиента
@@ -569,7 +589,9 @@ router.get('/test/:testId', verifyToken, async (req, res) => {
             totalQuestions: result.total,
             mode: result.mode || 'standard',
             completedAt: result.endTime || result.createdAt,
-            timeTaken: result.duration
+            timeTaken: result.duration,
+            moves: result.moves,
+            gameCardCount: result.gameCardCount
         }));
 
         res.json(formattedResults);
@@ -601,7 +623,8 @@ router.get('/:id', verifyToken, async (req, res) => {
             const userEmail = req.user.email;
             currentAttempts = await Result.countDocuments({
                 userEmail,
-                testId: test._id
+                testId: test._id,
+                mode: { $in: ['standard', 'exam'] }
             });
             canViewDetails = currentAttempts >= test.attemptsToUnlock;
         }

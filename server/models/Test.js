@@ -101,6 +101,18 @@ const TestSchema = new mongoose.Schema({
         default: 0,
         min: 0
     },
+    // Настройки режима игры
+    gameMode: {
+        type: String,
+        enum: ['enabled', 'disabled', 'locked'], // enabled - доступен всем, disabled - недоступен, locked - требует попыток
+        default: 'enabled'
+    },
+    // Количество попыток для разблокировки режима игры
+    gameAttemptsRequired: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
     // Настройки времени для стандартного режима
     useStandardGlobalTimer: {
         type: Boolean,

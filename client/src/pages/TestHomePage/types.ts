@@ -2,9 +2,11 @@ export interface Result {
     _id: string;
     score: number;
     totalQuestions: number;
-    mode: 'standard' | 'exam' | 'practice';
+    mode: 'standard' | 'exam' | 'practice' | 'game';
     completedAt: string;
     timeTaken?: number;
+    moves?: number;
+    gameCardCount?: number;
 }
 
 export interface Question {
@@ -33,6 +35,8 @@ export interface Test {
     attemptsToUnlock?: number;
     practiceMode?: 'enabled' | 'disabled' | 'locked';
     practiceAttemptsRequired?: number;
+    gameMode?: 'enabled' | 'disabled' | 'locked';
+    gameAttemptsRequired?: number;
     useStandardGlobalTimer?: boolean;
     standardTimeLimit?: number;
     standardQuestionTime?: number;

@@ -21,7 +21,11 @@ const ResultSchema = new mongoose.Schema({
     endTime: { type: Date },
     duration: { type: Number }, // Длительность в секундах
     timePerQuestion: [Number], // Время на каждый вопрос в секундах
-    mode: { type: String, enum: ['standard', 'exam', 'practice'], default: 'standard' }, // Режим прохождения
+    mode: { type: String, enum: ['standard', 'exam', 'practice', 'game'], default: 'standard' }, // Режим прохождения
+    // Дополнительные поля для режима игры
+    moves: { type: Number }, // Количество ходов в игре
+    gameCardCount: { type: Number }, // Количество карточек в игре (5, 10, 15, 20)
+    questionsCompleted: { type: Number }, // Количество вопросов, завершенных в этой игровой сессии
     createdAt: { type: Date, default: Date.now }
 });
 

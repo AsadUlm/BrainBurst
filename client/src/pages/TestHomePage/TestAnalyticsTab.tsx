@@ -29,7 +29,7 @@ interface TestAnalyticsData {
     worstScore: number;
     averageTime: number;
     totalTimeSpent: number;
-    modeStats: { standard: number; exam: number; practice: number };
+    modeStats: { standard: number; exam: number; practice: number; game: number };
     progressData: Array<{ attempt: number; score: number; date: string; mode: string; duration: number }>;
     questionStats: QuestionStat[];
     recentAttempts: Array<{ attempt: number; score: number; mode: string; date: string; duration: number }>;
@@ -315,16 +315,17 @@ function ProgressChart({ data, categoryColor }: {
     );
 }
 
-function ModeBreakdown({ data }: { data: { standard: number; exam: number; practice: number } }) {
+function ModeBreakdown({ data }: { data: { standard: number; exam: number; practice: number; game: number } }) {
     const theme = useTheme();
     const { t } = useTranslation();
 
-    const total = data.standard + data.exam + data.practice;
+    const total = data.standard + data.exam + data.practice + data.game;
 
     const chartData = [
-        { name: t('analytics.modeStandard'), value: data.standard, color: theme.palette.primary.main },
-        { name: t('analytics.modeExam'), value: data.exam, color: theme.palette.error.main },
-        { name: t('analytics.modePractice'), value: data.practice, color: theme.palette.info.main },
+        { name: t('analytics.modeStandard'), value: data.standard, color: '#388e3c' },
+        { name: t('analytics.modeExam'), value: data.exam, color: '#d32f2f' },
+        { name: t('analytics.modePractice'), value: data.practice, color: '#1976d2' },
+        { name: t('game.title'), value: data.game, color: '#9c27b0' },
     ].filter(item => item.value > 0);
 
     if (total === 0) {
@@ -378,9 +379,10 @@ function ModeBreakdown({ data }: { data: { standard: number; exam: number; pract
 
             <Stack spacing={1} sx={{ mt: 2 }}>
                 {[
-                    { label: t('analytics.modeStandard'), value: data.standard, color: theme.palette.primary.main },
-                    { label: t('analytics.modeExam'), value: data.exam, color: theme.palette.error.main },
-                    { label: t('analytics.modePractice'), value: data.practice, color: theme.palette.info.main },
+                    { label: t('analytics.modeStandard'), value: data.standard, color: '#388e3c' },
+                    { label: t('analytics.modeExam'), value: data.exam, color: '#d32f2f' },
+                    { label: t('analytics.modePractice'), value: data.practice, color: '#1976d2' },
+                    { label: t('game.title'), value: data.game, color: '#9c27b0' },
                 ].map((item, index) => (
                     <Box
                         key={index}

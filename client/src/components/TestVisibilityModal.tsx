@@ -12,6 +12,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import LockIcon from '@mui/icons-material/Lock';
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 interface User {
     _id: string;
@@ -51,6 +52,8 @@ export default function TestVisibilityModal({
     const [attemptsToUnlock, setAttemptsToUnlock] = useState(0);
     const [practiceMode, setPracticeMode] = useState<'enabled' | 'disabled' | 'locked'>('enabled');
     const [practiceAttemptsRequired, setPracticeAttemptsRequired] = useState(0);
+    const [gameMode, setGameMode] = useState<'enabled' | 'disabled' | 'locked'>('enabled');
+    const [gameAttemptsRequired, setGameAttemptsRequired] = useState(0);
 
     useEffect(() => {
         if (!open || !testId) return;
@@ -94,6 +97,8 @@ export default function TestVisibilityModal({
                 setAttemptsToUnlock(data.attemptsToUnlock || 0);
                 setPracticeMode(data.practiceMode || 'enabled');
                 setPracticeAttemptsRequired(data.practiceAttemptsRequired || 0);
+                setGameMode(data.gameMode || 'enabled');
+                setGameAttemptsRequired(data.gameAttemptsRequired || 0);
             })
             .catch((err) => console.error('Ошибка загрузки теста:', err))
             .finally(() => setLoading(false));
@@ -117,6 +122,8 @@ export default function TestVisibilityModal({
             attemptsToUnlock: hideContent ? attemptsToUnlock : 0,
             practiceMode,
             practiceAttemptsRequired: practiceMode === 'locked' ? practiceAttemptsRequired : 0,
+            gameMode,
+            gameAttemptsRequired: gameMode === 'locked' ? gameAttemptsRequired : 0,
         };
 
         console.log('🚀 Отправка настроек видимости:');
@@ -391,7 +398,7 @@ export default function TestVisibilityModal({
                                 variant="h6"
                                 sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
                             >
-                                <SportsEsportsIcon fontSize="small" />
+                                <HelpOutlineIcon fontSize="small" />
                                 {t('admin.practiceModeSettings')}
                             </Typography>
 
@@ -440,6 +447,69 @@ export default function TestVisibilityModal({
                                         value={practiceAttemptsRequired}
                                         onChange={(e) => setPracticeAttemptsRequired(Math.max(0, parseInt(e.target.value) || 0))}
                                         helperText={t('admin.practiceAttemptsRequiredHelp')}
+                                        inputProps={{ min: 0 }}
+                                    />
+                                </Box>
+                            )}
+                        </Box>
+
+                        <Divider />
+
+                        {/* Настройки режима игры */}
+                        <Box>
+                            <Typography
+                                variant="h6"
+                                sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+                            >
+                                <SportsEsportsIcon fontSize="small" />
+                                {t('admin.gameModeSettings')}
+                            </Typography>
+
+                            <FormControl fullWidth sx={{ mb: 2 }}>
+                                <InputLabel>{t('admin.gameModeAccess')}</InputLabel>
+                                <Select
+                                    value={gameMode}
+                                    label={t('admin.gameModeAccess')}
+                                    onChange={(e) => {
+                                        setGameMode(e.target.value as 'enabled' | 'disabled' | 'locked');
+                                        if (e.target.value !== 'locked') setGameAttemptsRequired(0);
+                                    }}
+                                >
+                                    <MenuItem value="enabled">{t('admin.gameModeEnabled')}</MenuItem>
+                                    <MenuItem value="disabled">{t('admin.gameModeDisabled')}</MenuItem>
+                                    <MenuItem value="locked">{t('admin.gameModeLocked')}</MenuItem>
+                                </Select>
+                            </FormControl>
+
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                {gameMode === 'enabled' && t('admin.gameModeEnabledDescription')}
+                                {gameMode === 'disabled' && t('admin.gameModeDisabledDescription')}
+                                {gameMode === 'locked' && t('admin.gameModeLockedDescription')}
+                            </Typography>
+
+                            {gameMode === 'locked' && (
+                                <Box
+                                    sx={{
+                                        p: 2,
+                                        border: `1px solid #9c27b0`,
+                                        borderRadius: 1,
+                                        bgcolor: alpha('#9c27b0', 0.05),
+                                    }}
+                                >
+                                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                                        <LockIcon fontSize="small" sx={{ color: '#9c27b0' }} />
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                            {t('admin.gameUnlockCondition')}
+                                        </Typography>
+                                    </Stack>
+
+                                    <TextField
+                                        fullWidth
+                                        type="number"
+                                        label={t('admin.gameAttemptsRequired')}
+                                        value={gameAttemptsRequired}
+                                        onChange={(e) => setGameAttemptsRequired(Math.max(0, parseInt(e.target.value) || 0))}
+                                        helperText={t('admin.gameAttemptsRequiredHelp')}
                                         inputProps={{ min: 0 }}
                                     />
                                 </Box>

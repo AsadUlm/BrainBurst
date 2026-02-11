@@ -39,6 +39,7 @@ export default function PerformanceChart({ data }: PerformanceChartProps) {
         switch (mode) {
             case 'exam': return t('analytics.modeExam');
             case 'practice': return t('analytics.modePractice');
+            case 'game': return t('analytics.modeGame') || 'Игра';
             default: return t('analytics.modeStandard');
         }
     };
@@ -47,6 +48,7 @@ export default function PerformanceChart({ data }: PerformanceChartProps) {
         switch (mode) {
             case 'exam': return theme.palette.error.main;
             case 'practice': return theme.palette.info.main;
+            case 'game': return theme.palette.success.main;
             default: return theme.palette.primary.main;
         }
     };

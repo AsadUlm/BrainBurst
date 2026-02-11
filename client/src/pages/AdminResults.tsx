@@ -24,7 +24,8 @@ import {
   AccordionSummary,
   AccordionDetails,
   Card,
-  CardContent
+  CardContent,
+  Theme
 } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import SearchIcon from '@mui/icons-material/Search';
@@ -38,6 +39,8 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import SchoolIcon from '@mui/icons-material/School';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
+import TouchAppIcon from '@mui/icons-material/TouchApp';
 import { LoadingPage } from './Loading/index';
 import TestResultDialog from './MyHistory/components/TestResultDialog';
 import { useTranslation } from 'react-i18next';
@@ -76,7 +79,10 @@ export interface Result {
   startTime?: string;
   endTime?: string;
   timePerQuestion?: number[];
-  mode?: 'standard' | 'exam' | 'practice';
+  mode?: 'standard' | 'exam' | 'practice' | 'game';
+  moves?: number; // для игрового режима
+  gameCardCount?: number; // для игрового режима
+  questionsCompleted?: number; // для игрового режима
 }
 
 export interface ResultDetail extends Omit<Result, 'mistakes'> {
@@ -104,6 +110,7 @@ export default function AdminResults() {
   // Состояния для фильтрации и сортировки
   const [searchQuery, setSearchQuery] = useState('');
   const [filterBy, setFilterBy] = useState<'all' | 'success' | 'errors'>('all');
+  const [modeFilter, setModeFilter] = useState<'all' | 'standard' | 'exam' | 'practice' | 'game'>('all');
   const [groupBy, setGroupBy] = useState<'none' | 'test' | 'user' | 'category' | 'test-user' | 'test-category' | 'user-category'>('none');
   const [sortBy, setSortBy] = useState<'date' | 'score' | 'email' | 'test'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -118,7 +125,15 @@ export default function AdminResults() {
     })
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) setResults(data);
+        if (Array.isArray(data)) {
+          console.log('Loaded results:', data.length);
+          const gameResults = data.filter(r => r.mode === 'game');
+          console.log('Game results:', gameResults.length);
+          if (gameResults.length > 0) {
+            console.log('Sample game result:', gameResults[0]);
+          }
+          setResults(data);
+        }
         else console.error('Ожидался массив, но пришло:', data);
       })
       .catch(err => {
@@ -129,7 +144,7 @@ export default function AdminResults() {
 
   // Фильтрация и сортировка
   const filteredAndSortedResults = useMemo(() => {
-    let filtered = results.filter(r => {
+    const filtered = results.filter(r => {
       const matchesSearch =
         r.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.testTitle.toLowerCase().includes(searchQuery.toLowerCase());
@@ -139,7 +154,11 @@ export default function AdminResults() {
           filterBy === 'success' ? r.score === r.total :
             filterBy === 'errors' ? r.score < r.total : true;
 
-      return matchesSearch && matchesFilter;
+      const matchesMode =
+        modeFilter === 'all' ? true :
+          (r.mode || 'standard') === modeFilter;
+
+      return matchesSearch && matchesFilter && matchesMode;
     });
 
     // Сортировка
@@ -163,7 +182,7 @@ export default function AdminResults() {
     });
 
     return filtered;
-  }, [results, searchQuery, filterBy, sortBy, sortOrder]);
+  }, [results, searchQuery, filterBy, modeFilter, sortBy, sortOrder]);
 
   // Группировка
   const groupedResults = useMemo(() => {
@@ -220,7 +239,14 @@ export default function AdminResults() {
       ? results.reduce((sum, r) => sum + (r.score / r.total), 0) / total * 100
       : 0;
 
-    return { total, perfect, avgScore };
+    // Статистика по режимам
+    const gameResults = results.filter(r => r.mode === 'game');
+    const totalGames = gameResults.length;
+    const avgMoves = totalGames > 0
+      ? gameResults.reduce((sum, r) => sum + (r.moves || 0), 0) / totalGames
+      : 0;
+
+    return { total, perfect, avgScore, totalGames, avgMoves };
   }, [results]);
 
   const handleOpenDialog = async (r: Result) => {
@@ -363,6 +389,58 @@ export default function AdminResults() {
             </Typography>
           </CardContent>
         </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            border: `1px solid ${theme.palette.divider}`,
+            borderRadius: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <Box
+            sx={{
+              height: 4,
+              background: 'linear-gradient(90deg, #9c27b0 0%, #ba68c8 100%)',
+            }}
+          />
+          <CardContent sx={{ textAlign: 'center', py: 3 }}>
+            <SportsEsportsIcon sx={{ fontSize: 48, color: '#9c27b0', mb: 1 }} />
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+              {stats.totalGames}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t('game.gameSessions')}
+            </Typography>
+          </CardContent>
+        </Card>
+
+        {stats.totalGames > 0 && (
+          <Card
+            elevation={0}
+            sx={{
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: 0,
+              overflow: 'hidden',
+            }}
+          >
+            <Box
+              sx={{
+                height: 4,
+                background: 'linear-gradient(90deg, #00897b 0%, #26a69a 100%)',
+              }}
+            />
+            <CardContent sx={{ textAlign: 'center', py: 3 }}>
+              <TouchAppIcon sx={{ fontSize: 48, color: '#00897b', mb: 1 }} />
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                {stats.avgMoves.toFixed(1)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {t('game.avgMoves')}
+              </Typography>
+            </CardContent>
+          </Card>
+        )}
       </Box>
 
       {/* Фильтры и поиск */}
@@ -400,7 +478,7 @@ export default function AdminResults() {
             <Select
               value={filterBy}
               label={t('admin.filter')}
-              onChange={(e) => setFilterBy(e.target.value as any)}
+              onChange={(e) => setFilterBy(e.target.value as 'all' | 'success' | 'errors')}
               sx={{ borderRadius: 0 }}
             >
               <MenuItem value="all">{t('admin.allResults')}</MenuItem>
@@ -409,12 +487,28 @@ export default function AdminResults() {
             </Select>
           </FormControl>
 
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel>{t('game.mode')}</InputLabel>
+            <Select
+              value={modeFilter}
+              label={t('game.mode')}
+              onChange={(e) => setModeFilter(e.target.value as 'all' | 'standard' | 'exam' | 'practice' | 'game')}
+              sx={{ borderRadius: 0 }}
+            >
+              <MenuItem value="all">{t('admin.allModes')}</MenuItem>
+              <MenuItem value="standard">{t('test.standard')}</MenuItem>
+              <MenuItem value="exam">{t('test.exam')}</MenuItem>
+              <MenuItem value="practice">{t('test.practice')}</MenuItem>
+              <MenuItem value="game">{t('game.title')}</MenuItem>
+            </Select>
+          </FormControl>
+
           <FormControl sx={{ minWidth: 250 }}>
             <InputLabel>{t('admin.groupBy')}</InputLabel>
             <Select
               value={groupBy}
               label={t('admin.groupBy')}
-              onChange={(e) => setGroupBy(e.target.value as any)}
+              onChange={(e) => setGroupBy(e.target.value as 'none' | 'test' | 'user' | 'category' | 'test-user' | 'test-category' | 'user-category')}
               sx={{ borderRadius: 0 }}
             >
               <MenuItem value="none">{t('admin.noGrouping')}</MenuItem>
@@ -521,8 +615,8 @@ function RenderResultsTable({
   handleOpenDialog,
 }: {
   results: Result[];
-  theme: any;
-  t: any;
+  theme: Theme;
+  t: ReturnType<typeof useTranslation>['t'];
   sortBy: string;
   sortOrder: 'asc' | 'desc';
   handleSort: (field: 'date' | 'score' | 'email' | 'test') => void;
@@ -551,6 +645,12 @@ function RenderResultsTable({
           icon: <FitnessCenterIcon fontSize="small" />,
           label: t('history.modePractice'),
           color: '#1976d2' // blue
+        };
+      case 'game':
+        return {
+          icon: <SportsEsportsIcon fontSize="small" />,
+          label: t('game.title'),
+          color: '#9c27b0' // purple
         };
       case 'standard':
       default:
@@ -737,15 +837,36 @@ function RenderResultsTable({
                 </Stack>
               </TableCell>
               <TableCell>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {formatTime(r.duration || 0)}
-                  </Typography>
-                </Stack>
+                {r.mode === 'game' ? (
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <TouchAppIcon fontSize="small" sx={{ color: '#9c27b0' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {r.moves || 0} {t('game.moves')}
+                    </Typography>
+                  </Stack>
+                ) : (
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {formatTime(r.duration || 0)}
+                    </Typography>
+                  </Stack>
+                )}
               </TableCell>
               <TableCell>
-                {r.mistakes.length > 0 ? (
+                {r.mode === 'game' ? (
+                  <Chip
+                    icon={<SportsEsportsIcon />}
+                    label={`${r.gameCardCount || 0} ${t('game.cards')}`}
+                    size="small"
+                    sx={{
+                      borderRadius: 0,
+                      bgcolor: alpha('#9c27b0', 0.1),
+                      color: '#9c27b0',
+                      border: `1px solid ${alpha('#9c27b0', 0.3)}`
+                    }}
+                  />
+                ) : (r.mistakes && r.mistakes.length > 0) ? (
                   <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                     {r.mistakes.map((m) => (
                       <Chip

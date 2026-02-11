@@ -3,6 +3,11 @@ import { Box, Typography, Paper, Stack, Chip, CircularProgress, useTheme, alpha 
 import { useTranslation } from 'react-i18next';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import TimerIcon from '@mui/icons-material/Timer';
+import SchoolIcon from '@mui/icons-material/School';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
+import TouchAppIcon from '@mui/icons-material/TouchApp';
 import type { Result } from './types';
 
 interface ResultsTabProps {
@@ -74,15 +79,42 @@ function ResultCard({ result, categoryColor }: { result: Result; categoryColor: 
     const theme = useTheme();
     const { t } = useTranslation();
 
-    const modeLabel =
-        result.mode === 'standard'
-            ? t('history.modeStandard')
-            : result.mode === 'exam'
-                ? t('history.modeExam')
-                : t('history.modePractice');
+    // Определяем метку режима
+    const getModeLabel = () => {
+        switch (result.mode) {
+            case 'standard': return t('history.modeStandard');
+            case 'exam': return t('history.modeExam');
+            case 'practice': return t('history.modePractice');
+            case 'game': return t('game.title');
+            default: return t('history.modeStandard');
+        }
+    };
 
-    const modeColor: 'primary' | 'error' | 'info' =
-        result.mode === 'standard' ? 'primary' : result.mode === 'exam' ? 'error' : 'info';
+    // Определяем цвет режима
+    const getModeColor = () => {
+        switch (result.mode) {
+            case 'standard': return '#388e3c'; // green
+            case 'exam': return '#d32f2f'; // red
+            case 'practice': return '#1976d2'; // blue
+            case 'game': return '#9c27b0'; // purple
+            default: return theme.palette.primary.main;
+        }
+    };
+
+    // Определяем иконку режима
+    const getModeIcon = () => {
+        switch (result.mode) {
+            case 'standard': return <AssignmentIcon fontSize="small" />;
+            case 'exam': return <SchoolIcon fontSize="small" />;
+            case 'practice': return <FitnessCenterIcon fontSize="small" />;
+            case 'game': return <SportsEsportsIcon fontSize="small" />;
+            default: return <AssignmentIcon fontSize="small" />;
+        }
+    };
+
+    const modeLabel = getModeLabel();
+    const modeColor = getModeColor();
+    const modeIcon = getModeIcon();
 
     const percentage = Math.round((result.score / result.totalQuestions) * 100);
 
@@ -104,10 +136,16 @@ function ResultCard({ result, categoryColor }: { result: Result; categoryColor: 
                 <Box sx={{ flex: 1 }}>
                     <Stack direction="row" spacing={1} sx={{ mb: 1.5 }} flexWrap="wrap" useFlexGap>
                         <Chip
+                            icon={modeIcon}
                             label={modeLabel}
                             size="small"
-                            color={modeColor}
-                            sx={{ borderRadius: 0 }}
+                            sx={{
+                                borderRadius: 0,
+                                bgcolor: alpha(modeColor, 0.1),
+                                color: modeColor,
+                                border: `1px solid ${alpha(modeColor, 0.3)}`,
+                                fontWeight: 600
+                            }}
                         />
                         <Chip
                             label={new Date(result.completedAt).toLocaleDateString()}
@@ -115,7 +153,15 @@ function ResultCard({ result, categoryColor }: { result: Result; categoryColor: 
                             variant="outlined"
                             sx={{ borderRadius: 0 }}
                         />
-                        {result.timeTaken && (
+                        {result.mode === 'game' && result.moves ? (
+                            <Chip
+                                icon={<TouchAppIcon fontSize="small" />}
+                                label={`${result.moves} ${t('game.moves')}`}
+                                size="small"
+                                variant="outlined"
+                                sx={{ borderRadius: 0 }}
+                            />
+                        ) : result.timeTaken ? (
                             <Chip
                                 icon={<TimerIcon fontSize="small" />}
                                 label={`${Math.floor(result.timeTaken / 60)}:${String(result.timeTaken % 60).padStart(2, '0')}`}
@@ -123,7 +169,7 @@ function ResultCard({ result, categoryColor }: { result: Result; categoryColor: 
                                 variant="outlined"
                                 sx={{ borderRadius: 0 }}
                             />
-                        )}
+                        ) : null}
                     </Stack>
                     <Typography variant="body2" color="text.secondary">
                         {new Date(result.completedAt).toLocaleString()}

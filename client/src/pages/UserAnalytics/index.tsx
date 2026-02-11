@@ -68,7 +68,7 @@ interface AnalyticsData {
     recentResults: RecentResult[];
     categoryStats: CategoryStat[];
     performanceData: PerformanceData[];
-    modeStats: { standard: number; exam: number; practice: number };
+    modeStats: { standard: number; exam: number; practice: number; game: number };
     scoreDistribution: { excellent: number; good: number; average: number; poor: number };
     streakData: { currentStreak: number; bestStreak: number; passingThreshold: number };
     weeklyActivity: Array<{ week: string; tests: number; avgScore: number }>;
@@ -684,7 +684,7 @@ export default function UserAnalytics() {
 
                 {/* Mode Breakdown */}
                 <Grid size={{ xs: 12, md: 4 }}>
-                    <ModeBreakdown data={analytics.modeStats ?? { standard: 0, exam: 0, practice: 0 }} />
+                    <ModeBreakdown data={analytics.modeStats ?? { standard: 0, exam: 0, practice: 0, game: 0 }} />
                 </Grid>
 
                 {/* Category Breakdown */}

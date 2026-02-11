@@ -8,6 +8,7 @@ interface ModeBreakdownProps {
         standard: number;
         exam: number;
         practice: number;
+        game: number;
     };
 }
 
@@ -15,7 +16,7 @@ export default function ModeBreakdown({ data }: ModeBreakdownProps) {
     const theme = useTheme();
     const { t } = useTranslation();
 
-    const total = data.standard + data.exam + data.practice;
+    const total = data.standard + data.exam + data.practice + data.game;
 
     const chartData = [
         {
@@ -32,6 +33,11 @@ export default function ModeBreakdown({ data }: ModeBreakdownProps) {
             name: t('analytics.modePractice'),
             value: data.practice,
             color: theme.palette.info.main,
+        },
+        {
+            name: t('analytics.modeGame') || 'Игра',
+            value: data.game,
+            color: theme.palette.success.main,
         },
     ].filter(item => item.value > 0);
 
@@ -128,6 +134,7 @@ export default function ModeBreakdown({ data }: ModeBreakdownProps) {
                             { label: t('analytics.modeStandard'), value: data.standard, color: theme.palette.primary.main, chipColor: 'primary' as const },
                             { label: t('analytics.modeExam'), value: data.exam, color: theme.palette.error.main, chipColor: 'error' as const },
                             { label: t('analytics.modePractice'), value: data.practice, color: theme.palette.info.main, chipColor: 'info' as const },
+                            { label: t('analytics.modeGame') || 'Игра', value: data.game, color: theme.palette.success.main, chipColor: 'success' as const },
                         ].map((item, index) => (
                             <Box
                                 key={index}

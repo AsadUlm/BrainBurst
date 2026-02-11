@@ -6,6 +6,8 @@ import TestHomePage from './pages/TestHomePage';
 // import TestRunner from './pages/TestRunner';
 import TestRunner from './pages/TestRunner/TestRunner';
 import PracticeRunner from './pages/TestRunner/PracticeRunner';
+import GameMode from './pages/GameMode';
+import MemoryMatchGame from './pages/GameMode/MemoryMatchGame';
 import AdminCreateTest from './pages/AdminCreateTest';
 import AdminEditTest from './pages/AdminEditTest';
 import AdminTestList from './pages/AdminTestList';
@@ -70,6 +72,24 @@ export default function App() {
               element={
                 <RequireAuth>
                   <PracticeRunner />
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/test/:id/game"
+              element={
+                <RequireAuth>
+                  <GameMode />
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/test/:id/game/play"
+              element={
+                <RequireAuth>
+                  <MemoryMatchGame />
                 </RequireAuth>
               }
             />

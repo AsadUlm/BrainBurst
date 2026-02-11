@@ -30,10 +30,11 @@ export default function RecentTests({ results }: RecentTestsProps) {
         return theme.palette.error.main;
     };
 
-    const getModeColor = (mode: string): 'primary' | 'error' | 'info' => {
+    const getModeColor = (mode: string): 'primary' | 'error' | 'info' | 'success' => {
         switch (mode) {
             case 'exam': return 'error';
             case 'practice': return 'info';
+            case 'game': return 'success';
             default: return 'primary';
         }
     };
@@ -42,6 +43,7 @@ export default function RecentTests({ results }: RecentTestsProps) {
         switch (mode) {
             case 'exam': return t('analytics.modeExam');
             case 'practice': return t('analytics.modePractice');
+            case 'game': return t('analytics.modeGame') || 'Игра';
             default: return t('analytics.modeStandard');
         }
     };

@@ -13,6 +13,7 @@ import TestAnalyticsTab from './TestAnalyticsTab';
 import StandardModeCard from './StandardModeCard';
 import PracticeModeCard from './PracticeModeCard';
 import ExamModeCard from './ExamModeCard';
+import GameModeCard from './GameModeCard';
 import type { Test, Result } from './types';
 
 export default function TestHomePage() {
@@ -28,6 +29,8 @@ export default function TestHomePage() {
     const [attemptsLoading, setAttemptsLoading] = useState(false);
     const [canAccessPractice, setCanAccessPractice] = useState(true);
     const [practiceMessage, setPracticeMessage] = useState('');
+    const [canAccessGame, setCanAccessGame] = useState(true);
+    const [gameMessage, setGameMessage] = useState('');
     const [currentTab, setCurrentTab] = useState('content');
     const [currentPage, setCurrentPage] = useState(1);
     const [results, setResults] = useState<Result[]>([]);
@@ -92,6 +95,22 @@ export default function TestHomePage() {
                     setCanAccessPractice(true);
                 }
 
+                const gameModeAccess = testData.gameMode || 'enabled';
+                if (gameModeAccess === 'disabled') {
+                    setCanAccessGame(false);
+                    setGameMessage(t('game.disabled'));
+                } else if (gameModeAccess === 'locked') {
+                    const required = testData.gameAttemptsRequired || 0;
+                    if (attempts >= required) {
+                        setCanAccessGame(true);
+                    } else {
+                        setCanAccessGame(false);
+                        setGameMessage(t('game.locked', { current: attempts, required }));
+                    }
+                } else {
+                    setCanAccessGame(true);
+                }
+
                 setTest(testData);
             } catch (error) {
                 console.error('Ошибка загрузки теста:', error);
@@ -142,6 +161,7 @@ export default function TestHomePage() {
     const handleStartStandard = useCallback(() => navigate(`/test/${id}/run`), [navigate, id]);
     const handleStartPractice = useCallback(() => navigate(`/test/${id}/practice`), [navigate, id]);
     const handleStartExam = useCallback(() => navigate(`/test/${id}/exam`), [navigate, id]);
+    const handleStartGame = useCallback(() => navigate(`/test/${id}/game`), [navigate, id]);
 
     const handleTabChange = useCallback((_: React.SyntheticEvent, newValue: string) => {
         setCurrentTab(newValue);
@@ -269,6 +289,12 @@ export default function TestHomePage() {
                         <ExamModeCard
                             test={test}
                             onStart={handleStartExam}
+                        />
+                        <GameModeCard
+                            categoryColor={categoryColor}
+                            canAccessGame={canAccessGame}
+                            gameMessage={gameMessage}
+                            onStart={handleStartGame}
                         />
                     </Stack>
                 </Box>
