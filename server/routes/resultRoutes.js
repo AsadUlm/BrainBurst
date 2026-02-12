@@ -57,7 +57,8 @@ router.post('/', async (req, res) => {
 
 router.get('/', verifyToken, requireAdmin, async (req, res) => {
     try {
-        const results = await Result.find()
+        // Фильтр для исключения игровых результатов
+        const results = await Result.find({ mode: { $in: ['standard', 'exam', 'practice'] } })
             .select('-shuffledQuestions -answers -correctAnswers -timePerQuestion')
             .populate({ path: 'testId', select: 'title category', populate: { path: 'category', select: 'name color' } })
             .sort({ createdAt: -1 })
@@ -78,7 +79,11 @@ router.get('/', verifyToken, requireAdmin, async (req, res) => {
 
 router.get('/mine', verifyToken, async (req, res) => {
     const userEmail = req.user.email;
-    const results = await Result.find({ userEmail }).sort({ createdAt: -1 });
+    // Фильтр для исключения игровых результатов
+    const results = await Result.find({
+        userEmail,
+        mode: { $in: ['standard', 'exam', 'practice'] }
+    }).sort({ createdAt: -1 });
     res.json(results);
 });
 
@@ -308,7 +313,11 @@ async function buildAnalytics(results) {
 router.get('/analytics', verifyToken, async (req, res) => {
     try {
         const userEmail = req.user.email;
-        const results = await Result.find({ userEmail }).sort({ createdAt: -1 });
+        // Фильтр для исключения игровых результатов
+        const results = await Result.find({
+            userEmail,
+            mode: { $in: ['standard', 'exam', 'practice'] }
+        }).sort({ createdAt: -1 });
         const analytics = await buildAnalytics(results);
         res.json(analytics);
     } catch (error) {
@@ -338,7 +347,11 @@ router.get('/analytics/:userId', verifyToken, requireAdmin, async (req, res) => 
         }
 
         const userEmail = user.email;
-        const results = await Result.find({ userEmail }).sort({ createdAt: -1 });
+        // Фильтр для исключения игровых результатов
+        const results = await Result.find({
+            userEmail,
+            mode: { $in: ['standard', 'exam', 'practice'] }
+        }).sort({ createdAt: -1 });
         const analytics = await buildAnalytics(results);
         res.json(analytics);
     } catch (error) {
@@ -383,7 +396,11 @@ router.get('/test/:testId/analytics', verifyToken, async (req, res) => {
             return res.status(400).json({ error: 'Некорректный ID теста' });
         }
 
-        const results = await Result.find({ userEmail, testId })
+        const results = await Result.find({
+            userEmail,
+            testId,
+            mode: { $in: ['standard', 'exam', 'practice'] }
+        })
             .sort({ createdAt: -1 })
             .lean();
 
@@ -576,7 +593,8 @@ router.get('/test/:testId', verifyToken, async (req, res) => {
 
         const results = await Result.find({
             userEmail,
-            testId
+            testId,
+            mode: { $in: ['standard', 'exam', 'practice'] }
         })
             .sort({ createdAt: -1 })
             .select('_id score total mode createdAt endTime duration moves gameCardCount')

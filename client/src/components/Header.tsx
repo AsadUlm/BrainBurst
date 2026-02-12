@@ -19,6 +19,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import ArticleIcon from '@mui/icons-material/Article';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
@@ -181,6 +182,11 @@ export default function Header() {
                   label={t('header.results')}
                   path="/admin/results"
                   icon={<AssessmentIcon />}
+                />
+                <NavIconButton
+                  label={t('admin.gameResults')}
+                  path="/admin/game-results"
+                  icon={<SportsEsportsIcon />}
                 />
               </>
             )}

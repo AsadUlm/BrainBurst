@@ -17,6 +17,7 @@ import RequireAuth from './components/RequireAuth';
 import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminResults from './pages/AdminResults';
+import AdminGameResults from './pages/AdminGameResults';
 import MyHistory from './pages/MyHistory';
 import UserAnalytics from './pages/UserAnalytics';
 import { SettingsProvider } from './contexts/SettingsContext';
@@ -140,6 +141,17 @@ export default function App() {
                 <RequireAuth>
                   <RequireAdmin>
                     <AdminResults />
+                  </RequireAdmin>
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/admin/game-results"
+              element={
+                <RequireAuth>
+                  <RequireAdmin>
+                    <AdminGameResults />
                   </RequireAdmin>
                 </RequireAuth>
               }

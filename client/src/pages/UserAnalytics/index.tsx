@@ -25,6 +25,11 @@ import ScoreDistribution from './components/ScoreDistribution';
 import ModeBreakdown from './components/ModeBreakdown';
 import StreakStats from './components/StreakStats';
 import WeeklyActivity from './components/WeeklyActivity';
+import GameProgressChart from './components/GameProgressChart';
+import GameTypeDistribution from './components/GameTypeDistribution';
+import GameStreakChart from './components/GameStreakChart';
+import InProgressGames from './components/InProgressGames';
+import CompletedGamesStats from './components/CompletedGamesStats';
 
 interface RecentResult {
     _id: string;
@@ -79,6 +84,65 @@ interface User {
     email: string;
 }
 
+interface InProgressGame {
+    _id: string;
+    testId: string;
+    testTitle: string;
+    totalQuestions: number;
+    completedCount: number;
+    percentComplete: number;
+    currentStreak: number;
+    bestStreak: number;
+    totalMoves: number;
+    totalTime: number;
+    sessions: number;
+    lastPlayed: string;
+}
+
+interface GameProgressStats {
+    totalInProgress: number;
+    totalQuestionsStarted: number;
+    totalQuestionsCompleted: number;
+    totalTimeSpent: number;
+    totalMoves: number;
+    totalSessions: number;
+    averageCompletion: number;
+    bestStreak: number;
+    games: InProgressGame[];
+}
+
+interface CompletedGameResult {
+    _id: string;
+    testId: string;
+    testTitle: string;
+    gameType: string;
+    score: number;
+    totalQuestions: number;
+    correctAnswers: number;
+    accuracy: number;
+    duration: number;
+    bestStreak: number;
+    finalStreak: number;
+    totalMoves: number;
+    createdAt: string;
+}
+
+interface CompletedGamesStats {
+    totalGames: number;
+    averageScore: number;
+    averageAccuracy: number;
+    bestScore: number;
+    bestAccuracy: number;
+    totalTime: number;
+    averageTime: number;
+    bestStreak: number;
+    totalMoves: number;
+    gamesPerType: {
+        [key: string]: number;
+    };
+    recentGames: CompletedGameResult[];
+}
+
 export default function UserAnalytics() {
     const theme = useTheme();
     const { t } = useTranslation();
@@ -89,7 +153,8 @@ export default function UserAnalytics() {
     const [users, setUsers] = useState<User[]>([]);
     const [selectedUserId, setSelectedUserId] = useState<string>('');
     const [selectedUserEmail, setSelectedUserEmail] = useState<string>('');
-
+    const [gameProgressStats, setGameProgressStats] = useState<GameProgressStats | null>(null);
+    const [completedGamesStats, setCompletedGamesStats] = useState<CompletedGamesStats | null>(null);
     // Загрузка списка пользователей для админа
     useEffect(() => {
         if (!isAdmin) return;
@@ -127,22 +192,53 @@ export default function UserAnalytics() {
 
             try {
                 // Если админ выбрал пользователя, загружаем его аналитику
-                const url = isAdmin && selectedUserId
+                const testAnalyticsUrl = isAdmin && selectedUserId
                     ? `/api/results/analytics/${selectedUserId}`
                     : '/api/results/analytics';
 
-                const response = await fetch(url, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+                const gameProgressUrl = isAdmin && selectedUserId
+                    ? `/api/games/progress/analytics/${selectedUserId}`
+                    : '/api/games/progress/analytics/mine';
 
-                if (!response.ok) {
-                    throw new Error('Failed to load analytics');
+                const completedGamesUrl = isAdmin && selectedUserId
+                    ? `/api/game-results/analytics/user/${selectedUserId}`
+                    : '/api/game-results/analytics/mine';
+
+                // Загружаем все данные параллельно
+                const [testResponse, gameProgressResponse, completedGamesResponse] = await Promise.all([
+                    fetch(testAnalyticsUrl, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                    fetch(gameProgressUrl, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                    fetch(completedGamesUrl, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                ]);
+
+                if (!testResponse.ok) {
+                    throw new Error('Failed to load test analytics');
                 }
 
-                const data = await response.json();
-                setAnalytics(data);
+                const testData = await testResponse.json();
+                setAnalytics(testData);
+
+                // Загружаем данные об играх в процессе
+                if (gameProgressResponse.ok) {
+                    const gameProgressData = await gameProgressResponse.json();
+                    setGameProgressStats(gameProgressData);
+                } else {
+                    setGameProgressStats(null);
+                }
+
+                // Загружаем данные о завершенных играх
+                if (completedGamesResponse.ok) {
+                    const completedGamesData = await completedGamesResponse.json();
+                    setCompletedGamesStats(completedGamesData);
+                } else {
+                    setCompletedGamesStats(null);
+                }
             } catch (error) {
                 console.error('Error loading analytics:', error);
             } finally {
@@ -697,6 +793,104 @@ export default function UserAnalytics() {
                     <RecentTests results={analytics.recentResults} />
                 </Grid>
             </Grid>
+
+            {/* Game Analytics Section */}
+            <Box sx={{ mt: 6 }}>
+                <Paper
+                    elevation={0}
+                    sx={{
+                        p: 3,
+                        mb: 4,
+                        background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.success.dark} 100%)`,
+                        color: 'white',
+                        borderRadius: 0,
+                    }}
+                >
+                    <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar
+                            sx={{
+                                width: 56,
+                                height: 56,
+                                bgcolor: alpha(theme.palette.common.white, 0.2),
+                            }}
+                        >
+                            <SchoolIcon sx={{ fontSize: 36 }} />
+                        </Avatar>
+                        <Box>
+                            <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                                {t('analytics.gameAnalytics')}
+                            </Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                                {t('analytics.gameAnalyticsDescription')}
+                            </Typography>
+                        </Box>
+                    </Stack>
+                </Paper>
+
+                <Grid container spacing={3}>
+                    {/* Completed Games Statistics */}
+                    {completedGamesStats && completedGamesStats.totalGames > 0 && (
+                        <>
+                            <Grid size={{ xs: 12 }}>
+                                <CompletedGamesStats stats={completedGamesStats} />
+                            </Grid>
+
+                            {/* Game Type Distribution */}
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <GameTypeDistribution data={completedGamesStats.gamesPerType} />
+                            </Grid>
+
+                            {/* Game Streak Chart */}
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <GameStreakChart results={completedGamesStats.recentGames} />
+                            </Grid>
+                        </>
+                    )}
+
+                    {/* In Progress Games */}
+                    {gameProgressStats && gameProgressStats.totalInProgress > 0 && (
+                        <>
+                            <Grid size={{ xs: 12, lg: 8 }}>
+                                <GameProgressChart
+                                    games={gameProgressStats.games.map(g => ({
+                                        testTitle: g.testTitle,
+                                        completed: g.completedCount,
+                                        remaining: g.totalQuestions - g.completedCount,
+                                        percentComplete: g.percentComplete,
+                                    }))}
+                                />
+                            </Grid>
+
+                            <Grid size={{ xs: 12, lg: 4 }}>
+                                <InProgressGames games={gameProgressStats.games} />
+                            </Grid>
+                        </>
+                    )}
+
+                    {/* No Game Data Message */}
+                    {(!completedGamesStats || completedGamesStats.totalGames === 0) &&
+                        (!gameProgressStats || gameProgressStats.totalInProgress === 0) && (
+                            <Grid size={{ xs: 12 }}>
+                                <Paper
+                                    elevation={0}
+                                    sx={{
+                                        p: 6,
+                                        border: `1px solid ${theme.palette.divider}`,
+                                        borderRadius: 0,
+                                        textAlign: 'center',
+                                    }}
+                                >
+                                    <Typography variant="h6" color="text.secondary" gutterBottom>
+                                        {t('analytics.noGameDataYet')}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {t('analytics.startPlayingGames')}
+                                    </Typography>
+                                </Paper>
+                            </Grid>
+                        )}
+                </Grid>
+            </Box>
         </Container>
     );
 }

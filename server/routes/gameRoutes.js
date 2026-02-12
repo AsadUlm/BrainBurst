@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken } = require('../middleware/authMiddleware');
+const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 const GameProgress = require('../models/GameProgress');
+const GameResult = require('../models/GameResult');
 const Test = require('../models/Test');
-const Result = require('../models/Result');
 const User = require('../models/User');
 
 // Получить прогресс игры для теста
@@ -246,45 +246,72 @@ router.post('/:testId/session', verifyToken, async (req, res) => {
 
         await progress.save();
 
-        // Сохраняем результат в Result для статистики админа
-        // Сохраняем каждую завершенную игровую сессию
-        try {
-            const user = await User.findById(userId);
-            if (user) {
-                const gameResult = new Result({
-                    userEmail: user.email,
-                    testId: testId,
-                    testTitle: test.title,
-                    score: pairsFound,
-                    total: pairsFound,
-                    answers: [],
-                    correctAnswers: [],
-                    mistakes: [],
-                    shuffledQuestions: [],
-                    startTime: new Date(Date.now() - timeElapsed * 1000),
-                    endTime: new Date(),
-                    duration: timeElapsed,
-                    mode: 'game',
-                    moves: moves,
-                    gameCardCount: cardCount,
-                    questionsCompleted: pairsFound
-                });
-                await gameResult.save();
-                console.log('✅ Game result saved:', {
-                    user: user.email,
-                    test: test.title,
-                    pairs: pairsFound,
-                    moves: moves,
-                    mode: 'game'
-                });
-            }
-        } catch (saveError) {
-            console.error('❌ Error saving game result:', saveError);
-            // Не прерываем выполнение
-        }
-
         // Проверяем, завершен ли тест полностью
         const isTestComplete = progress.completedQuestionIds.length >= progress.totalQuestions;
+
+        // Сохраняем финальный результат игры в GameResult, если тест завершен
+        if (isTestComplete) {
+            try {
+                const user = await User.findById(userId);
+                if (user) {
+                    // Вычисляем статистику по всем сессиям
+                    const totalSessions = progress.sessions.length;
+                    const totalCorrectAnswers = progress.completedQuestionIds.length;
+                    const accuracy = progress.totalQuestions > 0
+                        ? Math.round((totalCorrectAnswers / progress.totalQuestions) * 100)
+                        : 0;
+
+                    const gameResult = new GameResult({
+                        userId: userId,
+                        userEmail: user.email,
+                        testId: testId,
+                        testTitle: test.title,
+                        gameType: 'memory-match',
+                        score: totalCorrectAnswers,
+                        totalQuestions: progress.totalQuestions,
+                        correctAnswers: totalCorrectAnswers,
+                        accuracy: accuracy,
+                        duration: progress.totalTime,
+                        startTime: progress.createdAt,
+                        endTime: new Date(),
+                        averageTimePerQuestion: progress.totalQuestions > 0
+                            ? Math.round(progress.totalTime / progress.totalQuestions)
+                            : 0,
+                        totalMoves: progress.totalMoves,
+                        totalAttempts: totalSessions,
+                        bestStreak: progress.bestStreak,
+                        finalStreak: progress.currentStreak,
+                        categoryStats: [], // Можно добавить позже
+                        gameData: {
+                            cardCount: cardCount,
+                            sessionsCount: totalSessions,
+                            additionalStats: {
+                                averageMovesPerSession: totalSessions > 0
+                                    ? Math.round(progress.totalMoves / totalSessions)
+                                    : 0,
+                                averageTimePerSession: totalSessions > 0
+                                    ? Math.round(progress.totalTime / totalSessions)
+                                    : 0
+                            }
+                        },
+                        questionDetails: [] // Можно добавить детали по вопросам если нужно
+                    });
+
+                    await gameResult.save();
+                    console.log('✅ Game COMPLETED! Final result saved:', {
+                        user: user.email,
+                        test: test.title,
+                        totalQuestions: totalCorrectAnswers,
+                        accuracy: accuracy,
+                        totalTime: progress.totalTime,
+                        sessions: totalSessions
+                    });
+                }
+            } catch (saveError) {
+                console.error('❌ Error saving final game result:', saveError);
+                // Не прерываем выполнение
+            }
+        }
 
         res.json({
             success: true,
@@ -344,6 +371,136 @@ router.delete('/progress/:testId', verifyToken, async (req, res) => {
     } catch (error) {
         console.error('Ошибка сброса прогресса:', error);
         res.status(500).json({ message: 'Ошибка сервера' });
+    }
+});
+
+// Получить статистику игр в процессе для текущего пользователя
+router.get('/progress/analytics/mine', verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const progressList = await GameProgress.find({ userId })
+            .populate('testId', 'title categoryId')
+            .sort({ updatedAt: -1 });
+
+        const stats = {
+            totalInProgress: progressList.length,
+            totalQuestionsStarted: 0,
+            totalQuestionsCompleted: 0,
+            totalTimeSpent: 0,
+            totalMoves: 0,
+            totalSessions: 0,
+            averageCompletion: 0,
+            bestStreak: 0,
+            games: []
+        };
+
+        progressList.forEach(progress => {
+            if (progress.testId) {
+                stats.totalQuestionsStarted += progress.totalQuestions;
+                stats.totalQuestionsCompleted += progress.completedQuestionIds.length;
+                stats.totalTimeSpent += progress.totalTime || 0;
+                stats.totalMoves += progress.totalMoves || 0;
+                stats.totalSessions += progress.sessions.length;
+                if (progress.bestStreak > stats.bestStreak) {
+                    stats.bestStreak = progress.bestStreak;
+                }
+
+                const percentComplete = progress.totalQuestions > 0
+                    ? Math.round((progress.completedQuestionIds.length / progress.totalQuestions) * 100)
+                    : 0;
+
+                stats.games.push({
+                    _id: progress._id,
+                    testId: progress.testId._id,
+                    testTitle: progress.testId.title,
+                    totalQuestions: progress.totalQuestions,
+                    completedCount: progress.completedQuestionIds.length,
+                    percentComplete,
+                    currentStreak: progress.currentStreak,
+                    bestStreak: progress.bestStreak,
+                    totalMoves: progress.totalMoves,
+                    totalTime: progress.totalTime,
+                    sessions: progress.sessions.length,
+                    lastPlayed: progress.updatedAt
+                });
+            }
+        });
+
+        if (progressList.length > 0) {
+            stats.averageCompletion = Math.round(
+                (stats.totalQuestionsCompleted / stats.totalQuestionsStarted) * 100
+            );
+        }
+
+        res.json(stats);
+    } catch (error) {
+        console.error('Error fetching game progress analytics:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Получить статистику игр в процессе для конкретного пользователя (только админ)
+router.get('/progress/analytics/:userId', verifyToken, requireAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const progressList = await GameProgress.find({ userId })
+            .populate('testId', 'title categoryId')
+            .sort({ updatedAt: -1 });
+
+        const stats = {
+            totalInProgress: progressList.length,
+            totalQuestionsStarted: 0,
+            totalQuestionsCompleted: 0,
+            totalTimeSpent: 0,
+            totalMoves: 0,
+            totalSessions: 0,
+            averageCompletion: 0,
+            bestStreak: 0,
+            games: []
+        };
+
+        progressList.forEach(progress => {
+            if (progress.testId) {
+                stats.totalQuestionsStarted += progress.totalQuestions;
+                stats.totalQuestionsCompleted += progress.completedQuestionIds.length;
+                stats.totalTimeSpent += progress.totalTime || 0;
+                stats.totalMoves += progress.totalMoves || 0;
+                stats.totalSessions += progress.sessions.length;
+                if (progress.bestStreak > stats.bestStreak) {
+                    stats.bestStreak = progress.bestStreak;
+                }
+
+                const percentComplete = progress.totalQuestions > 0
+                    ? Math.round((progress.completedQuestionIds.length / progress.totalQuestions) * 100)
+                    : 0;
+
+                stats.games.push({
+                    _id: progress._id,
+                    testId: progress.testId._id,
+                    testTitle: progress.testId.title,
+                    totalQuestions: progress.totalQuestions,
+                    completedCount: progress.completedQuestionIds.length,
+                    percentComplete,
+                    currentStreak: progress.currentStreak,
+                    bestStreak: progress.bestStreak,
+                    totalMoves: progress.totalMoves,
+                    totalTime: progress.totalTime,
+                    sessions: progress.sessions.length,
+                    lastPlayed: progress.updatedAt
+                });
+            }
+        });
+
+        if (progressList.length > 0) {
+            stats.averageCompletion = Math.round(
+                (stats.totalQuestionsCompleted / stats.totalQuestionsStarted) * 100
+            );
+        }
+
+        res.json(stats);
+    } catch (error) {
+        console.error('Error fetching game progress analytics:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 });
 

@@ -1,19 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import {
-  Container,
-  Typography,
-  Paper,
-  Box,
-  Divider,
-  useTheme,
-  Chip,
-  Stack,
-  ToggleButtonGroup,
-  ToggleButton,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  alpha,
+  Container, Typography, Paper, Box, Divider, useTheme,
+  Chip, Stack, ToggleButtonGroup, ToggleButton, Accordion, AccordionSummary, AccordionDetails,
+  alpha, Tabs, Tab,
 } from '@mui/material';
 import HistoryIcon from '@mui/icons-material/History';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
@@ -28,7 +17,9 @@ import StarIcon from '@mui/icons-material/Star';
 import SchoolIcon from '@mui/icons-material/School';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 import TestResultDialog from './components/TestResultDialog';
+import GameResultsTab from './components/GameResultsTab';
 import { LoadingPage } from '../Loading/index';
 import { useTranslation } from 'react-i18next';
 
@@ -75,20 +66,55 @@ interface ResultDetail extends Result {
   shuffledQuestions: Question[];
 }
 
+interface GameResult {
+  _id: string;
+  testTitle: string;
+  gameType: string;
+  score: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  accuracy: number;
+  duration: number;
+  totalMoves: number;
+  totalAttempts: number;
+  bestStreak: number;
+  completedAt: string;
+  gameData?: {
+    cardCount?: number;
+    sessionsCount?: number;
+    additionalStats?: {
+      averageMovesPerSession?: number;
+      averageTimePerSession?: number;
+    };
+  };
+  test?: {
+    _id: string;
+    title: string;
+    category?: {
+      _id: string;
+      name: string;
+      color?: string;
+    };
+  };
+}
+
 export default function MyHistory() {
   const theme = useTheme();
   const [myResults, setMyResults] = useState<Result[]>([]);
+  const [gameResults, setGameResults] = useState<GameResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedResult, setSelectedResult] = useState<ResultDetail | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grouped'>('grouped');
   const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
+  const [currentTab, setCurrentTab] = useState<'tests' | 'games'>('tests');
   const email = localStorage.getItem('email');
   const { t, i18n } = useTranslation();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
 
+    // Загрузка результатов тестов
     fetch('/api/results/mine', {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -98,6 +124,22 @@ export default function MyHistory() {
           const filtered = data.filter((r) => r.userEmail === email);
           setMyResults(filtered);
         }
+      })
+      .catch((err) => console.error('Error loading test results:', err));
+
+    // Загрузка результатов игр
+    fetch('/api/game-results/mine', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setGameResults(data);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error loading game results:', err);
         setLoading(false);
       });
   }, [email]);
@@ -238,7 +280,7 @@ export default function MyHistory() {
 
       {loading ? (
         <LoadingPage />
-      ) : myResults.length === 0 ? (
+      ) : myResults.length === 0 && gameResults.length === 0 ? (
         <Paper
           elevation={0}
           sx={{
@@ -254,464 +296,542 @@ export default function MyHistory() {
         </Paper>
       ) : (
         <>
-          {/* Панель фильтров */}
+          {/* Табы для переключения между тестами и играми */}
           <Paper
             elevation={0}
             sx={{
-              p: 3,
               mb: 4,
               border: `1px solid ${theme.palette.divider}`,
               borderRadius: 0,
             }}
           >
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems="center" justifyContent="space-between">
-              <Stack direction="row" spacing={2} alignItems="center">
-                <SortIcon color="action" />
-                <Typography variant="body2" color="text.secondary">
-                  {t('history.sort')}:
-                </Typography>
-                <ToggleButtonGroup
-                  value={sortBy}
-                  exclusive
-                  onChange={(_, value) => value && setSortBy(value)}
-                  size="small"
-                  sx={{
-                    '& .MuiToggleButton-root': {
-                      borderRadius: 0,
-                      textTransform: 'none',
-                    }
-                  }}
-                >
-                  <ToggleButton value="date">
-                    <AccessTimeIcon fontSize="small" sx={{ mr: 1 }} />
-                    {t('history.sortByDate')}
-                  </ToggleButton>
-                  <ToggleButton value="score">
-                    <EmojiEventsIcon fontSize="small" sx={{ mr: 1 }} />
-                    {t('history.sortByScore')}
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Stack>
-
-              <Stack direction="row" spacing={2} alignItems="center">
-                <Typography variant="body2" color="text.secondary">
-                  {t('history.view')}:
-                </Typography>
-                <ToggleButtonGroup
-                  value={viewMode}
-                  exclusive
-                  onChange={(_, value) => value && setViewMode(value)}
-                  size="small"
-                  sx={{
-                    '& .MuiToggleButton-root': {
-                      borderRadius: 0,
-                      textTransform: 'none',
-                    }
-                  }}
-                >
-                  <ToggleButton value="grouped">
-                    <FolderIcon fontSize="small" sx={{ mr: 1 }} />
-                    {t('history.viewGrouped')}
-                  </ToggleButton>
-                  <ToggleButton value="list">
-                    <ViewListIcon fontSize="small" sx={{ mr: 1 }} />
-                    {t('history.viewList')}
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Stack>
-            </Stack>
+            <Tabs
+              value={currentTab}
+              onChange={(_, newValue) => setCurrentTab(newValue)}
+              sx={{
+                borderBottom: `1px solid ${theme.palette.divider}`,
+                '& .MuiTab-root': {
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  minHeight: 64,
+                },
+              }}
+            >
+              <Tab
+                value="tests"
+                label={
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <AssignmentIcon />
+                    <span>{t('history.testsTab')}</span>
+                    {myResults.length > 0 && (
+                      <Chip
+                        label={myResults.length}
+                        size="small"
+                        sx={{ height: 20, borderRadius: 0 }}
+                      />
+                    )}
+                  </Stack>
+                }
+              />
+              <Tab
+                value="games"
+                label={
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <SportsEsportsIcon />
+                    <span>{t('history.gamesTab')}</span>
+                    {gameResults.length > 0 && (
+                      <Chip
+                        label={gameResults.length}
+                        size="small"
+                        sx={{ height: 20, borderRadius: 0 }}
+                      />
+                    )}
+                  </Stack>
+                }
+              />
+            </Tabs>
           </Paper>
 
-          {/* Отображение в зависимости от режима */}
-          {viewMode === 'grouped' ? (
-            <Stack spacing={3}>
-              {Object.entries(groupedResults).map(([testTitle, results]) => {
-                const stats = getTestStats(results);
-                const sortedTestResults = [...results].sort((a, b) =>
-                  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                );
-
-                return (
-                  <Accordion
-                    key={testTitle}
-                    defaultExpanded
-                    elevation={0}
-                    sx={{
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: 0,
-                      '&:before': { display: 'none' },
-                      '&.Mui-expanded': {
-                        margin: 0,
-                      }
-                    }}
-                  >
-                    <AccordionSummary
-                      expandIcon={<ExpandMoreIcon />}
+          {/* Контент табов */}
+          {currentTab === 'tests' && myResults.length === 0 ? (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 4,
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: 0,
+                textAlign: 'center',
+              }}
+            >
+              <Typography variant="h5" sx={{ color: theme.palette.text.secondary }}>
+                {t('test.noTestsCompleted')}
+              </Typography>
+            </Paper>
+          ) : currentTab === 'games' ? (
+            <GameResultsTab results={gameResults} />
+          ) : (
+            <>
+              {/* Панель фильтров */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  mb: 4,
+                  border: `1px solid ${theme.palette.divider}`,
+                  borderRadius: 0,
+                }}
+              >
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems="center" justifyContent="space-between">
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <SortIcon color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      {t('history.sort')}:
+                    </Typography>
+                    <ToggleButtonGroup
+                      value={sortBy}
+                      exclusive
+                      onChange={(_, value) => value && setSortBy(value)}
+                      size="small"
                       sx={{
-                        borderRadius: 0,
-                        '&:hover': {
-                          bgcolor: alpha(theme.palette.primary.main, 0.05),
+                        '& .MuiToggleButton-root': {
+                          borderRadius: 0,
+                          textTransform: 'none',
                         }
                       }}
                     >
-                      <Box sx={{ width: '100%', pr: 2 }}>
-                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                          <Stack direction="row" alignItems="center" spacing={2}>
-                            <FolderIcon color="primary" />
-                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                              {testTitle}
-                            </Typography>
-                            <Chip
-                              label={`${stats.attempts} ${stats.attempts === 1 ? t('history.attempts') : t('history.attemptsPlural')}`}
-                              size="small"
-                              variant="outlined"
-                              sx={{ borderRadius: 0 }}
-                            />
-                          </Stack>
-                        </Stack>
+                      <ToggleButton value="date">
+                        <AccessTimeIcon fontSize="small" sx={{ mr: 1 }} />
+                        {t('history.sortByDate')}
+                      </ToggleButton>
+                      <ToggleButton value="score">
+                        <EmojiEventsIcon fontSize="small" sx={{ mr: 1 }} />
+                        {t('history.sortByScore')}
+                      </ToggleButton>
+                    </ToggleButtonGroup>
+                  </Stack>
 
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} flexWrap="wrap">
-                          <Stack direction="row" alignItems="center" spacing={1}>
-                            <StarIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
-                            <Typography variant="body2" color="text.secondary">
-                              {t('history.bestScore')}:
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {stats.bestScore}/{stats.total}
-                            </Typography>
-                          </Stack>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Typography variant="body2" color="text.secondary">
+                      {t('history.view')}:
+                    </Typography>
+                    <ToggleButtonGroup
+                      value={viewMode}
+                      exclusive
+                      onChange={(_, value) => value && setViewMode(value)}
+                      size="small"
+                      sx={{
+                        '& .MuiToggleButton-root': {
+                          borderRadius: 0,
+                          textTransform: 'none',
+                        }
+                      }}
+                    >
+                      <ToggleButton value="grouped">
+                        <FolderIcon fontSize="small" sx={{ mr: 1 }} />
+                        {t('history.viewGrouped')}
+                      </ToggleButton>
+                      <ToggleButton value="list">
+                        <ViewListIcon fontSize="small" sx={{ mr: 1 }} />
+                        {t('history.viewList')}
+                      </ToggleButton>
+                    </ToggleButtonGroup>
+                  </Stack>
+                </Stack>
+              </Paper>
 
-                          <Stack direction="row" alignItems="center" spacing={1}>
-                            <TrendingUpIcon fontSize="small" color="info" />
-                            <Typography variant="body2" color="text.secondary">
-                              {t('history.avgScore')}:
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {stats.avgScore.toFixed(1)}/{stats.total}
-                            </Typography>
-                          </Stack>
+              {/* Отображение в зависимости от режима */}
+              {viewMode === 'grouped' ? (
+                <Stack spacing={3}>
+                  {Object.entries(groupedResults).map(([testTitle, results]) => {
+                    const stats = getTestStats(results);
+                    const sortedTestResults = [...results].sort((a, b) =>
+                      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                    );
 
-                          {stats.avgTime > 0 && (
-                            <Stack direction="row" alignItems="center" spacing={1}>
-                              <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
-                              <Typography variant="body2" color="text.secondary">
-                                {t('history.avgTime')}:
-                              </Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {formatTime(stats.avgTime)}
-                              </Typography>
-                            </Stack>
-                          )}
-
-                          {stats.bestTime > 0 && (
-                            <Stack direction="row" alignItems="center" spacing={1}>
-                              <TimerIcon fontSize="small" sx={{ color: theme.palette.success.main }} />
-                              <Typography variant="body2" color="text.secondary">
-                                {t('history.bestTime')}:
-                              </Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {formatTime(stats.bestTime)}
-                              </Typography>
-                            </Stack>
-                          )}
-
-                          <Stack direction="row" alignItems="center" spacing={1}>
-                            <AccessTimeIcon fontSize="small" color="action" />
-                            <Typography variant="body2" color="text.secondary">
-                              {t('history.lastAttempt')}:
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {formatDate(stats.lastAttempt.createdAt, false)}
-                            </Typography>
-                          </Stack>
-                        </Stack>
-                      </Box>
-                    </AccordionSummary>
-
-                    <AccordionDetails sx={{ pt: 0 }}>
-                      <Divider sx={{ mb: 2 }} />
-                      <Stack spacing={2}>
-                        {sortedTestResults.map((r, index) => {
-                          const percentage = r.total > 0 ? Math.round((r.score / r.total) * 100) : 0;
-                          const isPerfect = r.score === r.total;
-                          const isGood = percentage >= 70;
-
-                          return (
-                            <Paper
-                              key={r._id}
-                              elevation={0}
-                              sx={{
-                                p: 3,
-                                border: `1px solid ${theme.palette.divider}`,
-                                borderRadius: 0,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                                '&:hover': {
-                                  borderColor: theme.palette.primary.main,
-                                  transform: 'translateX(4px)',
-                                  boxShadow: `4px 0 0 ${theme.palette.primary.main}`,
-                                },
-                              }}
-                              onClick={() => handleOpenDialog(r)}
-                            >
-                              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                                <Stack spacing={1.5} sx={{ flex: 1 }}>
-                                  <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
-                                    <Chip
-                                      label={`${t('history.attemptNumber')}${sortedTestResults.length - index}`}
-                                      size="small"
-                                      color="primary"
-                                      sx={{ borderRadius: 0, fontWeight: 600 }}
-                                    />
-                                    {r.mode && (() => {
-                                      const modeDetails = getModeDetails(r.mode);
-                                      return (
-                                        <Chip
-                                          icon={modeDetails.icon}
-                                          label={modeDetails.label}
-                                          size="small"
-                                          sx={{
-                                            borderRadius: 0,
-                                            bgcolor: alpha(modeDetails.color, 0.1),
-                                            color: modeDetails.color,
-                                            fontWeight: 600,
-                                            border: `1px solid ${alpha(modeDetails.color, 0.3)}`,
-                                          }}
-                                        />
-                                      );
-                                    })()}
-                                    <Stack direction="row" alignItems="center" spacing={0.5}>
-                                      <AccessTimeIcon fontSize="small" color="action" />
-                                      <Typography variant="body2" color="text.secondary">
-                                        {formatDate(r.createdAt)}
-                                      </Typography>
-                                    </Stack>
-                                  </Stack>
-
-                                  {/* Прогресс-бар с процентами */}
-                                  <Stack spacing={0.5}>
-                                    <Stack direction="row" alignItems="center" spacing={2}>
-                                      <Box
-                                        sx={{
-                                          flex: 1,
-                                          maxWidth: 200,
-                                          height: 8,
-                                          bgcolor: theme.palette.grey[200],
-                                          position: 'relative',
-                                          overflow: 'hidden',
-                                        }}
-                                      >
-                                        <Box
-                                          sx={{
-                                            position: 'absolute',
-                                            left: 0,
-                                            top: 0,
-                                            height: '100%',
-                                            width: `${percentage}%`,
-                                            bgcolor: isPerfect
-                                              ? theme.palette.success.main
-                                              : isGood
-                                                ? theme.palette.warning.main
-                                                : theme.palette.error.main,
-                                            transition: 'width 0.3s ease',
-                                          }}
-                                        />
-                                      </Box>
-                                      <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 50 }}>
-                                        {percentage}%
-                                      </Typography>
-                                    </Stack>
-                                  </Stack>
-
-                                  {r.duration && r.duration > 0 && (
-                                    <Stack direction="row" alignItems="center" spacing={1}>
-                                      <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
-                                      <Typography variant="body2" color="text.secondary">
-                                        {t('history.timeSpent')}: <strong>{formatTime(r.duration)}</strong>
-                                      </Typography>
-                                    </Stack>
-                                  )}
-
-                                  {r.test?.category && typeof r.test.category === 'object' && (
-                                    <Chip
-                                      label={r.test.category.name}
-                                      size="small"
-                                      sx={{
-                                        bgcolor: r.test.category.color || theme.palette.grey[300],
-                                        color: 'white',
-                                        fontSize: '0.7rem',
-                                        height: 22,
-                                        borderRadius: 0,
-                                        alignSelf: 'flex-start',
-                                      }}
-                                    />
-                                  )}
-                                </Stack>
-
-                                <Chip
-                                  label={`${r.score}/${r.total}`}
-                                  color={isPerfect ? 'success' : isGood ? 'warning' : 'error'}
-                                  variant="outlined"
-                                  icon={<EmojiEventsIcon />}
-                                  sx={{
-                                    fontSize: '1rem',
-                                    px: 1.5,
-                                    borderRadius: 0,
-                                    fontWeight: 700,
-                                    minWidth: 80,
-                                  }}
-                                />
-                              </Stack>
-                            </Paper>
-                          );
-                        })}
-                      </Stack>
-                    </AccordionDetails>
-                  </Accordion>
-                );
-              })}
-            </Stack>
-          ) : (
-            <Stack spacing={3}>
-              {sortedResults.map((r) => {
-                const percentage = r.total > 0 ? Math.round((r.score / r.total) * 100) : 0;
-                const isPerfect = r.score === r.total;
-                const isGood = percentage >= 70;
-
-                return (
-                  <Paper
-                    key={r._id}
-                    elevation={0}
-                    sx={{
-                      p: 4,
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: 0,
-                      transition: 'all 0.2s ease',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        borderColor: theme.palette.primary.main,
-                        transform: 'translateY(-2px)',
-                        boxShadow: `0 4px 0 ${theme.palette.primary.main}`,
-                      },
-                    }}
-                    onClick={() => handleOpenDialog(r)}
-                  >
-                    <Stack spacing={2}>
-                      <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="flex-start"
+                    return (
+                      <Accordion
+                        key={testTitle}
+                        defaultExpanded
+                        elevation={0}
+                        sx={{
+                          border: `1px solid ${theme.palette.divider}`,
+                          borderRadius: 0,
+                          '&:before': { display: 'none' },
+                          '&.Mui-expanded': {
+                            margin: 0,
+                          }
+                        }}
                       >
-                        <Stack spacing={1}>
-                          <Stack direction="row" alignItems="center" spacing={1.5}>
-                            <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                              {r.testTitle}
-                            </Typography>
-                            {r.mode && (() => {
-                              const modeDetails = getModeDetails(r.mode);
-                              return (
-                                <Chip
-                                  icon={modeDetails.icon}
-                                  label={modeDetails.label}
-                                  size="small"
-                                  sx={{
-                                    borderRadius: 0,
-                                    bgcolor: alpha(modeDetails.color, 0.1),
-                                    color: modeDetails.color,
-                                    fontWeight: 600,
-                                    border: `1px solid ${alpha(modeDetails.color, 0.3)}`,
-                                  }}
-                                />
-                              );
-                            })()}
-                          </Stack>
-                          {r.test?.category && typeof r.test.category === 'object' && (
-                            <Chip
-                              label={r.test.category.name}
-                              size="small"
-                              sx={{
-                                bgcolor: r.test.category.color || theme.palette.grey[300],
-                                color: 'white',
-                                fontSize: '0.75rem',
-                                height: 24,
-                                borderRadius: 0,
-                                alignSelf: 'flex-start',
-                              }}
-                            />
-                          )}
-                        </Stack>
-                        <Chip
-                          label={`${r.score}/${r.total}`}
-                          color={isPerfect ? 'success' : isGood ? 'warning' : 'error'}
-                          variant="outlined"
-                          icon={<EmojiEventsIcon />}
-                          sx={{ fontSize: '1.1rem', px: 2, borderRadius: 0, fontWeight: 700 }}
-                        />
-                      </Stack>
-
-                      {/* Прогресс-бар с процентами */}
-                      <Stack direction="row" alignItems="center" spacing={2}>
-                        <Box
+                        <AccordionSummary
+                          expandIcon={<ExpandMoreIcon />}
                           sx={{
-                            flex: 1,
-                            height: 10,
-                            bgcolor: theme.palette.grey[200],
-                            position: 'relative',
-                            overflow: 'hidden',
+                            borderRadius: 0,
+                            '&:hover': {
+                              bgcolor: alpha(theme.palette.primary.main, 0.05),
+                            }
                           }}
                         >
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              left: 0,
-                              top: 0,
-                              height: '100%',
-                              width: `${percentage}%`,
-                              bgcolor: isPerfect
-                                ? theme.palette.success.main
-                                : isGood
-                                  ? theme.palette.warning.main
-                                  : theme.palette.error.main,
-                              transition: 'width 0.3s ease',
-                            }}
-                          />
-                        </Box>
-                        <Typography variant="h6" sx={{ fontWeight: 700, minWidth: 60 }}>
-                          {percentage}%
-                        </Typography>
-                      </Stack>
+                          <Box sx={{ width: '100%', pr: 2 }}>
+                            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                              <Stack direction="row" alignItems="center" spacing={2}>
+                                <FolderIcon color="primary" />
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                  {testTitle}
+                                </Typography>
+                                <Chip
+                                  label={`${stats.attempts} ${stats.attempts === 1 ? t('history.attempts') : t('history.attemptsPlural')}`}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ borderRadius: 0 }}
+                                />
+                              </Stack>
+                            </Stack>
 
-                      <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <AccessTimeIcon fontSize="small" color="action" />
-                          <Typography variant="body2" color="text.secondary">
-                            {formatDate(r.createdAt)}
-                          </Typography>
-                        </Stack>
-                        {r.duration && r.duration > 0 && (
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
-                            <Typography variant="body2" color="text.secondary">
-                              {t('history.timeSpent')}: <strong>{formatTime(r.duration)}</strong>
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} flexWrap="wrap">
+                              <Stack direction="row" alignItems="center" spacing={1}>
+                                <StarIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
+                                <Typography variant="body2" color="text.secondary">
+                                  {t('history.bestScore')}:
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {stats.bestScore}/{stats.total}
+                                </Typography>
+                              </Stack>
+
+                              <Stack direction="row" alignItems="center" spacing={1}>
+                                <TrendingUpIcon fontSize="small" color="info" />
+                                <Typography variant="body2" color="text.secondary">
+                                  {t('history.avgScore')}:
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {stats.avgScore.toFixed(1)}/{stats.total}
+                                </Typography>
+                              </Stack>
+
+                              {stats.avgTime > 0 && (
+                                <Stack direction="row" alignItems="center" spacing={1}>
+                                  <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                                  <Typography variant="body2" color="text.secondary">
+                                    {t('history.avgTime')}:
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    {formatTime(stats.avgTime)}
+                                  </Typography>
+                                </Stack>
+                              )}
+
+                              {stats.bestTime > 0 && (
+                                <Stack direction="row" alignItems="center" spacing={1}>
+                                  <TimerIcon fontSize="small" sx={{ color: theme.palette.success.main }} />
+                                  <Typography variant="body2" color="text.secondary">
+                                    {t('history.bestTime')}:
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    {formatTime(stats.bestTime)}
+                                  </Typography>
+                                </Stack>
+                              )}
+
+                              <Stack direction="row" alignItems="center" spacing={1}>
+                                <AccessTimeIcon fontSize="small" color="action" />
+                                <Typography variant="body2" color="text.secondary">
+                                  {t('history.lastAttempt')}:
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {formatDate(stats.lastAttempt.createdAt, false)}
+                                </Typography>
+                              </Stack>
+                            </Stack>
+                          </Box>
+                        </AccordionSummary>
+
+                        <AccordionDetails sx={{ pt: 0 }}>
+                          <Divider sx={{ mb: 2 }} />
+                          <Stack spacing={2}>
+                            {sortedTestResults.map((r, index) => {
+                              const percentage = r.total > 0 ? Math.round((r.score / r.total) * 100) : 0;
+                              const isPerfect = r.score === r.total;
+                              const isGood = percentage >= 70;
+
+                              return (
+                                <Paper
+                                  key={r._id}
+                                  elevation={0}
+                                  sx={{
+                                    p: 3,
+                                    border: `1px solid ${theme.palette.divider}`,
+                                    borderRadius: 0,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                      borderColor: theme.palette.primary.main,
+                                      transform: 'translateX(4px)',
+                                      boxShadow: `4px 0 0 ${theme.palette.primary.main}`,
+                                    },
+                                  }}
+                                  onClick={() => handleOpenDialog(r)}
+                                >
+                                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                                    <Stack spacing={1.5} sx={{ flex: 1 }}>
+                                      <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
+                                        <Chip
+                                          label={`${t('history.attemptNumber')}${sortedTestResults.length - index}`}
+                                          size="small"
+                                          color="primary"
+                                          sx={{ borderRadius: 0, fontWeight: 600 }}
+                                        />
+                                        {r.mode && (() => {
+                                          const modeDetails = getModeDetails(r.mode);
+                                          return (
+                                            <Chip
+                                              icon={modeDetails.icon}
+                                              label={modeDetails.label}
+                                              size="small"
+                                              sx={{
+                                                borderRadius: 0,
+                                                bgcolor: alpha(modeDetails.color, 0.1),
+                                                color: modeDetails.color,
+                                                fontWeight: 600,
+                                                border: `1px solid ${alpha(modeDetails.color, 0.3)}`,
+                                              }}
+                                            />
+                                          );
+                                        })()}
+                                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                                          <AccessTimeIcon fontSize="small" color="action" />
+                                          <Typography variant="body2" color="text.secondary">
+                                            {formatDate(r.createdAt)}
+                                          </Typography>
+                                        </Stack>
+                                      </Stack>
+
+                                      {/* Прогресс-бар с процентами */}
+                                      <Stack spacing={0.5}>
+                                        <Stack direction="row" alignItems="center" spacing={2}>
+                                          <Box
+                                            sx={{
+                                              flex: 1,
+                                              maxWidth: 200,
+                                              height: 8,
+                                              bgcolor: theme.palette.grey[200],
+                                              position: 'relative',
+                                              overflow: 'hidden',
+                                            }}
+                                          >
+                                            <Box
+                                              sx={{
+                                                position: 'absolute',
+                                                left: 0,
+                                                top: 0,
+                                                height: '100%',
+                                                width: `${percentage}%`,
+                                                bgcolor: isPerfect
+                                                  ? theme.palette.success.main
+                                                  : isGood
+                                                    ? theme.palette.warning.main
+                                                    : theme.palette.error.main,
+                                                transition: 'width 0.3s ease',
+                                              }}
+                                            />
+                                          </Box>
+                                          <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 50 }}>
+                                            {percentage}%
+                                          </Typography>
+                                        </Stack>
+                                      </Stack>
+
+                                      {r.duration && r.duration > 0 && (
+                                        <Stack direction="row" alignItems="center" spacing={1}>
+                                          <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                                          <Typography variant="body2" color="text.secondary">
+                                            {t('history.timeSpent')}: <strong>{formatTime(r.duration)}</strong>
+                                          </Typography>
+                                        </Stack>
+                                      )}
+
+                                      {r.test?.category && typeof r.test.category === 'object' && (
+                                        <Chip
+                                          label={r.test.category.name}
+                                          size="small"
+                                          sx={{
+                                            bgcolor: r.test.category.color || theme.palette.grey[300],
+                                            color: 'white',
+                                            fontSize: '0.7rem',
+                                            height: 22,
+                                            borderRadius: 0,
+                                            alignSelf: 'flex-start',
+                                          }}
+                                        />
+                                      )}
+                                    </Stack>
+
+                                    <Chip
+                                      label={`${r.score}/${r.total}`}
+                                      color={isPerfect ? 'success' : isGood ? 'warning' : 'error'}
+                                      variant="outlined"
+                                      icon={<EmojiEventsIcon />}
+                                      sx={{
+                                        fontSize: '1rem',
+                                        px: 1.5,
+                                        borderRadius: 0,
+                                        fontWeight: 700,
+                                        minWidth: 80,
+                                      }}
+                                    />
+                                  </Stack>
+                                </Paper>
+                              );
+                            })}
+                          </Stack>
+                        </AccordionDetails>
+                      </Accordion>
+                    );
+                  })}
+                </Stack>
+              ) : (
+                <Stack spacing={3}>
+                  {sortedResults.map((r) => {
+                    const percentage = r.total > 0 ? Math.round((r.score / r.total) * 100) : 0;
+                    const isPerfect = r.score === r.total;
+                    const isGood = percentage >= 70;
+
+                    return (
+                      <Paper
+                        key={r._id}
+                        elevation={0}
+                        sx={{
+                          p: 4,
+                          border: `1px solid ${theme.palette.divider}`,
+                          borderRadius: 0,
+                          transition: 'all 0.2s ease',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            borderColor: theme.palette.primary.main,
+                            transform: 'translateY(-2px)',
+                            boxShadow: `0 4px 0 ${theme.palette.primary.main}`,
+                          },
+                        }}
+                        onClick={() => handleOpenDialog(r)}
+                      >
+                        <Stack spacing={2}>
+                          <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="flex-start"
+                          >
+                            <Stack spacing={1}>
+                              <Stack direction="row" alignItems="center" spacing={1.5}>
+                                <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                                  {r.testTitle}
+                                </Typography>
+                                {r.mode && (() => {
+                                  const modeDetails = getModeDetails(r.mode);
+                                  return (
+                                    <Chip
+                                      icon={modeDetails.icon}
+                                      label={modeDetails.label}
+                                      size="small"
+                                      sx={{
+                                        borderRadius: 0,
+                                        bgcolor: alpha(modeDetails.color, 0.1),
+                                        color: modeDetails.color,
+                                        fontWeight: 600,
+                                        border: `1px solid ${alpha(modeDetails.color, 0.3)}`,
+                                      }}
+                                    />
+                                  );
+                                })()}
+                              </Stack>
+                              {r.test?.category && typeof r.test.category === 'object' && (
+                                <Chip
+                                  label={r.test.category.name}
+                                  size="small"
+                                  sx={{
+                                    bgcolor: r.test.category.color || theme.palette.grey[300],
+                                    color: 'white',
+                                    fontSize: '0.75rem',
+                                    height: 24,
+                                    borderRadius: 0,
+                                    alignSelf: 'flex-start',
+                                  }}
+                                />
+                              )}
+                            </Stack>
+                            <Chip
+                              label={`${r.score}/${r.total}`}
+                              color={isPerfect ? 'success' : isGood ? 'warning' : 'error'}
+                              variant="outlined"
+                              icon={<EmojiEventsIcon />}
+                              sx={{ fontSize: '1.1rem', px: 2, borderRadius: 0, fontWeight: 700 }}
+                            />
+                          </Stack>
+
+                          {/* Прогресс-бар с процентами */}
+                          <Stack direction="row" alignItems="center" spacing={2}>
+                            <Box
+                              sx={{
+                                flex: 1,
+                                height: 10,
+                                bgcolor: theme.palette.grey[200],
+                                position: 'relative',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  left: 0,
+                                  top: 0,
+                                  height: '100%',
+                                  width: `${percentage}%`,
+                                  bgcolor: isPerfect
+                                    ? theme.palette.success.main
+                                    : isGood
+                                      ? theme.palette.warning.main
+                                      : theme.palette.error.main,
+                                  transition: 'width 0.3s ease',
+                                }}
+                              />
+                            </Box>
+                            <Typography variant="h6" sx={{ fontWeight: 700, minWidth: 60 }}>
+                              {percentage}%
                             </Typography>
                           </Stack>
-                        )}
-                      </Stack>
-                    </Stack>
-                  </Paper>
-                );
-              })}
-            </Stack>
+
+                          <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <AccessTimeIcon fontSize="small" color="action" />
+                              <Typography variant="body2" color="text.secondary">
+                                {formatDate(r.createdAt)}
+                              </Typography>
+                            </Stack>
+                            {r.duration && r.duration > 0 && (
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
+                                <Typography variant="body2" color="text.secondary">
+                                  {t('history.timeSpent')}: <strong>{formatTime(r.duration)}</strong>
+                                </Typography>
+                              </Stack>
+                            )}
+                          </Stack>
+                        </Stack>
+                      </Paper>
+                    );
+                  })}
+                </Stack>
+              )}
+            </>
           )}
+
+          {/* Диалог просмотра деталей теста */}
+          <TestResultDialog
+            open={dialogOpen}
+            onClose={handleCloseDialog}
+            result={selectedResult}
+          />
         </>
       )}
-
-      {/* Диалог просмотра деталей теста */}
-      <TestResultDialog
-        open={dialogOpen}
-        onClose={handleCloseDialog}
-        result={selectedResult}
-      />
     </Container>
   );
 }
