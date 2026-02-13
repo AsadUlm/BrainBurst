@@ -6,8 +6,9 @@ import TestQuestion from './TestQuestion';
 import PuzzleQuestion from './PuzzleQuestion';
 import TestResultSummary from './TestResultSummary';
 import { Test, Answer } from './types'; // вынесем типы отдельно
-import { Container } from '@mui/material';
+import { Container, Snackbar, Alert } from '@mui/material';
 import { useUserSettings } from '../../contexts/SettingsContext';
+import { saveOfflineResult } from '../../utils/offlineResults';
 
 interface TestRunnerProps {
   mode: 'standard' | 'exam';
@@ -30,6 +31,8 @@ export default function TestRunner({ mode }: TestRunnerProps) {
   const [userAttempts, setUserAttempts] = useState(0);
   const [canViewContent, setCanViewContent] = useState(true);
   const isSavingRef = useRef(false);
+  const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'offline' | null>(null);
+
 
   const storageKey = `testProgress_${id}_${mode}`;
 
@@ -243,6 +246,7 @@ export default function TestRunner({ mode }: TestRunnerProps) {
     const duration = startTime ? Math.floor((endTime.getTime() - startTime.getTime()) / 1000) : 0;
 
     const resultPayload = {
+      clientResultId: `result_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Уникальный ID для защиты от дублирования
       userEmail: localStorage.getItem('email') || 'unknown',
       testId: test._id,
       testTitle: test.title,
@@ -275,22 +279,48 @@ export default function TestRunner({ mode }: TestRunnerProps) {
         return a !== correctAnswers[i] ? i : null;
       }).filter(x => x !== null),
       shuffledQuestions: test.questions,
-      startTime: startTime?.toISOString(),
+      startTime: typeof startTime === 'string' ? startTime : startTime?.toISOString() || new Date().toISOString(),
       endTime: endTime.toISOString(),
       duration,
       timePerQuestion,
-      mode
+      mode,
     };
 
-    await fetch('/api/results', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(resultPayload),
-    });
+    // Попытка сохранить результат с обработкой ошибок
+    setSaveStatus('saving');
 
-    // Сбрасываем флаг после успешного сохранения
-    isSavingRef.current = false;
+    try {
+      const response = await fetch('/api/results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(resultPayload),
+      });
+
+      if (response.ok) {
+        console.log('[TestRunner] Result saved successfully');
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus(null), 3000);
+      } else {
+        throw new Error(`Server error: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('[TestRunner] Failed to save result, saving offline:', error);
+
+      // Сохраняем в localStorage для последующей синхронизации
+      try {
+        saveOfflineResult(resultPayload);
+        setSaveStatus('offline');
+        console.log('[TestRunner] Result saved offline successfully');
+      } catch (offlineError) {
+        console.error('[TestRunner] Failed to save offline:', offlineError);
+        setSaveStatus(null);
+      }
+    } finally {
+      // Сбрасываем флаг после завершения
+      isSavingRef.current = false;
+    }
   };
+
 
   if (!test) return <Container>{t('test.loading')}</Container>;
 
@@ -351,7 +381,74 @@ export default function TestRunner({ mode }: TestRunnerProps) {
   // Рендерим компонент в зависимости от типа вопроса
   if (questionType === 'puzzle') {
     return (
-      <PuzzleQuestion
+      <>
+        <PuzzleQuestion
+          test={test}
+          current={current}
+          answers={answers}
+          setAnswers={setAnswers}
+          questionTimesLeft={questionTimesLeft}
+          setQuestionTimesLeft={setQuestionTimesLeft}
+          mode={mode}
+          onNext={(next, updatedAnswers) => {
+            // Сохраняем время, потраченное на текущий вопрос
+            const now = new Date();
+            const questionStart = questionStartTimes[current];
+            if (questionStart) {
+              const timeSpent = Math.floor((now.getTime() - questionStart.getTime()) / 1000);
+              const updatedTimes = [...timePerQuestion];
+              updatedTimes[current] = timeSpent;
+              setTimePerQuestion(updatedTimes);
+            }
+
+            // Используем обновленные ответы, если они переданы
+            const finalAnswers = updatedAnswers || answers;
+            if (next >= test.questions.length) {
+              finishTest(finalAnswers);
+            } else {
+              // Устанавливаем время начала следующего вопроса
+              const newStartTimes = [...questionStartTimes];
+              newStartTimes[next] = new Date();
+              setQuestionStartTimes(newStartTimes);
+              setCurrent(next);
+            }
+          }}
+          onPrevious={mode !== 'exam' ? () => {
+            if (current > 0) {
+              setCurrent(current - 1);
+            }
+          } : undefined}
+        />
+
+        {/* Уведомления о статусе сохранения */}
+        <Snackbar
+          open={saveStatus === 'saved'}
+          autoHideDuration={3000}
+          onClose={() => setSaveStatus(null)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert severity="success" onClose={() => setSaveStatus(null)}>
+            {t('test.resultSaved')}
+          </Alert>
+        </Snackbar>
+
+        <Snackbar
+          open={saveStatus === 'offline'}
+          autoHideDuration={6000}
+          onClose={() => setSaveStatus(null)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert severity="warning" onClose={() => setSaveStatus(null)}>
+            {t('test.resultSavedOffline')}
+          </Alert>
+        </Snackbar>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <TestQuestion
         test={test}
         current={current}
         answers={answers}
@@ -388,46 +485,29 @@ export default function TestRunner({ mode }: TestRunnerProps) {
           }
         } : undefined}
       />
-    );
-  }
 
-  return (
-    <TestQuestion
-      test={test}
-      current={current}
-      answers={answers}
-      setAnswers={setAnswers}
-      questionTimesLeft={questionTimesLeft}
-      setQuestionTimesLeft={setQuestionTimesLeft}
-      mode={mode}
-      onNext={(next, updatedAnswers) => {
-        // Сохраняем время, потраченное на текущий вопрос
-        const now = new Date();
-        const questionStart = questionStartTimes[current];
-        if (questionStart) {
-          const timeSpent = Math.floor((now.getTime() - questionStart.getTime()) / 1000);
-          const updatedTimes = [...timePerQuestion];
-          updatedTimes[current] = timeSpent;
-          setTimePerQuestion(updatedTimes);
-        }
+      {/* Уведомления о статусе сохранения */}
+      <Snackbar
+        open={saveStatus === 'saved'}
+        autoHideDuration={3000}
+        onClose={() => setSaveStatus(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" onClose={() => setSaveStatus(null)}>
+          {t('test.resultSaved')}
+        </Alert>
+      </Snackbar>
 
-        // Используем обновленные ответы, если они переданы
-        const finalAnswers = updatedAnswers || answers;
-        if (next >= test.questions.length) {
-          finishTest(finalAnswers);
-        } else {
-          // Устанавливаем время начала следующего вопроса
-          const newStartTimes = [...questionStartTimes];
-          newStartTimes[next] = new Date();
-          setQuestionStartTimes(newStartTimes);
-          setCurrent(next);
-        }
-      }}
-      onPrevious={mode !== 'exam' ? () => {
-        if (current > 0) {
-          setCurrent(current - 1);
-        }
-      } : undefined}
-    />
+      <Snackbar
+        open={saveStatus === 'offline'}
+        autoHideDuration={6000}
+        onClose={() => setSaveStatus(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="warning" onClose={() => setSaveStatus(null)}>
+          {t('test.resultSavedOffline')}
+        </Alert>
+      </Snackbar>
+    </>
   );
 }

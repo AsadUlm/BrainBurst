@@ -1,19 +1,24 @@
 import { useEffect, useState, useMemo } from 'react';
 import {
-    Typography, Box, Paper, Chip, Table, TableHead, TableRow, TableCell, TableBody, Divider,
-    useTheme, alpha, Stack, TextField, MenuItem, Select, FormControl, InputLabel, InputAdornment,
-    TableSortLabel, Card, CardContent, Accordion, AccordionSummary, AccordionDetails,
+    Typography, Box, Paper, Chip, Table, TableHead, TableRow, TableCell, TableBody,
+    useTheme, alpha, Stack, TextField, MenuItem, Select, FormControl, InputAdornment,
+    TableSortLabel, Card, CardContent, Avatar, LinearProgress, Grid, IconButton, Fade
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 import PersonIcon from '@mui/icons-material/Person';
 import QuizIcon from '@mui/icons-material/Quiz';
-import TimerIcon from '@mui/icons-material/Timer';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-import { LoadingPage } from './Loading/index';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import ExtensionIcon from '@mui/icons-material/Extension';
+import SpeedIcon from '@mui/icons-material/Speed';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import HistoryIcon from '@mui/icons-material/History';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import FilterListIcon from '@mui/icons-material/FilterList';
+
 import { useTranslation } from 'react-i18next';
+import { LoadingPage } from './Loading';
 
 interface GameResult {
     _id: string;
@@ -63,7 +68,8 @@ export default function AdminGameResults() {
     const [sortField, setSortField] = useState<SortField>('date');
     const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
-    useEffect(() => {
+    const fetchResults = () => {
+        setLoading(true);
         const token = localStorage.getItem('token');
         fetch('/api/game-results', {
             headers: { Authorization: `Bearer ${token}` },
@@ -79,6 +85,10 @@ export default function AdminGameResults() {
                 console.error('Error loading game results:', err);
                 setLoading(false);
             });
+    };
+
+    useEffect(() => {
+        fetchResults();
     }, []);
 
     // Форматирование даты
@@ -104,19 +114,35 @@ export default function AdminGameResults() {
             : `${mins}${t('history.minutes')}`;
     };
 
+    // Иконка типа игры
+    const getGameTypeIcon = (gameType: string) => {
+        switch (gameType) {
+            case 'memory-match': return <ExtensionIcon fontSize="small" />;
+            case 'quiz': return <QuizIcon fontSize="small" />;
+            case 'puzzle': return <ExtensionIcon fontSize="small" />; // Puzzle same icon for now
+            case 'speed-test': return <SpeedIcon fontSize="small" />;
+            default: return <SportsEsportsIcon fontSize="small" />;
+        }
+    };
+
     // Получение названия типа игры
     const getGameTypeName = (gameType: string) => {
         switch (gameType) {
-            case 'memory-match':
-                return t('game.memoryMatch');
-            case 'quiz':
-                return t('game.quiz');
-            case 'puzzle':
-                return t('game.puzzle');
-            case 'speed-test':
-                return t('game.speedTest');
-            default:
-                return gameType;
+            case 'memory-match': return t('game.memoryMatch');
+            case 'quiz': return t('game.quiz');
+            case 'puzzle': return t('game.puzzle');
+            case 'speed-test': return t('game.speedTest');
+            default: return gameType;
+        }
+    };
+
+    const getGameTypeColor = (gameType: string) => {
+        switch (gameType) {
+            case 'memory-match': return theme.palette.primary.main;
+            case 'quiz': return theme.palette.secondary.main;
+            case 'puzzle': return theme.palette.warning.main;
+            case 'speed-test': return theme.palette.error.main;
+            default: return theme.palette.text.secondary;
         }
     };
 
@@ -239,437 +265,433 @@ export default function AdminGameResults() {
         }
     };
 
-    if (loading) {
+    if (loading && results.length === 0) {
         return <LoadingPage />;
     }
 
     return (
-        <Box sx={{ py: 4, px: 3 }}>
-            <Box sx={{ mb: 6 }}>
-                <Typography
-                    variant="h3"
-                    sx={{
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 2,
-                    }}
-                >
-                    <SportsEsportsIcon fontSize="large" />
-                    {t('admin.gameResults')}
-                    <Divider sx={{ flex: 1, height: 4, backgroundColor: theme.palette.divider }} />
-                </Typography>
-            </Box>
+        <Box sx={{ p: { xs: 2, md: 3 }, width: '100%', boxSizing: 'border-box' }}>
 
-            {/* Статистика */}
-            <Accordion
-                defaultExpanded
-                elevation={0}
-                sx={{
-                    mb: 4,
-                    border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: 0,
-                    '&:before': { display: 'none' },
-                }}
-            >
-                <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    sx={{
-                        borderRadius: 0,
-                        '&:hover': {
-                            bgcolor: alpha(theme.palette.primary.main, 0.05),
-                        },
-                    }}
-                >
-                    <Stack direction="row" spacing={2} alignItems="center">
-                        <AssessmentIcon color="primary" />
-                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            {t('admin.statistics')}
-                        </Typography>
-                    </Stack>
-                </AccordionSummary>
-                <AccordionDetails>
-                    <Stack spacing={3}>
-                        {/* Основная статистика */}
-                        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                            <Card sx={{ flex: 1, borderRadius: 0, border: `1px solid ${theme.palette.divider}` }}>
-                                <CardContent>
-                                    <Stack direction="row" alignItems="center" spacing={2}>
-                                        <SportsEsportsIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
-                                        <Box>
-                                            <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                                                {statistics.totalGames}
-                                            </Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                {t('game.totalGames')}
-                                            </Typography>
-                                        </Box>
-                                    </Stack>
-                                </CardContent>
-                            </Card>
-
-                            <Card sx={{ flex: 1, borderRadius: 0, border: `1px solid ${theme.palette.divider}` }}>
-                                <CardContent>
-                                    <Stack direction="row" alignItems="center" spacing={2}>
-                                        <PersonIcon sx={{ fontSize: 40, color: theme.palette.success.main }} />
-                                        <Box>
-                                            <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                                                {statistics.uniquePlayers}
-                                            </Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                {t('game.uniquePlayers')}
-                                            </Typography>
-                                        </Box>
-                                    </Stack>
-                                </CardContent>
-                            </Card>
-
-                            <Card sx={{ flex: 1, borderRadius: 0, border: `1px solid ${theme.palette.divider}` }}>
-                                <CardContent>
-                                    <Stack direction="row" alignItems="center" spacing={2}>
-                                        <QuizIcon sx={{ fontSize: 40, color: theme.palette.info.main }} />
-                                        <Box>
-                                            <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                                                {statistics.uniqueTests}
-                                            </Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                {t('game.uniqueTests')}
-                                            </Typography>
-                                        </Box>
-                                    </Stack>
-                                </CardContent>
-                            </Card>
-
-                            <Card sx={{ flex: 1, borderRadius: 0, border: `1px solid ${theme.palette.divider}` }}>
-                                <CardContent>
-                                    <Stack direction="row" alignItems="center" spacing={2}>
-                                        <TrendingUpIcon sx={{ fontSize: 40, color: theme.palette.warning.main }} />
-                                        <Box>
-                                            <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                                                {statistics.averageAccuracy}%
-                                            </Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                {t('game.avgAccuracy')}
-                                            </Typography>
-                                        </Box>
-                                    </Stack>
-                                </CardContent>
-                            </Card>
-                        </Stack>
-
-                        {/* Топ игроков и популярные игры */}
-                        <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    flex: 1,
-                                    p: 3,
-                                    border: `1px solid ${theme.palette.divider}`,
-                                    borderRadius: 0,
-                                }}
-                            >
-                                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                                    {t('game.topPlayers')}
-                                </Typography>
-                                <Stack spacing={1}>
-                                    {topPlayers.map((player, index) => (
-                                        <Stack
-                                            key={player.email}
-                                            direction="row"
-                                            justifyContent="space-between"
-                                            alignItems="center"
-                                            sx={{
-                                                p: 1.5,
-                                                bgcolor: index === 0 ? alpha(theme.palette.warning.main, 0.1) : 'transparent',
-                                                border: `1px solid ${theme.palette.divider}`,
-                                            }}
-                                        >
-                                            <Stack direction="row" spacing={1.5} alignItems="center">
-                                                <Chip
-                                                    label={`#${index + 1}`}
-                                                    size="small"
-                                                    color={index === 0 ? 'warning' : 'default'}
-                                                    sx={{ borderRadius: 0, fontWeight: 700 }}
-                                                />
-                                                <Typography variant="body2">{player.email}</Typography>
-                                            </Stack>
-                                            <Stack direction="row" spacing={2} alignItems="center">
-                                                <Typography variant="body2" color="text.secondary">
-                                                    {player.gamesPlayed} {t('game.games')}
-                                                </Typography>
-                                                <Chip
-                                                    label={`${player.avgAccuracy}%`}
-                                                    size="small"
-                                                    color="success"
-                                                    sx={{ borderRadius: 0 }}
-                                                />
-                                            </Stack>
-                                        </Stack>
-                                    ))}
-                                </Stack>
-                            </Paper>
-
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    flex: 1,
-                                    p: 3,
-                                    border: `1px solid ${theme.palette.divider}`,
-                                    borderRadius: 0,
-                                }}
-                            >
-                                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                                    {t('game.popularGames')}
-                                </Typography>
-                                <Stack spacing={1}>
-                                    {popularGames.map((game, index) => (
-                                        <Stack
-                                            key={game.title}
-                                            direction="row"
-                                            justifyContent="space-between"
-                                            alignItems="center"
-                                            sx={{
-                                                p: 1.5,
-                                                bgcolor: index === 0 ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-                                                border: `1px solid ${theme.palette.divider}`,
-                                            }}
-                                        >
-                                            <Stack direction="row" spacing={1.5} alignItems="center">
-                                                <Chip
-                                                    label={`#${index + 1}`}
-                                                    size="small"
-                                                    color={index === 0 ? 'primary' : 'default'}
-                                                    sx={{ borderRadius: 0, fontWeight: 700 }}
-                                                />
-                                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                                    {game.title}
-                                                </Typography>
-                                            </Stack>
-                                            <Chip
-                                                label={`${game.count} ${t('game.plays')}`}
-                                                size="small"
-                                                variant="outlined"
-                                                sx={{ borderRadius: 0 }}
-                                            />
-                                        </Stack>
-                                    ))}
-                                </Stack>
-                            </Paper>
-                        </Stack>
-                    </Stack>
-                </AccordionDetails>
-            </Accordion>
-
-            {/* Фильтры */}
-            <Paper
-                elevation={0}
-                sx={{
-                    p: 3,
-                    mb: 4,
-                    border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: 0,
-                }}
-            >
-                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                    <TextField
-                        placeholder={t('admin.searchByUser')}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        size="small"
-                        fullWidth
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <SearchIcon />
-                                </InputAdornment>
-                            ),
-                            sx: { borderRadius: 0 },
-                        }}
-                    />
-                    <FormControl size="small" sx={{ minWidth: 200 }}>
-                        <InputLabel>{t('game.gameType')}</InputLabel>
-                        <Select
-                            value={gameTypeFilter}
-                            onChange={(e) => setGameTypeFilter(e.target.value)}
-                            label={t('game.gameType')}
-                            sx={{ borderRadius: 0 }}
-                        >
-                            <MenuItem value="all">{t('admin.allTypes')}</MenuItem>
-                            <MenuItem value="memory-match">{t('game.memoryMatch')}</MenuItem>
-                            <MenuItem value="quiz">{t('game.quiz')}</MenuItem>
-                            <MenuItem value="puzzle">{t('game.puzzle')}</MenuItem>
-                            <MenuItem value="speed-test">{t('game.speedTest')}</MenuItem>
-                        </Select>
-                    </FormControl>
-                </Stack>
-            </Paper>
-
-            {/* Таблица результатов */}
-            <Paper
-                elevation={0}
-                sx={{
-                    border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: 0,
-                    overflow: 'hidden',
-                }}
-            >
-                <Table>
-                    <TableHead>
-                        <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortField === 'user'}
-                                    direction={sortField === 'user' ? sortOrder : 'asc'}
-                                    onClick={() => handleSort('user')}
-                                    sx={{ fontWeight: 700 }}
-                                >
-                                    {t('admin.user')}
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell sx={{ fontWeight: 700 }}>{t('admin.test')}</TableCell>
-                            <TableCell sx={{ fontWeight: 700 }}>{t('game.gameType')}</TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortField === 'accuracy'}
-                                    direction={sortField === 'accuracy' ? sortOrder : 'asc'}
-                                    onClick={() => handleSort('accuracy')}
-                                    sx={{ fontWeight: 700 }}
-                                >
-                                    {t('game.accuracy')}
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortField === 'score'}
-                                    direction={sortField === 'score' ? sortOrder : 'asc'}
-                                    onClick={() => handleSort('score')}
-                                    sx={{ fontWeight: 700 }}
-                                >
-                                    {t('admin.score')}
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortField === 'time'}
-                                    direction={sortField === 'time' ? sortOrder : 'asc'}
-                                    onClick={() => handleSort('time')}
-                                    sx={{ fontWeight: 700 }}
-                                >
-                                    {t('admin.time')}
-                                </TableSortLabel>
-                            </TableCell>
-                            <TableCell sx={{ fontWeight: 700 }}>{t('game.moves')}</TableCell>
-                            <TableCell>
-                                <TableSortLabel
-                                    active={sortField === 'date'}
-                                    direction={sortField === 'date' ? sortOrder : 'asc'}
-                                    onClick={() => handleSort('date')}
-                                    sx={{ fontWeight: 700 }}
-                                >
-                                    {t('admin.completedAt')}
-                                </TableSortLabel>
-                            </TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {filteredAndSortedResults.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                                    <Typography variant="body1" color="text.secondary">
-                                        {t('admin.noResults')}
-                                    </Typography>
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredAndSortedResults.map((result) => {
-                                const isExcellent = result.accuracy >= 90;
-                                const isGood = result.accuracy >= 70;
-
-                                return (
-                                    <TableRow
-                                        key={result._id}
-                                        sx={{
-                                            '&:hover': {
-                                                bgcolor: alpha(theme.palette.primary.main, 0.05),
-                                            },
-                                        }}
-                                    >
-                                        <TableCell>{result.userEmail}</TableCell>
-                                        <TableCell>
-                                            <Stack spacing={0.5}>
-                                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                                    {result.testTitle}
-                                                </Typography>
-                                                {result.test?.category && (
-                                                    <Chip
-                                                        label={result.test.category.name}
-                                                        size="small"
-                                                        sx={{
-                                                            bgcolor: result.test.category.color || theme.palette.grey[300],
-                                                            color: 'white',
-                                                            fontSize: '0.65rem',
-                                                            height: 18,
-                                                            borderRadius: 0,
-                                                            alignSelf: 'flex-start',
-                                                        }}
-                                                    />
-                                                )}
-                                            </Stack>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={getGameTypeName(result.gameType)}
-                                                size="small"
-                                                sx={{
-                                                    borderRadius: 0,
-                                                    bgcolor: alpha(theme.palette.info.main, 0.1),
-                                                    color: theme.palette.info.main,
-                                                    fontWeight: 600,
-                                                }}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={`${result.accuracy}%`}
-                                                size="small"
-                                                color={isExcellent ? 'success' : isGood ? 'warning' : 'error'}
-                                                sx={{ borderRadius: 0, fontWeight: 700 }}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                {result.correctAnswers}/{result.totalQuestions}
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Stack direction="row" spacing={0.5} alignItems="center">
-                                                <TimerIcon fontSize="small" color="action" />
-                                                <Typography variant="body2">{formatTime(result.duration)}</Typography>
-                                            </Stack>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2">{result.totalMoves || '-'}</Typography>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2" color="text.secondary">
-                                                {formatDate(result.completedAt)}
-                                            </Typography>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })
-                        )}
-                    </TableBody>
-                </Table>
-            </Paper>
-
-            {filteredAndSortedResults.length > 0 && (
-                <Box sx={{ mt: 2, textAlign: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">
-                        {t('admin.showing')} {filteredAndSortedResults.length} {t('admin.of')} {results.length} {t('admin.results')}
+            {/* Заголовок */}
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 4 }}>
+                <Box>
+                    <Typography variant="h4" fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <SportsEsportsIcon fontSize="large" color="primary" />
+                        {t('admin.gameResults')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        Обзор результатов и статистики игровых активностей
                     </Typography>
                 </Box>
-            )}
+                <IconButton onClick={fetchResults} disabled={loading} sx={{ bgcolor: 'background.paper', border: `1px solid ${theme.palette.divider}` }}>
+                    <RefreshIcon />
+                </IconButton>
+            </Stack>
+
+            <Fade in={!loading} timeout={500}>
+                <Box>
+                    {/* Статистические карточки */}
+                    <Grid container spacing={3} sx={{ mb: 4 }}>
+                        {[
+                            {
+                                label: t('game.totalGames'),
+                                value: statistics.totalGames,
+                                icon: <SportsEsportsIcon />,
+                                color: theme.palette.primary.main
+                            },
+                            {
+                                label: t('game.uniquePlayers'),
+                                value: statistics.uniquePlayers,
+                                icon: <PersonIcon />,
+                                color: theme.palette.success.main
+                            },
+                            {
+                                label: t('game.uniqueTests'),
+                                value: statistics.uniqueTests,
+                                icon: <QuizIcon />,
+                                color: theme.palette.info.main
+                            },
+                            {
+                                label: t('game.avgAccuracy'),
+                                value: `${statistics.averageAccuracy}%`,
+                                icon: <TrendingUpIcon />,
+                                color: theme.palette.warning.main
+                            }
+                        ].map((stat, index) => (
+                            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
+                                <Card
+                                    elevation={0}
+                                    sx={{
+                                        border: `1px solid ${theme.palette.divider}`,
+                                        borderRadius: '16px',
+                                        height: '100%'
+                                    }}
+                                >
+                                    <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+                                        <Stack direction="row" alignItems="center" justifyContent="space-between">
+                                            <Box>
+                                                <Typography variant="body2" color="text.secondary" fontWeight={500} sx={{ mb: 0.5 }}>
+                                                    {stat.label}
+                                                </Typography>
+                                                <Typography variant="h4" fontWeight={700}>
+                                                    {stat.value}
+                                                </Typography>
+                                            </Box>
+                                            <Box
+                                                sx={{
+                                                    width: 48,
+                                                    height: 48,
+                                                    borderRadius: '12px',
+                                                    bgcolor: alpha(stat.color, 0.1),
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: stat.color
+                                                }}
+                                            >
+                                                {stat.icon}
+                                            </Box>
+                                        </Stack>
+                                    </CardContent>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
+
+                    {/* Топы */}
+                    <Grid container spacing={3} sx={{ mb: 4 }}>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Paper elevation={0} sx={{ p: 3, border: `1px solid ${theme.palette.divider}`, borderRadius: '16px', height: '100%' }}>
+                                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+                                    <EmojiEventsIcon color="warning" />
+                                    <Typography variant="h6" fontWeight={700}>{t('game.topPlayers')}</Typography>
+                                </Stack>
+                                <Stack spacing={2}>
+                                    {topPlayers.map((player, index) => (
+                                        <Box key={player.email} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                <Box
+                                                    sx={{
+                                                        width: 24,
+                                                        height: 24,
+                                                        borderRadius: '50%',
+                                                        bgcolor: index < 3 ? alpha(theme.palette.warning.main, 0.2) : theme.palette.action.hover,
+                                                        color: index < 3 ? theme.palette.warning.dark : theme.palette.text.secondary,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 700
+                                                    }}
+                                                >
+                                                    {index + 1}
+                                                </Box>
+                                                <Box>
+                                                    <Typography variant="body2" fontWeight={600}>{player.email}</Typography>
+                                                    <Typography variant="caption" color="text.secondary">{player.gamesPlayed} {t('game.games')}</Typography>
+                                                </Box>
+                                            </Box>
+                                            <Chip
+                                                label={`${player.avgAccuracy}%`}
+                                                size="small"
+                                                sx={{
+                                                    bgcolor: alpha(theme.palette.success.main, 0.1),
+                                                    color: theme.palette.success.main,
+                                                    fontWeight: 700,
+                                                    borderRadius: '8px'
+                                                }}
+                                            />
+                                        </Box>
+                                    ))}
+                                </Stack>
+                            </Paper>
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Paper elevation={0} sx={{ p: 3, border: `1px solid ${theme.palette.divider}`, borderRadius: '16px', height: '100%' }}>
+                                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+                                    <SportsEsportsIcon color="secondary" />
+                                    <Typography variant="h6" fontWeight={700}>{t('game.popularGames')}</Typography>
+                                </Stack>
+                                <Stack spacing={2}>
+                                    {popularGames.map((game, index) => {
+                                        const maxCount = popularGames[0]?.count || 1;
+                                        const percent = (game.count / maxCount) * 100;
+                                        return (
+                                            <Box key={game.title}>
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                                    <Typography variant="body2" fontWeight={600}>{game.title}</Typography>
+                                                    <Typography variant="caption" fontWeight={700}>{game.count}</Typography>
+                                                </Box>
+                                                <LinearProgress
+                                                    variant="determinate"
+                                                    value={percent}
+                                                    sx={{
+                                                        height: 6,
+                                                        borderRadius: 3,
+                                                        bgcolor: theme.palette.action.hover,
+                                                        '& .MuiLinearProgress-bar': {
+                                                            bgcolor: theme.palette.primary.main,
+                                                            borderRadius: 3
+                                                        }
+                                                    }}
+                                                />
+                                            </Box>
+                                        );
+                                    })}
+                                </Stack>
+                            </Paper>
+                        </Grid>
+                    </Grid>
+
+                    {/* Фильтры и Таблица */}
+                    <Paper
+                        elevation={0}
+                        sx={{
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: '16px',
+                            overflow: 'hidden',
+                        }}
+                    >
+                        {/* Тулбар таблицы */}
+                        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, borderBottom: `1px solid ${theme.palette.divider}`, flexDirection: { xs: 'column', md: 'row' } }}>
+                            <TextField
+                                placeholder={t('admin.searchByUser')}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                size="small"
+                                fullWidth
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <SearchIcon color="action" />
+                                        </InputAdornment>
+                                    ),
+                                    sx: { borderRadius: '8px', bgcolor: 'background.default' }
+                                }}
+                                sx={{ maxWidth: { xs: '100%', md: 300 } }}
+                            />
+
+                            <FormControl size="small" sx={{ minWidth: 200, width: { xs: '100%', md: 'auto' } }}>
+                                <Select
+                                    value={gameTypeFilter}
+                                    onChange={(e) => setGameTypeFilter(e.target.value)}
+                                    displayEmpty
+                                    startAdornment={<InputAdornment position="start"><FilterListIcon fontSize="small" /></InputAdornment>}
+                                    sx={{ borderRadius: '8px', bgcolor: 'background.default' }}
+                                >
+                                    <MenuItem value="all">{t('admin.allTypes')}</MenuItem>
+                                    <MenuItem value="memory-match">{t('game.memoryMatch')}</MenuItem>
+                                    <MenuItem value="quiz">{t('game.quiz')}</MenuItem>
+                                    <MenuItem value="puzzle">{t('game.puzzle')}</MenuItem>
+                                    <MenuItem value="speed-test">{t('game.speedTest')}</MenuItem>
+                                </Select>
+                            </FormControl>
+
+                            <Box sx={{ flex: 1 }} />
+                            <Typography variant="body2" color="text.secondary">
+                                {filteredAndSortedResults.length} {t('admin.results').toLowerCase()}
+                            </Typography>
+                        </Box>
+
+                        {/* Сама таблица */}
+                        <Box sx={{ overflowX: 'auto' }}>
+                            <Table>
+                                <TableHead sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
+                                    <TableRow>
+                                        <TableCell>
+                                            <TableSortLabel
+                                                active={sortField === 'user'}
+                                                direction={sortField === 'user' ? sortOrder : 'asc'}
+                                                onClick={() => handleSort('user')}
+                                                sx={{ fontWeight: 600, color: 'text.secondary' }}
+                                            >
+                                                {t('admin.user')}
+                                            </TableSortLabel>
+                                        </TableCell>
+                                        <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>{t('admin.test')}</TableCell>
+                                        <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>{t('game.gameType')}</TableCell>
+
+                                        <TableCell>
+                                            <TableSortLabel
+                                                active={sortField === 'accuracy'}
+                                                direction={sortField === 'accuracy' ? sortOrder : 'asc'}
+                                                onClick={() => handleSort('accuracy')}
+                                                sx={{ fontWeight: 600 }}
+                                            >
+                                                {t('game.accuracy')}
+                                            </TableSortLabel>
+                                        </TableCell>
+
+                                        <TableCell>
+                                            <TableSortLabel
+                                                active={sortField === 'score'}
+                                                direction={sortField === 'score' ? sortOrder : 'asc'}
+                                                onClick={() => handleSort('score')}
+                                                sx={{ fontWeight: 600 }}
+                                            >
+                                                {t('admin.score')}
+                                            </TableSortLabel>
+                                        </TableCell>
+
+                                        <TableCell>
+                                            <TableSortLabel
+                                                active={sortField === 'time'}
+                                                direction={sortField === 'time' ? sortOrder : 'asc'}
+                                                onClick={() => handleSort('time')}
+                                                sx={{ fontWeight: 600 }}
+                                            >
+                                                {t('admin.time')}
+                                            </TableSortLabel>
+                                        </TableCell>
+
+                                        <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>{t('game.moves')}</TableCell>
+
+                                        <TableCell>
+                                            <TableSortLabel
+                                                active={sortField === 'date'}
+                                                direction={sortField === 'date' ? sortOrder : 'asc'}
+                                                onClick={() => handleSort('date')}
+                                                sx={{ fontWeight: 600 }}
+                                            >
+                                                {t('admin.completedAt')}
+                                            </TableSortLabel>
+                                        </TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {loading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                                                <LinearProgress sx={{ width: '50%', mx: 'auto', borderRadius: 4 }} />
+                                                <Typography sx={{ mt: 2 }} color="text.secondary">{t('common.loading')}</Typography>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : filteredAndSortedResults.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                                                <HistoryIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+                                                <Typography variant="body1" color="text.secondary">
+                                                    {t('admin.noResults')}
+                                                </Typography>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        filteredAndSortedResults.map((result) => {
+                                            const isExcellent = result.accuracy >= 90;
+                                            const isGood = result.accuracy >= 70;
+                                            const gameTypeColor = getGameTypeColor(result.gameType);
+
+                                            return (
+                                                <TableRow
+                                                    key={result._id}
+                                                    hover
+                                                    sx={{
+                                                        transition: 'all 0.2s',
+                                                    }}
+                                                >
+                                                    <TableCell>
+                                                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                                                            <Avatar
+                                                                sx={{
+                                                                    width: 32,
+                                                                    height: 32,
+                                                                    fontSize: '0.8rem',
+                                                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                                    color: theme.palette.primary.main,
+                                                                    fontWeight: 600
+                                                                }}
+                                                            >
+                                                                {result.userEmail.charAt(0).toUpperCase()}
+                                                            </Avatar>
+                                                            <Box>
+                                                                <Typography variant="body2" fontWeight={600}>
+                                                                    {result.userEmail.split('@')[0]}
+                                                                </Typography>
+                                                                <Typography variant="caption" color="text.secondary">
+                                                                    {result.userEmail}
+                                                                </Typography>
+                                                            </Box>
+                                                        </Stack>
+                                                    </TableCell>
+
+                                                    <TableCell>
+                                                        <Stack spacing={0.5}>
+                                                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                                                {result.testTitle}
+                                                            </Typography>
+                                                            {result.test?.category && (
+                                                                <Chip
+                                                                    label={result.test.category.name}
+                                                                    size="small"
+                                                                    sx={{
+                                                                        bgcolor: result.test.category.color ? alpha(result.test.category.color, 0.1) : theme.palette.action.selected,
+                                                                        color: result.test.category.color || theme.palette.text.primary,
+                                                                        fontSize: '0.65rem',
+                                                                        height: 18,
+                                                                        borderRadius: '4px',
+                                                                        alignSelf: 'flex-start',
+                                                                        fontWeight: 600
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </Stack>
+                                                    </TableCell>
+
+                                                    <TableCell>
+                                                        <Stack direction="row" alignItems="center" spacing={1}>
+                                                            <Box sx={{ color: gameTypeColor }}>{getGameTypeIcon(result.gameType)}</Box>
+                                                            <Typography variant="body2">{getGameTypeName(result.gameType)}</Typography>
+                                                        </Stack>
+                                                    </TableCell>
+
+                                                    <TableCell>
+                                                        <Chip
+                                                            label={`${result.accuracy}%`}
+                                                            size="small"
+                                                            sx={{
+                                                                borderRadius: '6px',
+                                                                bgcolor: isExcellent ? alpha(theme.palette.success.main, 0.1) : isGood ? alpha(theme.palette.warning.main, 0.1) : alpha(theme.palette.error.main, 0.1),
+                                                                color: isExcellent ? theme.palette.success.main : isGood ? theme.palette.warning.main : theme.palette.error.main,
+                                                                fontWeight: 700,
+                                                                minWidth: 48
+                                                            }}
+                                                        />
+                                                    </TableCell>
+
+                                                    <TableCell>
+                                                        <Typography variant="body2" fontWeight={600}>
+                                                            {result.score}
+                                                        </Typography>
+                                                    </TableCell>
+
+                                                    <TableCell>
+                                                        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: theme.palette.text.secondary }}>
+                                                            <AccessTimeIcon sx={{ fontSize: 16 }} />
+                                                            <Typography variant="body2">{formatTime(result.duration)}</Typography>
+                                                        </Stack>
+                                                    </TableCell>
+
+                                                    <TableCell>
+                                                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                                                            {result.totalMoves || '-'}
+                                                        </Typography>
+                                                    </TableCell>
+
+                                                    <TableCell>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {formatDate(result.completedAt)}
+                                                        </Typography>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </Box>
+                    </Paper>
+                </Box>
+            </Fade>
         </Box>
     );
 }

@@ -74,7 +74,7 @@ export default function TestResultSummary({
               label={t('test.practiceMode')}
               color="info"
               variant="outlined"
-              sx={{ borderRadius: 0, fontSize: '1rem', px: 2, py: 1 }}
+              sx={{ borderRadius: '16px', fontSize: '1rem', px: 2, py: 1 }}
             />
           )}
           {isExamMode && (
@@ -82,7 +82,7 @@ export default function TestResultSummary({
               label={t('test.examMode')}
               color="error"
               variant="outlined"
-              sx={{ borderRadius: 0, fontSize: '1rem', px: 2, py: 1 }}
+              sx={{ borderRadius: '16px', fontSize: '1rem', px: 2, py: 1 }}
             />
           )}
           {!isPracticeMode && !isExamMode && (
@@ -90,7 +90,7 @@ export default function TestResultSummary({
               label={t('test.standardTest')}
               color="primary"
               variant="outlined"
-              sx={{ borderRadius: 0, fontSize: '1rem', px: 2, py: 1 }}
+              sx={{ borderRadius: '16px', fontSize: '1rem', px: 2, py: 1 }}
             />
           )}
         </Stack>
@@ -100,7 +100,7 @@ export default function TestResultSummary({
         sx={{
           p: 4,
           border: `1px solid ${theme.palette.divider}`,
-          borderRadius: 0,
+          borderRadius: '16px',
           mb: 4
         }}
       >
@@ -123,7 +123,7 @@ export default function TestResultSummary({
             sx={{
               p: 4,
               border: `2px solid ${theme.palette.info.main}`,
-              borderRadius: 0,
+              borderRadius: '16px',
               textAlign: 'center',
               bgcolor: alpha(theme.palette.info.main, 0.05),
               mb: 3
@@ -143,7 +143,7 @@ export default function TestResultSummary({
             sx={{
               p: 4,
               border: `2px solid ${theme.palette.warning.main}`,
-              borderRadius: 0,
+              borderRadius: '16px',
               textAlign: 'center',
               bgcolor: alpha(theme.palette.warning.main, 0.05),
               mb: 3
@@ -163,7 +163,7 @@ export default function TestResultSummary({
                 required: test.attemptsToUnlock || 0
               })}
               color="warning"
-              sx={{ borderRadius: 0, fontWeight: 600 }}
+              sx={{ borderRadius: '16px', fontWeight: 600 }}
             />
           </Paper>
         ) : (
@@ -193,7 +193,7 @@ export default function TestResultSummary({
                 sx={{
                   p: 3,
                   mb: 3,
-                  borderRadius: 0,
+                  borderRadius: '16px',
                   borderColor: isCorrect
                     ? theme.palette.success.main
                     : theme.palette.error.main,
@@ -317,7 +317,7 @@ export default function TestResultSummary({
                 fullWidth
                 sx={{
                   py: 1.5,
-                  borderRadius: 0,
+                  borderRadius: '16px',
                   fontWeight: 600,
                   textTransform: 'none'
                 }}
@@ -333,7 +333,7 @@ export default function TestResultSummary({
                 fullWidth
                 sx={{
                   py: 1.5,
-                  borderRadius: 0,
+                  borderRadius: '16px',
                   fontWeight: 600,
                   textTransform: 'none'
                 }}

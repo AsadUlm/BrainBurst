@@ -20,7 +20,9 @@ import AdminResults from './pages/AdminResults';
 import AdminGameResults from './pages/AdminGameResults';
 import MyHistory from './pages/MyHistory';
 import UserAnalytics from './pages/UserAnalytics';
+import Dashboard from './pages/Dashboard';
 import { SettingsProvider } from './contexts/SettingsContext';
+import OfflineResultsSync from './components/OfflineResultsSync';
 
 export default function App() {
   return (
@@ -34,6 +36,15 @@ export default function App() {
 
             <Route
               path="/"
+              element={
+                <RequireAuth>
+                  <Dashboard />
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/tests"
               element={
                 <RequireAuth>
                   <TestList />
@@ -189,6 +200,9 @@ export default function App() {
 
           </Routes>
         </main>
+
+        {/* Автоматическая синхронизация офлайн-результатов */}
+        <OfflineResultsSync />
       </BrowserRouter>
     </SettingsProvider>
   );

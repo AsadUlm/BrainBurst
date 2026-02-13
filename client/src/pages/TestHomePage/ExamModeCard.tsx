@@ -22,7 +22,7 @@ export default function ExamModeCard({ test, onStart }: ExamModeCardProps) {
             sx={{
                 p: 4,
                 border: `2px solid ${theme.palette.error.main}`,
-                borderRadius: 0,
+                borderRadius: '16px',
                 position: 'relative'
             }}
         >
@@ -78,7 +78,7 @@ export default function ExamModeCard({ test, onStart }: ExamModeCardProps) {
                     onClick={onStart}
                     sx={{
                         py: 1.5,
-                        borderRadius: 0,
+                        borderRadius: '16px',
                         textTransform: 'none',
                         fontSize: '1.1rem',
                         fontWeight: 600,

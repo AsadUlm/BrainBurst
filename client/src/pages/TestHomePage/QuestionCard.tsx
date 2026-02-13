@@ -24,7 +24,7 @@ export default function QuestionCard({ question, index }: QuestionCardProps) {
             variant="outlined"
             sx={{
                 p: 3,
-                borderRadius: 0,
+                borderRadius: '16px',
                 border: `1px solid ${theme.palette.divider}`,
                 transition: 'all 0.2s ease',
                 '&:hover': {
@@ -39,7 +39,7 @@ export default function QuestionCard({ question, index }: QuestionCardProps) {
                     label={`#${index + 1}`}
                     size="small"
                     color="primary"
-                    sx={{ borderRadius: 0, fontWeight: 600 }}
+                    sx={{ borderRadius: '16px', fontWeight: 600 }}
                 />
                 {isPuzzle && (
                     <Chip
@@ -99,7 +99,7 @@ function PuzzleContent({ question }: { question: Question }) {
                 sx={{
                     p: 2,
                     border: `1px dashed ${theme.palette.divider}`,
-                    borderRadius: 0,
+                    borderRadius: '16px',
                     bgcolor: alpha(theme.palette.success.main, 0.05),
                     mb: 2
                 }}
@@ -114,7 +114,7 @@ function PuzzleContent({ question }: { question: Question }) {
                             label={word}
                             size="small"
                             sx={{
-                                borderRadius: 0,
+                                borderRadius: '16px',
                                 fontSize: '0.85rem',
                                 bgcolor: theme.palette.grey[200]
                             }}
@@ -141,7 +141,7 @@ function OpenContent({ question }: { question: Question }) {
                 sx={{
                     p: 2,
                     border: `1px dashed ${theme.palette.divider}`,
-                    borderRadius: 0,
+                    borderRadius: '16px',
                     bgcolor: alpha(theme.palette.info.main, 0.05),
                     mb: 2
                 }}
@@ -173,7 +173,7 @@ function MultipleChoiceContent({ question }: { question: Question }) {
                         sx={{
                             p: 2,
                             border: `1px solid ${theme.palette.divider}`,
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             display: 'flex',
                             alignItems: 'center',
                             gap: 1.5,
@@ -218,7 +218,7 @@ function CorrectAnswerBox({ label, children }: { label: string; children: React.
             sx={{
                 p: 2,
                 border: `1px solid ${theme.palette.success.main}`,
-                borderRadius: 0,
+                borderRadius: '16px',
                 bgcolor: alpha(theme.palette.success.light, 0.1),
                 display: 'flex',
                 alignItems: 'center',

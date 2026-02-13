@@ -1,50 +1,32 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
-  Typography,
-  Box,
-  Paper,
-  Chip,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
+  Typography, Box, Paper, Chip, useTheme,
+  alpha, Stack, TextField, InputAdornment,
+  Button, CircularProgress,
+  ToggleButtonGroup, ToggleButton,
   Divider,
-  useTheme,
-  alpha,
-  Stack,
-  TextField,
-  MenuItem,
   Select,
-  FormControl,
-  InputLabel,
-  InputAdornment,
-  TableSortLabel,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Card,
-  CardContent,
-  Theme
+  MenuItem,
+  SelectChangeEvent
 } from '@mui/material';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import SearchIcon from '@mui/icons-material/Search';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import PersonIcon from '@mui/icons-material/Person';
-import QuizIcon from '@mui/icons-material/Quiz';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CategoryIcon from '@mui/icons-material/Category';
-import TimerIcon from '@mui/icons-material/Timer';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import SchoolIcon from '@mui/icons-material/School';
 import AssignmentIcon from '@mui/icons-material/Assignment';
+import SchoolIcon from '@mui/icons-material/School';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
-import TouchAppIcon from '@mui/icons-material/TouchApp';
-import { LoadingPage } from './Loading/index';
+import SortIcon from '@mui/icons-material/Sort';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import PercentIcon from '@mui/icons-material/Percent';
+
+import { LoadingPage } from './Loading';
 import TestResultDialog from './MyHistory/components/TestResultDialog';
 import { useTranslation } from 'react-i18next';
 
+// Типы данных (экспортируем, если нужны где-то еще)
 interface Category {
   _id: string;
   name: string;
@@ -73,20 +55,17 @@ export interface Result {
   score: number;
   total: number;
   createdAt: string;
-  mistakes: number[]; // оставляем для отображения в таблице
+  mistakes: number[];
   test?: Test;
   duration?: number;
   startTime?: string;
   endTime?: string;
   timePerQuestion?: number[];
   mode?: 'standard' | 'exam' | 'practice' | 'game';
-  moves?: number; // для игрового режима
-  gameCardCount?: number; // для игрового режима
-  questionsCompleted?: number; // для игрового режима
 }
 
 export interface ResultDetail extends Omit<Result, 'mistakes'> {
-  answers: (number | string | string[])[]; // Обновлено для поддержки puzzle
+  answers: (number | string | string[])[];
   correctAnswers: number[];
   shuffledQuestions: {
     text: string;
@@ -97,166 +76,114 @@ export interface ResultDetail extends Omit<Result, 'mistakes'> {
   }[];
 }
 
-
 export default function AdminResults() {
   const theme = useTheme();
+  const { t, i18n } = useTranslation();
+
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(true);
-  const { t } = useTranslation();
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
+  const [filterMode, setFilterMode] = useState<'all' | 'standard' | 'exam' | 'practice'>('all');
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  // Load categories
+  useEffect(() => {
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setCategories(data);
+      })
+      .catch(console.error);
+  }, []);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedResult, setSelectedResult] = useState<ResultDetail | null>(null);
 
-  // Состояния для фильтрации и сортировки
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterBy, setFilterBy] = useState<'all' | 'success' | 'errors'>('all');
-  const [modeFilter, setModeFilter] = useState<'all' | 'standard' | 'exam' | 'practice' | 'game'>('all');
-  const [groupBy, setGroupBy] = useState<'none' | 'test' | 'user' | 'category' | 'test-user' | 'test-category' | 'user-category'>('none');
-  const [sortBy, setSortBy] = useState<'date' | 'score' | 'email' | 'test'>('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1); // Reset page on search change
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const fetchResults = useCallback(async (pageNum: number, isNewSearch = false) => {
+    try {
+      const token = localStorage.getItem('token');
+      const queryParams = new URLSearchParams({
+        page: pageNum.toString(),
+        limit: '20',
+        search: debouncedSearch,
+        sortBy
+      });
+
+      if (filterMode !== 'all') {
+        queryParams.append('mode', filterMode);
+      }
+
+      if (selectedCategory !== 'all') {
+        queryParams.append('category', selectedCategory);
+      }
+
+      const res = await fetch(`/api/results?${queryParams.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const data = await res.json();
+
+      if (data.results) {
+        if (isNewSearch) {
+          setResults(data.results);
+        } else {
+          setResults(prev => [...prev, ...data.results]);
+        }
+        setTotalPages(data.pagination.totalPages);
+        setTotalResults(data.pagination.totalResults);
+      }
+    } catch (error) {
+      console.error('Error fetching results:', error);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [debouncedSearch, sortBy, filterMode, selectedCategory]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    setLoading(true);
+    fetchResults(1, true);
+  }, [debouncedSearch, sortBy, filterMode, selectedCategory]); // Reload when filters change
 
-    fetch('/api/results', {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          console.log('Loaded results:', data.length);
-          const gameResults = data.filter(r => r.mode === 'game');
-          console.log('Game results:', gameResults.length);
-          if (gameResults.length > 0) {
-            console.log('Sample game result:', gameResults[0]);
-          }
-          setResults(data);
-        }
-        else console.error('Ожидался массив, но пришло:', data);
-      })
-      .catch(err => {
-        console.error('Ошибка загрузки результатов:', err);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  // Фильтрация и сортировка
-  const filteredAndSortedResults = useMemo(() => {
-    const filtered = results.filter(r => {
-      const matchesSearch =
-        r.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.testTitle.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesFilter =
-        filterBy === 'all' ? true :
-          filterBy === 'success' ? r.score === r.total :
-            filterBy === 'errors' ? r.score < r.total : true;
-
-      const matchesMode =
-        modeFilter === 'all' ? true :
-          (r.mode || 'standard') === modeFilter;
-
-      return matchesSearch && matchesFilter && matchesMode;
-    });
-
-    // Сортировка
-    filtered.sort((a, b) => {
-      let comparison = 0;
-      switch (sortBy) {
-        case 'date':
-          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-          break;
-        case 'score':
-          comparison = (a.score / a.total) - (b.score / b.total);
-          break;
-        case 'email':
-          comparison = a.userEmail.localeCompare(b.userEmail);
-          break;
-        case 'test':
-          comparison = a.testTitle.localeCompare(b.testTitle);
-          break;
-      }
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-    return filtered;
-  }, [results, searchQuery, filterBy, modeFilter, sortBy, sortOrder]);
-
-  // Группировка
-  const groupedResults = useMemo(() => {
-    if (groupBy === 'none') {
-      return { 'all': filteredAndSortedResults };
+  const loadMore = () => {
+    if (page < totalPages) {
+      setLoadingMore(true);
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchResults(nextPage, false);
     }
-
-    const groups: Record<string, Result[]> = {};
-
-    filteredAndSortedResults.forEach(r => {
-      let keys: string[] = [];
-
-      // Определяем ключи группировки
-      if (groupBy === 'test') {
-        keys = [r.testTitle];
-      } else if (groupBy === 'user') {
-        keys = [r.userEmail];
-      } else if (groupBy === 'category') {
-        const category = r.test?.category;
-        const categoryName = category && typeof category === 'object'
-          ? category.name
-          : t('admin.uncategorized');
-        keys = [categoryName];
-      } else if (groupBy === 'test-user') {
-        keys = [r.testTitle, r.userEmail];
-      } else if (groupBy === 'test-category') {
-        const category = r.test?.category;
-        const categoryName = category && typeof category === 'object'
-          ? category.name
-          : t('admin.uncategorized');
-        keys = [r.testTitle, categoryName];
-      } else if (groupBy === 'user-category') {
-        const category = r.test?.category;
-        const categoryName = category && typeof category === 'object'
-          ? category.name
-          : t('admin.uncategorized');
-        keys = [r.userEmail, categoryName];
-      }
-
-      // Создаем ключ группы
-      const groupKey = keys.join(' → ');
-      if (!groups[groupKey]) groups[groupKey] = [];
-      groups[groupKey].push(r);
-    });
-
-    return groups;
-  }, [filteredAndSortedResults, groupBy, t]);
-
-  // Статистика
-  const stats = useMemo(() => {
-    const total = results.length;
-    const perfect = results.filter(r => r.score === r.total).length;
-    const avgScore = total > 0
-      ? results.reduce((sum, r) => sum + (r.score / r.total), 0) / total * 100
-      : 0;
-
-    // Статистика по режимам
-    const gameResults = results.filter(r => r.mode === 'game');
-    const totalGames = gameResults.length;
-    const avgMoves = totalGames > 0
-      ? gameResults.reduce((sum, r) => sum + (r.moves || 0), 0) / totalGames
-      : 0;
-
-    return { total, perfect, avgScore, totalGames, avgMoves };
-  }, [results]);
+  };
 
   const handleOpenDialog = async (r: Result) => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/results/${r._id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const fullResult = await res.json();
-    setSelectedResult(fullResult);
-    setDialogOpen(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/results/${r._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const fullResult = await res.json();
+      setSelectedResult(fullResult);
+      setDialogOpen(true);
+    } catch (error) {
+      console.error('Error fetching details:', error);
+    }
   };
 
   const handleCloseDialog = () => {
@@ -264,336 +191,306 @@ export default function AdminResults() {
     setDialogOpen(false);
   };
 
-  const handleSort = (field: 'date' | 'score' | 'email' | 'test') => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortOrder('desc');
+  const formatDate = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    };
+    return new Date(dateString).toLocaleString(i18n.language === 'ko' ? 'ko-KR' : 'ru-RU', options);
+  };
+
+  const formatTime = (seconds?: number) => {
+    if (!seconds) return '—';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getModeIcon = (mode?: string) => {
+    switch (mode) {
+      case 'exam': return <SchoolIcon fontSize="small" />;
+      case 'practice': return <FitnessCenterIcon fontSize="small" />;
+      default: return <AssignmentIcon fontSize="small" />;
     }
   };
 
-  if (loading) return <LoadingPage />;
+  const getModeColor = (mode?: string) => {
+    switch (mode) {
+      case 'exam': return theme.palette.error.main;
+      case 'practice': return theme.palette.info.main;
+      default: return theme.palette.success.main;
+    }
+  };
+
+  if (loading && page === 1 && results.length === 0) return <LoadingPage />;
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1400, margin: '0 auto' }}>
-      {/* Заголовок */}
-      <Typography
-        variant="h3"
-        gutterBottom
-        sx={{
-          fontWeight: 600,
-          color: theme.palette.text.primary,
-          textAlign: 'center',
-          mt: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 2,
-        }}
-      >
-        <AssessmentIcon sx={{ fontSize: 40 }} />
-        {t('admin.statistics')}
-      </Typography>
-
-      <Divider
-        sx={{
-          mb: 6,
-          mx: 'auto',
-          width: '80px',
-          height: 4,
-          backgroundColor: theme.palette.primary.main,
-        }}
-      />
-
-      {/* Статистика */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: 3,
-          mb: 4,
-        }}
-      >
-        <Card
-          elevation={0}
-          sx={{
-            border: `1px solid ${theme.palette.divider}`,
-            borderRadius: 0,
-            overflow: 'hidden',
-          }}
-        >
-          <Box
-            sx={{
-              height: 4,
-              background: 'linear-gradient(90deg, #1976d2 0%, #42a5f5 100%)',
-            }}
-          />
-          <CardContent sx={{ textAlign: 'center', py: 3 }}>
-            <QuizIcon sx={{ fontSize: 48, color: '#1976d2', mb: 1 }} />
-            <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-              {stats.total}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t('admin.totalResults')}
-            </Typography>
-          </CardContent>
-        </Card>
-
-        <Card
-          elevation={0}
-          sx={{
-            border: `1px solid ${theme.palette.divider}`,
-            borderRadius: 0,
-            overflow: 'hidden',
-          }}
-        >
-          <Box
-            sx={{
-              height: 4,
-              background: 'linear-gradient(90deg, #388e3c 0%, #66bb6a 100%)',
-            }}
-          />
-          <CardContent sx={{ textAlign: 'center', py: 3 }}>
-            <CheckCircleOutlineIcon sx={{ fontSize: 48, color: '#388e3c', mb: 1 }} />
-            <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-              {stats.perfect}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t('admin.perfectResults')}
-            </Typography>
-          </CardContent>
-        </Card>
-
-        <Card
-          elevation={0}
-          sx={{
-            border: `1px solid ${theme.palette.divider}`,
-            borderRadius: 0,
-            overflow: 'hidden',
-          }}
-        >
-          <Box
-            sx={{
-              height: 4,
-              background: 'linear-gradient(90deg, #f57c00 0%, #ff9800 100%)',
-            }}
-          />
-          <CardContent sx={{ textAlign: 'center', py: 3 }}>
-            <AssessmentIcon sx={{ fontSize: 48, color: '#f57c00', mb: 1 }} />
-            <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-              {stats.avgScore.toFixed(1)}%
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t('admin.averageScore')}
-            </Typography>
-          </CardContent>
-        </Card>
-
-        <Card
-          elevation={0}
-          sx={{
-            border: `1px solid ${theme.palette.divider}`,
-            borderRadius: 0,
-            overflow: 'hidden',
-          }}
-        >
-          <Box
-            sx={{
-              height: 4,
-              background: 'linear-gradient(90deg, #9c27b0 0%, #ba68c8 100%)',
-            }}
-          />
-          <CardContent sx={{ textAlign: 'center', py: 3 }}>
-            <SportsEsportsIcon sx={{ fontSize: 48, color: '#9c27b0', mb: 1 }} />
-            <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-              {stats.totalGames}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t('game.gameSessions')}
-            </Typography>
-          </CardContent>
-        </Card>
-
-        {stats.totalGames > 0 && (
-          <Card
-            elevation={0}
-            sx={{
-              border: `1px solid ${theme.palette.divider}`,
-              borderRadius: 0,
-              overflow: 'hidden',
-            }}
-          >
-            <Box
-              sx={{
-                height: 4,
-                background: 'linear-gradient(90deg, #00897b 0%, #26a69a 100%)',
-              }}
-            />
-            <CardContent sx={{ textAlign: 'center', py: 3 }}>
-              <TouchAppIcon sx={{ fontSize: 48, color: '#00897b', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {stats.avgMoves.toFixed(1)}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {t('game.avgMoves')}
-              </Typography>
-            </CardContent>
-          </Card>
-        )}
+    <Box sx={{ p: 3, maxWidth: 1200, margin: '0 auto', minHeight: '80vh' }}>
+      {/* Header */}
+      <Box sx={{ mb: 4, textAlign: 'center' }}>
+        <Typography variant="h4" fontWeight={700} gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+          <AssessmentIcon fontSize="large" color="primary" />
+          {t('header.results')}
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          {t('admin.manageUserResults')}
+        </Typography>
       </Box>
 
-      {/* Фильтры и поиск */}
-      <Paper
-        elevation={0}
-        sx={{
-          p: 3,
-          mb: 4,
-          border: `1px solid ${theme.palette.divider}`,
-          borderRadius: 0,
-        }}
-      >
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-          <TextField
-            fullWidth
-            placeholder={t('admin.searchPlaceholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 0,
-              }
-            }}
-          />
-
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>{t('admin.filter')}</InputLabel>
-            <Select
-              value={filterBy}
-              label={t('admin.filter')}
-              onChange={(e) => setFilterBy(e.target.value as 'all' | 'success' | 'errors')}
-              sx={{ borderRadius: 0 }}
-            >
-              <MenuItem value="all">{t('admin.allResults')}</MenuItem>
-              <MenuItem value="success">{t('admin.successOnly')}</MenuItem>
-              <MenuItem value="errors">{t('admin.withErrors')}</MenuItem>
-            </Select>
-          </FormControl>
-
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>{t('game.mode')}</InputLabel>
-            <Select
-              value={modeFilter}
-              label={t('game.mode')}
-              onChange={(e) => setModeFilter(e.target.value as 'all' | 'standard' | 'exam' | 'practice' | 'game')}
-              sx={{ borderRadius: 0 }}
-            >
-              <MenuItem value="all">{t('admin.allModes')}</MenuItem>
-              <MenuItem value="standard">{t('test.standard')}</MenuItem>
-              <MenuItem value="exam">{t('test.exam')}</MenuItem>
-              <MenuItem value="practice">{t('test.practice')}</MenuItem>
-              <MenuItem value="game">{t('game.title')}</MenuItem>
-            </Select>
-          </FormControl>
-
-          <FormControl sx={{ minWidth: 250 }}>
-            <InputLabel>{t('admin.groupBy')}</InputLabel>
-            <Select
-              value={groupBy}
-              label={t('admin.groupBy')}
-              onChange={(e) => setGroupBy(e.target.value as 'none' | 'test' | 'user' | 'category' | 'test-user' | 'test-category' | 'user-category')}
-              sx={{ borderRadius: 0 }}
-            >
-              <MenuItem value="none">{t('admin.noGrouping')}</MenuItem>
-              <MenuItem value="test">{t('admin.byTest')}</MenuItem>
-              <MenuItem value="user">{t('admin.byUser')}</MenuItem>
-              <MenuItem value="category">{t('admin.byCategory')}</MenuItem>
-              <MenuItem value="test-user">{t('admin.byTestAndUser')}</MenuItem>
-              <MenuItem value="test-category">{t('admin.byTestAndCategory')}</MenuItem>
-              <MenuItem value="user-category">{t('admin.byUserAndCategory')}</MenuItem>
-            </Select>
-          </FormControl>
-        </Stack>
-      </Paper>
-
-      {/* Таблица результатов */}
-      {Object.entries(groupedResults).map(([groupName, groupResults]) => (
-        <Box key={groupName} sx={{ mb: 4 }}>
-          {groupBy !== 'none' && (
-            <Accordion
-              defaultExpanded
-              elevation={0}
-              sx={{
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 0,
-                '&:before': { display: 'none' },
-                mb: 2,
-              }}
-            >
-              <AccordionSummary
-                expandIcon={<ExpandMoreIcon />}
-                sx={{
-                  backgroundColor: alpha(theme.palette.primary.main, 0.05),
-                  borderBottom: `1px solid ${theme.palette.divider}`,
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
+        {/* Left Panel: Filters */}
+        <Paper
+          elevation={0}
+          sx={{
+            width: { xs: '100%', md: 280 },
+            p: 3,
+            height: 'fit-content',
+            border: `1px solid ${theme.palette.divider}`,
+            borderRadius: '16px',
+            bgcolor: theme.palette.background.paper,
+            position: { md: 'sticky' },
+            top: { md: 24 }
+          }}
+        >
+          <Stack spacing={3}>
+            <Box>
+              <Typography variant="subtitle2" fontWeight={600} mb={1.5} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <FilterListIcon fontSize="small" color="action" />
+                {t('admin.filter')}
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder={t('admin.searchPlaceholder')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
                 }}
+                sx={{ mb: 2 }}
+              />
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Typography variant="subtitle2" fontWeight={600} mb={1.5} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <SortIcon fontSize="small" color="action" />
+                {t('history.sort')}
+              </Typography>
+              <ToggleButtonGroup
+                value={sortBy}
+                exclusive
+                onChange={(_, v) => v && setSortBy(v)}
+                fullWidth
+                size="small"
               >
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  {groupBy.includes('test') && <QuizIcon />}
-                  {groupBy.includes('user') && <PersonIcon />}
-                  {groupBy.includes('category') && <CategoryIcon />}
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    {groupName}
-                  </Typography>
-                  <Chip
-                    label={groupResults.length}
+                <ToggleButton value="date">
+                  <CalendarMonthIcon fontSize="small" sx={{ mr: 1 }} />
+                  {t('admin.date')}
+                </ToggleButton>
+                <ToggleButton value="score">
+                  <PercentIcon fontSize="small" sx={{ mr: 1 }} />
+                  {t('admin.score')}
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Typography variant="subtitle2" fontWeight={600} mb={1.5} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CategoryIcon fontSize="small" color="action" />
+                {t('admin.category')}
+              </Typography>
+              <Select
+                fullWidth
+                size="small"
+                value={selectedCategory}
+                onChange={(e: SelectChangeEvent) => setSelectedCategory(e.target.value)}
+                displayEmpty
+              >
+                <MenuItem value="all">
+                  <Typography variant="body2" color="text.secondary">{t('test.allCategories') || 'All Categories'}</Typography>
+                </MenuItem>
+                {categories.map((cat) => (
+                  <MenuItem key={cat._id} value={cat._id}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: cat.color || theme.palette.grey[400] }} />
+                      <Typography variant="body2">{cat.name}</Typography>
+                    </Stack>
+                  </MenuItem>
+                ))}
+              </Select>
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Typography variant="subtitle2" fontWeight={600} mb={1.5}>
+                {t('game.mode')}
+              </Typography>
+              <Stack spacing={1}>
+                {['all', 'standard', 'exam', 'practice'].map((m) => (
+                  <Button
+                    key={m}
+                    variant={filterMode === m ? 'contained' : 'text'}
+                    color="primary"
                     size="small"
-                    sx={{ ml: 1 }}
-                  />
-                </Stack>
-              </AccordionSummary>
-              <AccordionDetails sx={{ p: 0 }}>
-                <RenderResultsTable
-                  results={groupResults}
-                  theme={theme}
-                  t={t}
-                  sortBy={sortBy}
-                  sortOrder={sortOrder}
-                  handleSort={handleSort}
-                  handleOpenDialog={handleOpenDialog}
-                />
-              </AccordionDetails>
-            </Accordion>
+                    onClick={() => setFilterMode(m as typeof filterMode)}
+                    sx={{
+                      justifyContent: 'flex-start',
+                      px: 2,
+                      borderRadius: '8px',
+                      bgcolor: filterMode === m ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                      color: filterMode === m ? theme.palette.primary.main : theme.palette.text.secondary,
+                      '&:hover': {
+                        bgcolor: alpha(theme.palette.primary.main, 0.05)
+                      },
+                      fontWeight: filterMode === m ? 600 : 400,
+                      boxShadow: 'none'
+                    }}
+                  >
+                    {m === 'all' ? t('admin.allModes') : t(`test.mode.${m}`)}
+                  </Button>
+                ))}
+              </Stack>
+            </Box>
+
+            <Box sx={{ mt: 2, p: 2, bgcolor: alpha(theme.palette.primary.main, 0.04), borderRadius: '12px' }}>
+              <Typography variant="caption" color="text.secondary" display="block" align="center">
+                {t('admin.totalResults')}: <strong>{totalResults}</strong>
+              </Typography>
+            </Box>
+          </Stack>
+        </Paper>
+
+        {/* Right Panel: Results List */}
+        <Box sx={{ flex: 1 }}>
+          {results.length === 0 && !loading ? (
+            <Paper sx={{ p: 6, textAlign: 'center', borderRadius: '16px', border: `1px solid ${theme.palette.divider}` }} elevation={0}>
+              <AssessmentIcon sx={{ fontSize: 64, color: theme.palette.action.disabled, mb: 2 }} />
+              <Typography variant="h6" color="text.secondary">{t('admin.noResults')}</Typography>
+            </Paper>
+          ) : (
+            <Stack spacing={2}>
+              {results.map((result) => {
+                const percentage = result.total > 0 ? Math.round((result.score / result.total) * 100) : 0;
+                const isExcellent = percentage >= 90;
+                const isGood = percentage >= 70;
+                const color = isExcellent ? 'success' : isGood ? 'warning' : 'error';
+                const modeColor = getModeColor(result.mode);
+
+                return (
+                  <Paper
+                    key={result._id}
+                    elevation={0}
+                    onClick={() => handleOpenDialog(result)}
+                    sx={{
+                      p: 2.5,
+                      border: `1px solid ${theme.palette.divider}`,
+                      borderRadius: '16px',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        borderColor: theme.palette.primary.main,
+                        boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.08)}`,
+                        transform: 'translateY(-2px)'
+                      }
+                    }}
+                  >
+                    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2}>
+                      <Box sx={{ flex: 1 }}>
+                        <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                          <Chip
+                            label={result.testTitle}
+                            size="small"
+                            sx={{ fontWeight: 600, fontSize: '0.85rem' }}
+                          />
+                          <Chip
+                            icon={getModeIcon(result.mode)}
+                            label={t(`test.mode.${result.mode || 'standard'}`)}
+                            size="small"
+                            variant="outlined"
+
+                            sx={{
+                              borderColor: alpha(modeColor, 0.3),
+                              color: modeColor,
+                              height: 24,
+                              '& .MuiChip-icon': { color: modeColor }
+                            }}
+                          />
+                        </Stack>
+
+                        <Stack direction="row" alignItems="center" spacing={2} color="text.secondary">
+                          <Stack direction="row" alignItems="center" spacing={0.5}>
+                            <PersonIcon fontSize="small" sx={{ opacity: 0.7 }} />
+                            <Typography variant="body2">{result.userEmail}</Typography>
+                          </Stack>
+                          <Divider orientation="vertical" flexItem sx={{ height: 12, alignSelf: 'center' }} />
+                          <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                            {formatDate(result.createdAt)}
+                          </Typography>
+                        </Stack>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'space-between', sm: 'flex-end' } }}>
+                        <Stack alignItems="end">
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            {result.duration && (
+                              <Chip
+                                icon={<AccessTimeIcon />}
+                                label={formatTime(result.duration)}
+                                size="small"
+                                sx={{ bgcolor: alpha(theme.palette.grey[500], 0.1), border: 'none' }}
+                              />
+                            )}
+                          </Stack>
+                        </Stack>
+
+                        <Box sx={{ textAlign: 'right', minWidth: 80 }}>
+                          <Typography variant="h5" fontWeight={700} color={`${color}.main`}>
+                            {result.score}/{result.total}
+                          </Typography>
+                          <Typography variant="caption" fontWeight={600} sx={{ color: theme.palette.text.secondary }}>
+                            {percentage}%
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Stack>
+                  </Paper>
+                );
+              })}
+            </Stack>
           )}
 
-          {groupBy === 'none' && (
-            <Paper
-              elevation={0}
-              sx={{
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 0,
-                overflow: 'hidden',
-              }}
-            >
-              <RenderResultsTable
-                results={groupResults}
-                theme={theme}
-                t={t}
-                sortBy={sortBy}
-                sortOrder={sortOrder}
-                handleSort={handleSort}
-                handleOpenDialog={handleOpenDialog}
-              />
-            </Paper>
+
+
+          {/* Pagination trigger/info if needed, for now just infinite scroll logic via button */}
+          {!loading && totalPages > page && (
+            <Box sx={{ mt: 4, textAlign: 'center' }}>
+              <Button
+                onClick={loadMore}
+                variant="contained"
+                disabled={loadingMore}
+                sx={{ borderRadius: 20, px: 4, py: 1 }}
+              >
+                {loadingMore ? <CircularProgress size={24} color="inherit" /> : t('common.loadMore')}
+              </Button>
+              <Typography variant="caption" display="block" color="text.secondary" mt={1}>
+                {t('admin.showingResults', { count: results.length, total: totalResults })}
+              </Typography>
+            </Box>
           )}
         </Box>
-      ))}
+      </Stack>
 
       <TestResultDialog
         open={dialogOpen}
@@ -601,315 +498,5 @@ export default function AdminResults() {
         result={selectedResult}
       />
     </Box>
-  );
-}
-
-// Компонент таблицы результатов
-function RenderResultsTable({
-  results,
-  theme,
-  t,
-  sortBy,
-  sortOrder,
-  handleSort,
-  handleOpenDialog,
-}: {
-  results: Result[];
-  theme: Theme;
-  t: ReturnType<typeof useTranslation>['t'];
-  sortBy: string;
-  sortOrder: 'asc' | 'desc';
-  handleSort: (field: 'date' | 'score' | 'email' | 'test') => void;
-  handleOpenDialog: (r: Result) => void;
-}) {
-  // Функция для форматирования времени
-  const formatTime = (seconds: number) => {
-    if (!seconds || seconds === 0) return '—';
-    if (seconds < 60) return `${seconds}с`;
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return secs > 0 ? `${mins}м ${secs}с` : `${mins}м`;
-  };
-
-  // Функция для получения иконки и цвета режима
-  const getModeDetails = (mode?: string) => {
-    switch (mode) {
-      case 'exam':
-        return {
-          icon: <SchoolIcon fontSize="small" />,
-          label: t('history.modeExam'),
-          color: '#d32f2f' // red
-        };
-      case 'practice':
-        return {
-          icon: <FitnessCenterIcon fontSize="small" />,
-          label: t('history.modePractice'),
-          color: '#1976d2' // blue
-        };
-      case 'game':
-        return {
-          icon: <SportsEsportsIcon fontSize="small" />,
-          label: t('game.title'),
-          color: '#9c27b0' // purple
-        };
-      case 'standard':
-      default:
-        return {
-          icon: <AssignmentIcon fontSize="small" />,
-          label: t('history.modeStandard'),
-          color: '#388e3c' // green
-        };
-    }
-  };
-
-  return (
-    <Table>
-      <TableHead>
-        <TableRow
-          sx={{
-            backgroundColor: theme.palette.action.hover,
-            borderBottom: `2px solid ${theme.palette.divider}`,
-          }}
-        >
-          <TableCell>
-            <TableSortLabel
-              active={sortBy === 'email'}
-              direction={sortBy === 'email' ? sortOrder : 'desc'}
-              onClick={() => handleSort('email')}
-              sx={{ fontWeight: 700 }}
-            >
-              {t('admin.email')}
-            </TableSortLabel>
-          </TableCell>
-          <TableCell>
-            <TableSortLabel
-              active={sortBy === 'test'}
-              direction={sortBy === 'test' ? sortOrder : 'desc'}
-              onClick={() => handleSort('test')}
-              sx={{ fontWeight: 700 }}
-            >
-              {t('admin.test')}
-            </TableSortLabel>
-          </TableCell>
-          <TableCell>
-            <TableSortLabel
-              active={sortBy === 'score'}
-              direction={sortBy === 'score' ? sortOrder : 'desc'}
-              onClick={() => handleSort('score')}
-              sx={{ fontWeight: 700 }}
-            >
-              {t('admin.result')}
-            </TableSortLabel>
-          </TableCell>
-          <TableCell sx={{ fontWeight: 700 }}>
-            <Stack direction="row" alignItems="center" spacing={0.5}>
-              <TimerIcon fontSize="small" />
-              <span>{t('history.timeSpent')}</span>
-            </Stack>
-          </TableCell>
-          <TableCell sx={{ fontWeight: 700 }}>
-            {t('admin.errors')}
-          </TableCell>
-          <TableCell>
-            <TableSortLabel
-              active={sortBy === 'date'}
-              direction={sortBy === 'date' ? sortOrder : 'desc'}
-              onClick={() => handleSort('date')}
-              sx={{ fontWeight: 700 }}
-            >
-              {t('admin.date')}
-            </TableSortLabel>
-          </TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {results.map((r) => {
-          const percentage = r.total > 0 ? Math.round((r.score / r.total) * 100) : 0;
-          const isPerfect = r.score === r.total;
-          const isGood = percentage >= 70;
-
-          return (
-            <TableRow
-              key={r._id}
-              hover
-              sx={{
-                cursor: 'pointer',
-                '&:not(:last-child)': {
-                  borderBottom: `1px solid ${theme.palette.divider}`,
-                },
-                transition: 'background-color 0.2s',
-              }}
-              onClick={() => handleOpenDialog(r)}
-            >
-              <TableCell sx={{ color: theme.palette.text.secondary }}>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <PersonIcon fontSize="small" color="action" />
-                  <span>{r.userEmail}</span>
-                </Stack>
-              </TableCell>
-              <TableCell>
-                <Stack spacing={0.5}>
-                  <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {r.testTitle}
-                    </Typography>
-                    {r.mode && (() => {
-                      const modeDetails = getModeDetails(r.mode);
-                      return (
-                        <Chip
-                          icon={modeDetails.icon}
-                          label={modeDetails.label}
-                          size="small"
-                          sx={{
-                            borderRadius: 0,
-                            bgcolor: alpha(modeDetails.color, 0.1),
-                            color: modeDetails.color,
-                            fontWeight: 600,
-                            border: `1px solid ${alpha(modeDetails.color, 0.3)}`,
-                            height: 22,
-                          }}
-                        />
-                      );
-                    })()}
-                  </Stack>
-                  {r.test?.category && typeof r.test.category === 'object' && (
-                    <Chip
-                      label={r.test.category.name}
-                      size="small"
-                      sx={{
-                        bgcolor: r.test.category.color || theme.palette.grey[300],
-                        color: 'white',
-                        fontSize: '0.7rem',
-                        height: 20,
-                        borderRadius: 0,
-                        alignSelf: 'flex-start',
-                      }}
-                    />
-                  )}
-                </Stack>
-              </TableCell>
-              <TableCell>
-                <Stack spacing={1}>
-                  <Chip
-                    label={`${r.score} / ${r.total}`}
-                    color={isPerfect ? 'success' : isGood ? 'warning' : 'error'}
-                    variant="outlined"
-                    size="small"
-                    icon={
-                      isPerfect ? (
-                        <CheckCircleOutlineIcon fontSize="small" />
-                      ) : (
-                        <TrendingUpIcon fontSize="small" />
-                      )
-                    }
-                    sx={{ borderRadius: 0, fontWeight: 600 }}
-                  />
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box
-                      sx={{
-                        width: 60,
-                        height: 6,
-                        bgcolor: theme.palette.grey[200],
-                        position: 'relative',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          left: 0,
-                          top: 0,
-                          height: '100%',
-                          width: `${percentage}%`,
-                          bgcolor: isPerfect
-                            ? theme.palette.success.main
-                            : isGood
-                              ? theme.palette.warning.main
-                              : theme.palette.error.main,
-                          transition: 'width 0.3s ease',
-                        }}
-                      />
-                    </Box>
-                    <Typography variant="caption" sx={{ fontWeight: 600, minWidth: 40 }}>
-                      {percentage}%
-                    </Typography>
-                  </Box>
-                </Stack>
-              </TableCell>
-              <TableCell>
-                {r.mode === 'game' ? (
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <TouchAppIcon fontSize="small" sx={{ color: '#9c27b0' }} />
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {r.moves || 0} {t('game.moves')}
-                    </Typography>
-                  </Stack>
-                ) : (
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {formatTime(r.duration || 0)}
-                    </Typography>
-                  </Stack>
-                )}
-              </TableCell>
-              <TableCell>
-                {r.mode === 'game' ? (
-                  <Chip
-                    icon={<SportsEsportsIcon />}
-                    label={`${r.gameCardCount || 0} ${t('game.cards')}`}
-                    size="small"
-                    sx={{
-                      borderRadius: 0,
-                      bgcolor: alpha('#9c27b0', 0.1),
-                      color: '#9c27b0',
-                      border: `1px solid ${alpha('#9c27b0', 0.3)}`
-                    }}
-                  />
-                ) : (r.mistakes && r.mistakes.length > 0) ? (
-                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                    {r.mistakes.map((m) => (
-                      <Chip
-                        key={m}
-                        label={`#${m + 1}`}
-                        color="error"
-                        size="small"
-                        variant="outlined"
-                        sx={{ borderRadius: 0, minWidth: 32, height: 22 }}
-                      />
-                    ))}
-                  </Box>
-                ) : (
-                  <Chip
-                    label={t('admin.noErrors')}
-                    color="success"
-                    size="small"
-                    icon={<CheckCircleOutlineIcon fontSize="small" />}
-                    sx={{ borderRadius: 0 }}
-                  />
-                )}
-              </TableCell>
-              <TableCell>
-                <Stack spacing={0.5}>
-                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                    {new Date(r.createdAt).toLocaleDateString('ru-RU', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: theme.palette.text.disabled }}>
-                    {new Date(r.createdAt).toLocaleTimeString('ru-RU', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Typography>
-                </Stack>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
   );
 }

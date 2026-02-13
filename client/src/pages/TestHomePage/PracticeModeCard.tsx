@@ -20,7 +20,7 @@ export default function PracticeModeCard({ canAccessPractice, practiceMessage, o
             sx={{
                 p: 4,
                 border: `2px solid ${canAccessPractice ? theme.palette.info.main : theme.palette.grey[400]}`,
-                borderRadius: 0,
+                borderRadius: '16px',
                 position: 'relative',
                 opacity: canAccessPractice ? 1 : 0.6
             }}
@@ -44,7 +44,7 @@ export default function PracticeModeCard({ canAccessPractice, practiceMessage, o
                             p: 3,
                             bgcolor: alpha(theme.palette.warning.main, 0.05),
                             border: `1px solid ${theme.palette.warning.main}`,
-                            borderRadius: 0,
+                            borderRadius: '16px',
                         }}
                     >
                         <Stack direction="row" spacing={2} alignItems="center">
@@ -81,7 +81,7 @@ export default function PracticeModeCard({ canAccessPractice, practiceMessage, o
                     disabled={!canAccessPractice}
                     sx={{
                         py: 1.5,
-                        borderRadius: 0,
+                        borderRadius: '16px',
                         textTransform: 'none',
                         fontSize: '1.1rem',
                         fontWeight: 600,

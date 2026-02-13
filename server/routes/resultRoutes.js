@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const Result = require('../models/Result');
+const GameResult = require('../models/GameResult');
 const Test = require('../models/Test');
 const User = require('../models/User');
 const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
@@ -10,6 +11,7 @@ const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 router.post('/', async (req, res) => {
     try {
         const {
+            clientResultId,
             userEmail,
             testId,
             testTitle,
@@ -30,7 +32,21 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
+        // Проверка на дубликат по clientResultId
+        if (clientResultId) {
+            const existingResult = await Result.findOne({ clientResultId });
+            if (existingResult) {
+                console.log('[ResultRoutes] Duplicate result detected, clientResultId:', clientResultId);
+                return res.status(200).json({
+                    message: 'Result already exists',
+                    duplicate: true,
+                    resultId: existingResult._id
+                });
+            }
+        }
+
         const newResult = new Result({
+            clientResultId,
             userEmail,
             testId,
             testTitle,
@@ -48,20 +64,60 @@ router.post('/', async (req, res) => {
         });
 
         await newResult.save();
-        res.status(201).json({ message: 'Result saved successfully' });
+        console.log('[ResultRoutes] Result saved successfully, clientResultId:', clientResultId);
+        res.status(201).json({ message: 'Result saved successfully', resultId: newResult._id });
     } catch (error) {
         console.error('Error saving result:', error);
+
+        // Обработка ошибки дублирования (на случай race condition)
+        if (error.code === 11000 && error.keyPattern?.clientResultId) {
+            console.log('[ResultRoutes] Duplicate key error for clientResultId');
+            return res.status(200).json({
+                message: 'Result already exists',
+                duplicate: true
+            });
+        }
+
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
 router.get('/', verifyToken, requireAdmin, async (req, res) => {
     try {
+        const { page = 1, limit = 20, search, category, mode } = req.query;
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const validModes = ['standard', 'exam', 'practice'];
+        const query = {};
+
+        if (mode && validModes.includes(mode)) {
+            query.mode = mode;
+        } else {
+            query.mode = { $in: validModes };
+        }
+
+        if (search) {
+            query.$or = [
+                { userEmail: { $regex: search, $options: 'i' } },
+                { testTitle: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        if (category && category !== 'all') {
+            const tests = await Test.find({ category }).select('_id');
+            const testIds = tests.map(t => t._id);
+            query.testId = { $in: testIds };
+        }
+
+        const count = await Result.countDocuments(query);
+
         // Фильтр для исключения игровых результатов
-        const results = await Result.find({ mode: { $in: ['standard', 'exam', 'practice'] } })
+        const results = await Result.find(query)
             .select('-shuffledQuestions -answers -correctAnswers -timePerQuestion')
             .populate({ path: 'testId', select: 'title category', populate: { path: 'category', select: 'name color' } })
             .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit))
             .lean();
 
         // Map testId to test for frontend compatibility
@@ -70,25 +126,118 @@ router.get('/', verifyToken, requireAdmin, async (req, res) => {
             test: r.testId && typeof r.testId === 'object' ? r.testId : undefined
         }));
 
-        res.json(mapped);
+        res.json({
+            results: mapped,
+            pagination: {
+                totalResults: count,
+                totalPages: Math.ceil(count / parseInt(limit)),
+                currentPage: parseInt(page),
+                limit: parseInt(limit)
+            }
+        });
     } catch (error) {
         console.error('Error fetching results:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
+// Получить сгруппированную статистику по тестам для левой панели
+router.get('/mine/groups', verifyToken, async (req, res) => {
+    try {
+        const userEmail = req.user.email;
+        const groups = await Result.aggregate([
+            { $match: { userEmail, mode: { $in: ['standard', 'exam', 'practice'] } } },
+            {
+                $group: {
+                    _id: "$testTitle",
+                    count: { $sum: 1 },
+                    lastAttempt: { $max: "$createdAt" },
+                    testId: { $first: "$testId" },
+                    bestScore: { $max: { $cond: [{ $gt: ["$total", 0] }, { $multiply: [{ $divide: ["$score", "$total"] }, 100] }, 0] } },
+                    avgScore: { $avg: { $cond: [{ $gt: ["$total", 0] }, { $multiply: [{ $divide: ["$score", "$total"] }, 100] }, 0] } },
+                    // Дополнительные данные для статистики
+                    totalAttempts: { $sum: 1 },
+                    totalTotal: { $first: "$total" }, // Предполагаем total одинаковый, берем первый
+                    bestTime: { $min: { $cond: [{ $gt: ["$duration", 0] }, "$duration", null] } },
+                    avgTime: { $avg: { $cond: [{ $gt: ["$duration", 0] }, "$duration", null] } }
+                }
+            },
+            { $sort: { lastAttempt: -1 } }
+        ]);
+
+        // Преобразуем формат для фронтенда
+        const formattedGroups = groups.map(g => ({
+            testTitle: g._id,
+            count: g.count,
+            lastAttempt: g.lastAttempt,
+            testId: g.testId,
+            stats: {
+                attempts: g.totalAttempts,
+                bestScore: Math.round(g.bestScore || 0),
+                avgScore: Math.round(g.avgScore || 0),
+                total: g.totalTotal || 0,
+                avgTime: Math.round(g.avgTime || 0),
+                bestTime: g.bestTime || 0
+            }
+        }));
+
+        res.json(formattedGroups);
+    } catch (error) {
+        console.error('Error fetching result groups:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Получить результаты с пагинацией
 router.get('/mine', verifyToken, async (req, res) => {
-    const userEmail = req.user.email;
-    // Фильтр для исключения игровых результатов
-    const results = await Result.find({
-        userEmail,
-        mode: { $in: ['standard', 'exam', 'practice'] }
-    }).sort({ createdAt: -1 });
-    res.json(results);
+    try {
+        const userEmail = req.user.email;
+        const { page = 1, limit = 20, testTitle, sortBy = 'date' } = req.query;
+
+        const query = {
+            userEmail,
+            mode: { $in: ['standard', 'exam', 'practice'] }
+        };
+
+        if (testTitle && testTitle !== '__all__') {
+            query.testTitle = testTitle;
+        }
+
+        const sortOption = sortBy === 'score'
+            ? { score: -1, createdAt: -1 }
+            : { createdAt: -1 };
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const limitParsed = parseInt(limit);
+
+        // Используем projection для оптимизации (исключаем тяжелые поля)
+        // answers, shuffledQuestions, mistakes, correctAnswers не нужны для списка
+        const results = await Result.find(query)
+            .select('_id testTitle score total mode createdAt duration testId startTime endTime')
+            .sort(sortOption)
+            .skip(skip)
+            .limit(limitParsed)
+            .lean();
+
+        const count = await Result.countDocuments(query);
+
+        res.json({
+            results,
+            pagination: {
+                totalResults: count,
+                totalPages: Math.ceil(count / limitParsed),
+                currentPage: parseInt(page),
+                limit: limitParsed
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching mine results:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 // ===== Shared analytics builder =====
-async function buildAnalytics(results) {
+async function buildAnalytics(results, gameResults = []) {
     const emptyResponse = {
         totalTests: 0,
         averageScore: 0,
@@ -110,9 +259,59 @@ async function buildAnalytics(results) {
         weeklyActivity: [],
     };
 
-    if (results.length === 0) return emptyResponse;
+    if (results.length === 0 && gameResults.length === 0) return emptyResponse;
 
-    const totalTests = results.length;
+    const normalizedResults = [
+        ...results.map(result => {
+            const percentage = result.total > 0 ? (result.score / result.total) * 100 : 0;
+            const totalQuestions = result.total || 0;
+            const correctAnswers = result.score || 0;
+            const duration = result.duration || 0;
+            const timePerQuestion = Array.isArray(result.timePerQuestion) ? result.timePerQuestion : [];
+
+            return {
+                _id: result._id,
+                testId: result.testId,
+                testTitle: result.testTitle,
+                mode: result.mode || 'standard',
+                createdAt: result.createdAt,
+                percentage,
+                totalQuestions,
+                correctAnswers,
+                duration,
+                timeSpentForQuestions: timePerQuestion.reduce((sum, time) => sum + time, 0),
+                questionsAnsweredForTime: timePerQuestion.length,
+                displayScore: result.score || 0,
+                displayTotal: result.total || 0,
+            };
+        }),
+        ...gameResults.map(game => {
+            const totalQuestions = game.totalQuestions || 0;
+            const correctAnswers = game.correctAnswers || 0;
+            const percentage = typeof game.accuracy === 'number'
+                ? game.accuracy
+                : (totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0);
+            const duration = game.duration || 0;
+
+            return {
+                _id: game._id,
+                testId: game.testId,
+                testTitle: game.testTitle || 'Game',
+                mode: 'game',
+                createdAt: game.completedAt || game.createdAt,
+                percentage,
+                totalQuestions,
+                correctAnswers,
+                duration,
+                timeSpentForQuestions: duration,
+                questionsAnsweredForTime: totalQuestions,
+                displayScore: correctAnswers,
+                displayTotal: totalQuestions,
+            };
+        }),
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    const totalTests = normalizedResults.length;
     let totalScore = 0;
     let totalQuestions = 0;
     let correctAnswers = 0;
@@ -143,12 +342,12 @@ async function buildAnalytics(results) {
 
     const categoryMap = new Map();
 
-    // Process ALL results
-    results.forEach(result => {
-        const percentage = result.total > 0 ? (result.score / result.total) * 100 : 0;
+    // Process ALL results (tests + games)
+    normalizedResults.forEach(result => {
+        const percentage = result.percentage;
         totalScore += percentage;
-        totalQuestions += result.total;
-        correctAnswers += result.score;
+        totalQuestions += result.totalQuestions;
+        correctAnswers += result.correctAnswers;
 
         if (percentage > bestScore) bestScore = percentage;
         if (percentage < worstScore) worstScore = percentage;
@@ -157,9 +356,9 @@ async function buildAnalytics(results) {
         if (result.duration) {
             totalTimeSpent += result.duration;
         }
-        if (result.timePerQuestion && Array.isArray(result.timePerQuestion)) {
-            totalQuestionsAnswered += result.timePerQuestion.length;
-            totalTimeForAllQuestions += result.timePerQuestion.reduce((sum, time) => sum + time, 0);
+        if (result.questionsAnsweredForTime > 0) {
+            totalQuestionsAnswered += result.questionsAnsweredForTime;
+            totalTimeForAllQuestions += result.timeSpentForQuestions;
         }
 
         // Mode
@@ -191,9 +390,9 @@ async function buildAnalytics(results) {
     });
 
     // Streak calculation (results sorted newest first, reverse for chronological)
-    const chronological = [...results].reverse();
+    const chronological = [...normalizedResults].reverse();
     chronological.forEach(result => {
-        const percentage = result.total > 0 ? (result.score / result.total) * 100 : 0;
+        const percentage = result.percentage;
         if (percentage >= PASSING_THRESHOLD) {
             tempStreak++;
             if (tempStreak > bestStreak) bestStreak = tempStreak;
@@ -203,8 +402,8 @@ async function buildAnalytics(results) {
     });
     // Current streak: count from newest going back
     currentStreak = 0;
-    for (const result of results) {
-        const percentage = result.total > 0 ? (result.score / result.total) * 100 : 0;
+    for (const result of normalizedResults) {
+        const percentage = result.percentage;
         if (percentage >= PASSING_THRESHOLD) {
             currentStreak++;
         } else {
@@ -213,11 +412,10 @@ async function buildAnalytics(results) {
     }
 
     // Performance data (last 20 tests)
-    const performanceData = results.slice(0, 20).reverse().map((result, index) => {
-        const percentage = result.total > 0 ? (result.score / result.total) * 100 : 0;
+    const performanceData = normalizedResults.slice(0, 20).reverse().map((result, index) => {
         return {
             name: `#${index + 1}`,
-            score: Math.round(percentage),
+            score: Math.round(result.percentage),
             date: result.createdAt,
             testTitle: result.testTitle,
             duration: result.duration || 0,
@@ -226,11 +424,16 @@ async function buildAnalytics(results) {
     });
 
     // Category stats
-    const testIds = [...new Set(results.map(r => r.testId))];
-    const tests = await Test.find({ _id: { $in: testIds } }).populate('category');
+    const testIds = [...new Set(normalizedResults.map(r => r.testId).filter(Boolean))];
+    const tests = await Test.find({ _id: { $in: testIds } })
+        .select('category')
+        .populate('category');
 
-    results.forEach(result => {
-        const test = tests.find(t => t._id.toString() === result.testId);
+    normalizedResults.forEach(result => {
+        const currentTestId = typeof result.testId === 'string'
+            ? result.testId
+            : result.testId?.toString();
+        const test = tests.find(t => t._id.toString() === currentTestId);
         if (test && test.category) {
             const categoryName = test.category.name;
             if (!categoryMap.has(categoryName)) {
@@ -243,8 +446,7 @@ async function buildAnalytics(results) {
             }
             const cat = categoryMap.get(categoryName);
             cat.tests += 1;
-            const percentage = result.total > 0 ? (result.score / result.total) * 100 : 0;
-            cat.totalScore += percentage;
+            cat.totalScore += result.percentage;
         }
     });
 
@@ -263,12 +465,12 @@ async function buildAnalytics(results) {
         : 0;
 
     // Recent 5 results
-    const recentResults = results.slice(0, 5).map(result => ({
+    const recentResults = normalizedResults.slice(0, 5).map(result => ({
         _id: result._id,
         testTitle: result.testTitle,
-        score: result.score,
-        total: result.total,
-        percentage: result.total > 0 ? Math.round((result.score / result.total) * 100) : 0,
+        score: result.displayScore,
+        total: result.displayTotal,
+        percentage: Math.round(result.percentage),
         createdAt: result.createdAt,
         duration: result.duration || 0,
         mode: result.mode || 'standard',
@@ -317,8 +519,14 @@ router.get('/analytics', verifyToken, async (req, res) => {
         const results = await Result.find({
             userEmail,
             mode: { $in: ['standard', 'exam', 'practice'] }
-        }).sort({ createdAt: -1 });
-        const analytics = await buildAnalytics(results);
+        })
+            .select('_id testId testTitle score total mode createdAt duration timePerQuestion')
+            .sort({ createdAt: -1 });
+        const gameResults = await GameResult.find({ userId: req.user.userId })
+            .select('_id testId testTitle score totalQuestions correctAnswers accuracy duration completedAt createdAt')
+            .sort({ completedAt: -1 })
+            .lean();
+        const analytics = await buildAnalytics(results, gameResults);
         res.json(analytics);
     } catch (error) {
         console.error('Error loading analytics:', error);
@@ -351,8 +559,14 @@ router.get('/analytics/:userId', verifyToken, requireAdmin, async (req, res) => 
         const results = await Result.find({
             userEmail,
             mode: { $in: ['standard', 'exam', 'practice'] }
-        }).sort({ createdAt: -1 });
-        const analytics = await buildAnalytics(results);
+        })
+            .select('_id testId testTitle score total mode createdAt duration timePerQuestion')
+            .sort({ createdAt: -1 });
+        const gameResults = await GameResult.find({ userId: user._id })
+            .select('_id testId testTitle score totalQuestions correctAnswers accuracy duration completedAt createdAt')
+            .sort({ completedAt: -1 })
+            .lean();
+        const analytics = await buildAnalytics(results, gameResults);
         res.json(analytics);
     } catch (error) {
         console.error('Error loading user analytics:', error);
@@ -401,6 +615,7 @@ router.get('/test/:testId/analytics', verifyToken, async (req, res) => {
             testId,
             mode: { $in: ['standard', 'exam', 'practice'] }
         })
+            .select('_id score total mode createdAt duration timePerQuestion answers correctAnswers mistakes shuffledQuestions')
             .sort({ createdAt: -1 })
             .lean();
 
@@ -581,24 +796,36 @@ router.get('/test/:testId/analytics', verifyToken, async (req, res) => {
  *   }
  * ]
  */
+// Получить все результаты пользователя для конкретного теста
+// Используется для отображения истории прохождения на странице теста
 router.get('/test/:testId', verifyToken, async (req, res) => {
     try {
         const userEmail = req.user.email;
         const testId = req.params.testId;
+        const { page = 1, limit = 20 } = req.query;
 
         // Проверка валидности ObjectId
         if (!mongoose.Types.ObjectId.isValid(testId)) {
             return res.status(400).json({ error: 'Некорректный ID теста' });
         }
 
-        const results = await Result.find({
+        const query = {
             userEmail,
             testId,
             mode: { $in: ['standard', 'exam', 'practice'] }
-        })
+        };
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const limitParsed = parseInt(limit);
+
+        const results = await Result.find(query)
             .sort({ createdAt: -1 })
             .select('_id score total mode createdAt endTime duration moves gameCardCount')
+            .skip(skip)
+            .limit(limitParsed)
             .lean();
+
+        const count = await Result.countDocuments(query);
 
         // Преобразуем данные для клиента
         const formattedResults = results.map(result => ({
@@ -612,7 +839,15 @@ router.get('/test/:testId', verifyToken, async (req, res) => {
             gameCardCount: result.gameCardCount
         }));
 
-        res.json(formattedResults);
+        res.json({
+            results: formattedResults,
+            pagination: {
+                totalResults: count,
+                totalPages: Math.ceil(count / limitParsed),
+                currentPage: parseInt(page),
+                limit: limitParsed
+            }
+        });
     } catch (error) {
         console.error('Ошибка получения результатов для теста:', error);
         res.status(500).json({ error: 'Ошибка сервера' });

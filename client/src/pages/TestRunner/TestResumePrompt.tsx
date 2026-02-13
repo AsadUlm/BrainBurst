@@ -27,7 +27,7 @@ export default function TestResumePrompt({ testTitle, onResume, onRestart }: Pro
         sx={{
           p: 4,
           border: `1px solid ${theme.palette.divider}`,
-          borderRadius: 0,
+          borderRadius: '16px',
           textAlign: 'center'
         }}
       >
@@ -43,7 +43,7 @@ export default function TestResumePrompt({ testTitle, onResume, onRestart }: Pro
             sx={{
               px: 5,
               py: 1.5,
-              borderRadius: 0,
+              borderRadius: '16px',
               textTransform: 'none',
               fontWeight: 600
             }}
@@ -58,7 +58,7 @@ export default function TestResumePrompt({ testTitle, onResume, onRestart }: Pro
             sx={{
               px: 5,
               py: 1.5,
-              borderRadius: 0,
+              borderRadius: '16px',
               textTransform: 'none',
               fontWeight: 600
             }}

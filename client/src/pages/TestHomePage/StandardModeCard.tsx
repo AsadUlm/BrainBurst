@@ -22,7 +22,7 @@ export default function StandardModeCard({ test, categoryColor, onStart }: Stand
             sx={{
                 p: 4,
                 border: `2px solid ${categoryColor}`,
-                borderRadius: 0,
+                borderRadius: '16px',
                 position: 'relative',
                 overflow: 'hidden'
             }}
@@ -45,7 +45,7 @@ export default function StandardModeCard({ test, categoryColor, onStart }: Stand
                         label={t('test.recommended')}
                         size="small"
                         sx={{
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             mb: 2,
                             backgroundColor: categoryColor,
                             color: '#fff',
@@ -104,7 +104,7 @@ export default function StandardModeCard({ test, categoryColor, onStart }: Stand
                     onClick={onStart}
                     sx={{
                         py: 1.5,
-                        borderRadius: 0,
+                        borderRadius: '16px',
                         textTransform: 'none',
                         fontSize: '1.1rem',
                         fontWeight: 600,

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Container, Paper, Typography, Box, Card, CardContent, Stack, Avatar, useTheme,
-    alpha, CircularProgress, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent,
+    alpha, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import {
@@ -16,6 +16,7 @@ import {
     Person as PersonIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
+import { LoadingPage } from '../Loading';
 import { useAuth } from '../../hooks/useAuth';
 import PerformanceChart from './components/PerformanceChart';
 import CategoryBreakdown from './components/CategoryBreakdown';
@@ -262,11 +263,7 @@ export default function UserAnalytics() {
     };
 
     if (loading) {
-        return (
-            <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>
-                <CircularProgress />
-            </Container>
-        );
+        return <LoadingPage />;
     }
 
     if (!analytics) {
@@ -301,7 +298,7 @@ export default function UserAnalytics() {
                     mb: 4,
                     background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
                     color: 'white',
-                    borderRadius: 0,
+                    borderRadius: '16px',
                 }}
             >
                 <Stack direction="row" spacing={2} alignItems="center">
@@ -331,12 +328,12 @@ export default function UserAnalytics() {
                             sx={{
                                 minWidth: 280,
                                 bgcolor: alpha(theme.palette.common.white, 0.15),
-                                borderRadius: 0,
+                                borderRadius: '16px',
                                 '& .MuiOutlinedInput-root': {
                                     color: 'white',
                                     '& fieldset': {
                                         borderColor: alpha(theme.palette.common.white, 0.3),
-                                        borderRadius: 0,
+                                        borderRadius: '16px',
                                     },
                                     '&:hover fieldset': {
                                         borderColor: alpha(theme.palette.common.white, 0.5),
@@ -372,7 +369,7 @@ export default function UserAnalytics() {
                                 MenuProps={{
                                     PaperProps: {
                                         sx: {
-                                            borderRadius: 0,
+                                            borderRadius: '16px',
                                             mt: 1,
                                             maxHeight: 400,
                                         }
@@ -402,7 +399,7 @@ export default function UserAnalytics() {
                         sx={{
                             height: '100%',
                             border: `1px solid ${theme.palette.divider}`,
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             transition: 'all 0.3s',
                             '&:hover': {
                                 transform: 'translateY(-4px)',
@@ -445,7 +442,7 @@ export default function UserAnalytics() {
                         sx={{
                             height: '100%',
                             border: `1px solid ${theme.palette.divider}`,
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             transition: 'all 0.3s',
                             '&:hover': {
                                 transform: 'translateY(-4px)',
@@ -488,7 +485,7 @@ export default function UserAnalytics() {
                         sx={{
                             height: '100%',
                             border: `1px solid ${theme.palette.divider}`,
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             transition: 'all 0.3s',
                             '&:hover': {
                                 transform: 'translateY(-4px)',
@@ -531,7 +528,7 @@ export default function UserAnalytics() {
                         sx={{
                             height: '100%',
                             border: `1px solid ${theme.palette.divider}`,
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             transition: 'all 0.3s',
                             '&:hover': {
                                 transform: 'translateY(-4px)',
@@ -574,7 +571,7 @@ export default function UserAnalytics() {
                         sx={{
                             height: '100%',
                             border: `1px solid ${theme.palette.divider}`,
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             transition: 'all 0.3s',
                             '&:hover': {
                                 transform: 'translateY(-4px)',
@@ -617,7 +614,7 @@ export default function UserAnalytics() {
                         sx={{
                             height: '100%',
                             border: `1px solid ${theme.palette.divider}`,
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             transition: 'all 0.3s',
                             '&:hover': {
                                 transform: 'translateY(-4px)',
@@ -660,7 +657,7 @@ export default function UserAnalytics() {
                         sx={{
                             height: '100%',
                             border: `1px solid ${theme.palette.divider}`,
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             transition: 'all 0.3s',
                             '&:hover': {
                                 transform: 'translateY(-4px)',
@@ -703,7 +700,7 @@ export default function UserAnalytics() {
                         sx={{
                             height: '100%',
                             border: `1px solid ${theme.palette.divider}`,
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             transition: 'all 0.3s',
                             '&:hover': {
                                 transform: 'translateY(-4px)',
@@ -803,7 +800,7 @@ export default function UserAnalytics() {
                         mb: 4,
                         background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.success.dark} 100%)`,
                         color: 'white',
-                        borderRadius: 0,
+                        borderRadius: '16px',
                     }}
                 >
                     <Stack direction="row" spacing={2} alignItems="center">
@@ -876,7 +873,7 @@ export default function UserAnalytics() {
                                     sx={{
                                         p: 6,
                                         border: `1px solid ${theme.palette.divider}`,
-                                        borderRadius: 0,
+                                        borderRadius: '16px',
                                         textAlign: 'center',
                                     }}
                                 >

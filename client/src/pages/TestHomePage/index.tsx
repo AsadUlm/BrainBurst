@@ -27,14 +27,23 @@ export default function TestHomePage() {
     const [userAttempts, setUserAttempts] = useState(0);
     const [canViewContent, setCanViewContent] = useState(true);
     const [attemptsLoading, setAttemptsLoading] = useState(false);
+
+    // Mode access states
     const [canAccessPractice, setCanAccessPractice] = useState(true);
     const [practiceMessage, setPracticeMessage] = useState('');
     const [canAccessGame, setCanAccessGame] = useState(true);
     const [gameMessage, setGameMessage] = useState('');
+
+    // Tabs
     const [currentTab, setCurrentTab] = useState('content');
-    const [currentPage, setCurrentPage] = useState(1);
+    const [contentPage, setContentPage] = useState(1); // Renamed from currentPage to match context
+
+    // Results Pagination
     const [results, setResults] = useState<Result[]>([]);
     const [resultsLoading, setResultsLoading] = useState(false);
+    const [resultsPage, setResultsPage] = useState(1);
+    const [resultsTotalPages, setResultsTotalPages] = useState(1);
+    const [loadingMoreResults, setLoadingMoreResults] = useState(false);
 
     /* -------- Load test data + attempts -------- */
     useEffect(() => {
@@ -122,40 +131,61 @@ export default function TestHomePage() {
         loadData();
     }, [id, t]);
 
+    /* -------- Load Results -------- */
+    const loadResults = useCallback(async (page: number, isLoadMore: boolean = false) => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        if (isLoadMore) {
+            setLoadingMoreResults(true);
+        } else {
+            setResultsLoading(true);
+        }
+
+        try {
+            const res = await fetch(`/api/results/test/${id}?page=${page}&limit=10`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+
+                // Check if data has pagination structure or is just array (compat)
+                if (data.results && data.pagination) {
+                    if (isLoadMore) {
+                        setResults(prev => [...prev, ...data.results]);
+                    } else {
+                        setResults(data.results);
+                    }
+                    setResultsTotalPages(data.pagination.totalPages);
+                    setResultsPage(data.pagination.currentPage);
+                } else if (Array.isArray(data)) {
+                    // Fallback for old API if needed
+                    setResults(data);
+                }
+            } else {
+                console.error('Ошибка загрузки результатов:', res.statusText);
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки результатов:', error);
+        } finally {
+            setResultsLoading(false);
+            setLoadingMoreResults(false);
+        }
+    }, [id]);
+
     /* -------- Lazy-load results on tab switch -------- */
     useEffect(() => {
-        if (currentTab !== 'results' || results.length > 0) return;
+        if (currentTab === 'results' && results.length === 0 && !resultsLoading) {
+            loadResults(1);
+        }
+    }, [currentTab, results.length, resultsLoading, loadResults]);
 
-        const loadResults = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                setResultsLoading(false);
-                return;
-            }
-
-            setResultsLoading(true);
-            try {
-                const res = await fetch(`/api/results/test/${id}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
-                    setResults(data);
-                } else {
-                    console.error('Ошибка загрузки результатов:', res.statusText);
-                    setResults([]);
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки результатов:', error);
-                setResults([]);
-            } finally {
-                setResultsLoading(false);
-            }
-        };
-
-        loadResults();
-    }, [currentTab, id, results.length]);
+    const handleLoadMoreResults = useCallback(() => {
+        if (resultsPage < resultsTotalPages) {
+            loadResults(resultsPage + 1, true);
+        }
+    }, [resultsPage, resultsTotalPages, loadResults]);
 
     /* -------- Navigation callbacks -------- */
     const handleStartStandard = useCallback(() => navigate(`/test/${id}/run`), [navigate, id]);
@@ -165,11 +195,10 @@ export default function TestHomePage() {
 
     const handleTabChange = useCallback((_: React.SyntheticEvent, newValue: string) => {
         setCurrentTab(newValue);
-        setCurrentPage(1);
     }, []);
 
-    const handlePageChange = useCallback((page: number) => {
-        setCurrentPage(page);
+    const handleContentPageChange = useCallback((page: number) => {
+        setContentPage(page);
     }, []);
 
     /* -------- Loading / Error states -------- */
@@ -201,7 +230,7 @@ export default function TestHomePage() {
                         elevation={0}
                         sx={{
                             border: `1px solid ${theme.palette.divider}`,
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             height: '100%',
                             overflow: 'hidden'
                         }}
@@ -216,7 +245,7 @@ export default function TestHomePage() {
                                         fontSize: '1rem',
                                         fontWeight: 600,
                                         minHeight: 64,
-                                        borderRadius: 0,
+                                        borderRadius: '16px',
                                     },
                                     '& .Mui-selected': {
                                         color: categoryColor,
@@ -254,14 +283,17 @@ export default function TestHomePage() {
                                     test={test}
                                     canViewContent={canViewContent}
                                     userAttempts={userAttempts}
-                                    currentPage={currentPage}
-                                    onPageChange={handlePageChange}
+                                    currentPage={contentPage}
+                                    onPageChange={handleContentPageChange}
                                 />
                             ) : currentTab === 'results' ? (
                                 <ResultsTab
                                     results={results}
                                     loading={resultsLoading}
                                     categoryColor={categoryColor}
+                                    onLoadMore={handleLoadMoreResults}
+                                    hasMore={resultsPage < resultsTotalPages}
+                                    loadingMore={loadingMoreResults}
                                 />
                             ) : (
                                 <TestAnalyticsTab

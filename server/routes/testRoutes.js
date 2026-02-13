@@ -106,19 +106,51 @@ router.get('/', optionalAuth, async (req, res) => {
 
         let tests;
 
-        // ТОЛЬКО для админ-панели показываем все тесты без фильтрации
+        // ТОЛЬКО для админ-панели показываем все тесты с пагинацией и фильтрацией
         if (isAdmin && showAll) {
-            tests = await Test.find({}).populate('category');
-            console.log('👑 Админ-панель: показываем все тесты:', tests.length);
-            res.json(tests);
+            const { page = 1, limit = 12, search, category } = req.query;
+            const query = {};
+
+            if (search) {
+                query.title = { $regex: search, $options: 'i' };
+            }
+            if (category && category !== 'all') {
+                query.category = category;
+            }
+
+            const totalTests = await Test.countDocuments(query);
+
+            const tests = await Test.find(query)
+                .populate('category')
+                .populate('allowedUsers', '_id email')
+                .select('-questions.text -questions.correctIndex -questions.explanation -questions.image -questions.audio -questions.puzzleWords -questions.correctSentence')
+                .sort({ createdAt: -1 })
+                .skip((parseInt(page) - 1) * parseInt(limit))
+                .limit(parseInt(limit))
+                .lean();
+
+            console.log(`👑 Админ-панель: найдено ${tests.length} тестов (всего ${totalTests})`);
+
+            res.json({
+                tests,
+                pagination: {
+                    total: totalTests,
+                    page: parseInt(page),
+                    totalPages: Math.ceil(totalTests / parseInt(limit))
+                }
+            });
             return;
         }
 
         // Для всех остальных (включая админов на обычных страницах) применяем фильтрацию
         const now = new Date();
 
-        // Получаем все тесты с заполненными связями
-        tests = await Test.find({}).populate('category').populate('allowedUsers', '_id');
+        // Получаем все тесты с заполненными связями, но без тяжелых полей вопросов
+        tests = await Test.find({})
+            .populate('category')
+            .populate('allowedUsers', '_id')
+            .select('-questions.text -questions.correctIndex -questions.explanation -questions.image -questions.audio -questions.puzzleWords -questions.correctSentence')
+            .lean();
 
         console.log('📋 Всего тестов в базе:', tests.length);
 

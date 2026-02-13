@@ -268,7 +268,7 @@ export default function PracticeQuestion({
                             severity="info"
                             sx={{
                                 mb: 3,
-                                borderRadius: 0,
+                                borderRadius: '16px',
                                 backgroundColor: theme.palette.mode === 'dark' ? 'rgba(33, 150, 243, 0.1)' : 'rgba(33, 150, 243, 0.05)'
                             }}
                         >
@@ -292,7 +292,7 @@ export default function PracticeQuestion({
                             sx={{
                                 mb: 3,
                                 '& .MuiOutlinedInput-root': {
-                                    borderRadius: 0,
+                                    borderRadius: '16px',
                                 }
                             }}
                         />
@@ -323,7 +323,7 @@ export default function PracticeQuestion({
                                                             ? theme.palette.primary.main
                                                             : theme.palette.divider
                                                     }`,
-                                                borderRadius: 0,
+                                                borderRadius: '16px',
                                                 backgroundColor: hasChecked && isThisCorrect
                                                     ? theme.palette.success.main
                                                     : hasChecked && isSelected && !isThisCorrect
@@ -370,7 +370,7 @@ export default function PracticeQuestion({
                                                             ? theme.palette.primary.main
                                                             : theme.palette.divider
                                                     }`,
-                                                borderRadius: 0,
+                                                borderRadius: '16px',
                                                 bgcolor: hasChecked && isThisCorrect
                                                     ? theme.palette.success.light + '20'
                                                     : hasChecked && isSelected && !isThisCorrect
@@ -445,7 +445,7 @@ export default function PracticeQuestion({
                                     fullWidth
                                     sx={{
                                         py: 1.5,
-                                        borderRadius: 0,
+                                        borderRadius: '16px',
                                         fontWeight: 600,
                                         textTransform: 'none'
                                     }}
@@ -462,7 +462,7 @@ export default function PracticeQuestion({
                                     fullWidth
                                     sx={{
                                         py: 1.5,
-                                        borderRadius: 0,
+                                        borderRadius: '16px',
                                         fontWeight: 600,
                                         textTransform: 'none'
                                     }}
@@ -479,7 +479,7 @@ export default function PracticeQuestion({
                                 disabled={isFirstQuestion}
                                 startIcon={<NavigateBeforeIcon />}
                                 sx={{
-                                    borderRadius: 0,
+                                    borderRadius: '16px',
                                     textTransform: 'none',
                                     flex: 1
                                 }}
@@ -492,7 +492,7 @@ export default function PracticeQuestion({
                                 onClick={handleSkip}
                                 startIcon={<SkipNextIcon />}
                                 sx={{
-                                    borderRadius: 0,
+                                    borderRadius: '16px',
                                     textTransform: 'none',
                                     flex: 1
                                 }}
@@ -507,7 +507,7 @@ export default function PracticeQuestion({
                                     disabled={isProcessing}
                                     endIcon={isProcessing ? <CircularProgress size={16} color="inherit" /> : <NavigateNextIcon />}
                                     sx={{
-                                        borderRadius: 0,
+                                        borderRadius: '16px',
                                         textTransform: 'none',
                                         flex: 1
                                     }}
@@ -522,7 +522,7 @@ export default function PracticeQuestion({
                                     disabled={isProcessing}
                                     startIcon={isProcessing && <CircularProgress size={16} color="inherit" />}
                                     sx={{
-                                        borderRadius: 0,
+                                        borderRadius: '16px',
                                         textTransform: 'none',
                                         flex: 1
                                     }}

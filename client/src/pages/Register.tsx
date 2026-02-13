@@ -1,19 +1,5 @@
 import { useState } from 'react';
-import {
-  Box,
-  TextField,
-  Typography,
-  Button,
-  Alert,
-  Container,
-  Paper,
-  Stack,
-  InputAdornment,
-  IconButton,
-  Link,
-  useTheme,
-  alpha
-} from '@mui/material';
+import { Box, TextField, Typography, Button, Alert, Container, Paper, Stack, InputAdornment, IconButton, Link, useTheme, alpha } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import EmailIcon from '@mui/icons-material/Email';
@@ -56,7 +42,7 @@ export default function Register() {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
+        minHeight: '93vh',
         display: 'flex',
         backgroundColor: theme.palette.background.default
       }}

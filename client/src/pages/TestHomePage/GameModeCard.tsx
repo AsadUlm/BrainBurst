@@ -24,7 +24,7 @@ export default function GameModeCard({ categoryColor, canAccessGame, gameMessage
             sx={{
                 p: 4,
                 border: `2px solid ${canAccessGame ? categoryColor : theme.palette.grey[400]}`,
-                borderRadius: 0,
+                borderRadius: '16px',
                 position: 'relative',
                 overflow: 'hidden',
                 opacity: canAccessGame ? 1 : 0.6
@@ -48,7 +48,7 @@ export default function GameModeCard({ categoryColor, canAccessGame, gameMessage
                         label={t('test.newMode')}
                         size="small"
                         sx={{
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             mb: 2,
                             backgroundColor: alpha(categoryColor, 0.8),
                             color: '#fff',
@@ -72,7 +72,7 @@ export default function GameModeCard({ categoryColor, canAccessGame, gameMessage
                             p: 3,
                             bgcolor: alpha(theme.palette.warning.main, 0.05),
                             border: `1px solid ${theme.palette.warning.main}`,
-                            borderRadius: 0,
+                            borderRadius: '16px',
                         }}
                     >
                         <Stack direction="row" spacing={2} alignItems="center">
@@ -112,7 +112,7 @@ export default function GameModeCard({ categoryColor, canAccessGame, gameMessage
                     disabled={!canAccessGame}
                     sx={{
                         py: 1.5,
-                        borderRadius: 0,
+                        borderRadius: '16px',
                         textTransform: 'none',
                         fontSize: '1.1rem',
                         fontWeight: 600,

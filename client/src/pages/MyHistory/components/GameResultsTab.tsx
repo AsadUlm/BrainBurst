@@ -7,22 +7,21 @@ import {
     Chip,
     alpha,
     useTheme,
-    Accordion,
-    AccordionSummary,
-    AccordionDetails,
     Divider,
     ToggleButtonGroup,
-    ToggleButton
+    ToggleButton,
+    List,
+    ListItem,
+    ListItemButton,
+    ListItemIcon,
+    ListItemText,
+    Fade
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
-import FolderIcon from '@mui/icons-material/Folder';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TimerIcon from '@mui/icons-material/Timer';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import StarIcon from '@mui/icons-material/Star';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import SortIcon from '@mui/icons-material/Sort';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import { useTranslation } from 'react-i18next';
 
@@ -65,10 +64,10 @@ interface GameResultsTabProps {
 export default function GameResultsTab({ results }: GameResultsTabProps) {
     const theme = useTheme();
     const { t, i18n } = useTranslation();
-    const [viewMode, setViewMode] = useState<'list' | 'grouped'>('grouped');
     const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
+    const [selectedGroupTitle, setSelectedGroupTitle] = useState<string>('__all__');
 
-    // Форматирование даты с учетом локали
+    // Форматирование даты
     const formatDate = (dateString: string, includeTime: boolean = true) => {
         const locale = i18n.language === 'ko' ? 'ko-KR' : 'ru-RU';
         const options: Intl.DateTimeFormatOptions = includeTime
@@ -98,7 +97,7 @@ export default function GameResultsTab({ results }: GameResultsTabProps) {
             : `${mins}${t('history.minutes')}`;
     };
 
-    // Получение названия типа игры
+    // Название типа игры
     const getGameTypeName = (gameType: string) => {
         switch (gameType) {
             case 'memory-match':
@@ -114,7 +113,7 @@ export default function GameResultsTab({ results }: GameResultsTabProps) {
         }
     };
 
-    // Группировка результатов по тестам
+    // Группировка результатов по названию теста (или игры)
     const groupedResults = useMemo(() => {
         const groups: { [key: string]: GameResult[] } = {};
         results.forEach((result) => {
@@ -126,63 +125,74 @@ export default function GameResultsTab({ results }: GameResultsTabProps) {
         return groups;
     }, [results]);
 
-    // Сортировка результатов
-    const sortedResults = useMemo(() => {
-        const sorted = [...results];
-        if (sortBy === 'date') {
-            sorted.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
-        } else {
-            sorted.sort((a, b) => b.accuracy - a.accuracy);
-        }
-        return sorted;
-    }, [results, sortBy]);
+    // Сортируем группы по дате последней активности
+    const sortedGroups = useMemo(() => {
+        return Object.entries(groupedResults).sort(([, resultsA], [, resultsB]) => {
+            const lastA = Math.max(...resultsA.map(r => new Date(r.completedAt).getTime()));
+            const lastB = Math.max(...resultsB.map(r => new Date(r.completedAt).getTime()));
+            return lastB - lastA;
+        });
+    }, [groupedResults]);
 
-    // Статистика по тесту
-    const getTestStats = (results: GameResult[]) => {
-        const attempts = results.length;
-        const bestAccuracy = Math.max(...results.map(r => r.accuracy));
-        const avgAccuracy = results.reduce((sum, r) => sum + r.accuracy, 0) / attempts;
-        const bestScore = Math.max(...results.map(r => r.score));
-        const avgScore = results.reduce((sum, r) => sum + r.score, 0) / attempts;
-        const totalQuestions = results[0]?.totalQuestions || 0;
-        const lastAttempt = results[0];
+    // Текущие отображаемые результаты
+    const displayResults = useMemo(() => {
+        let current = selectedGroupTitle === '__all__'
+            ? results
+            : groupedResults[selectedGroupTitle] || [];
 
-        // Статистика времени
-        const totalTime = results.reduce((sum, r) => sum + (r.duration || 0), 0);
+        return [...current].sort((a, b) => {
+            if (sortBy === 'date') {
+                return new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime();
+            } else {
+                return b.accuracy - a.accuracy; // Для игр используем accuracy как основной score
+            }
+        });
+    }, [selectedGroupTitle, results, groupedResults, sortBy]);
+
+    // Статистика (вычисляем для выбранной группы)
+    const getStats = (items: GameResult[]) => {
+        if (!items || items.length === 0) return null;
+
+        const attempts = items.length;
+        const bestAccuracy = Math.max(...items.map(r => r.accuracy));
+        const avgAccuracy = items.reduce((sum, r) => sum + r.accuracy, 0) / attempts;
+
+        // Время
+        const totalTime = items.reduce((sum, r) => sum + (r.duration || 0), 0);
         const avgTime = Math.round(totalTime / attempts);
-        const bestTime = Math.min(...results.map(r => r.duration || Infinity));
+        const bestTime = Math.min(...items.map(r => r.duration || Infinity));
 
-        // Статистика ходов
-        const totalMoves = results.reduce((sum, r) => sum + (r.totalMoves || 0), 0);
-        const avgMoves = Math.round(totalMoves / attempts);
+        // Для сортировки статистики берем последнюю попытку
+        // (но тут лучше считать последнюю глобально по дате)
+        const sortedByDate = [...items].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+        const lastAttempt = sortedByDate[0];
 
         return {
             attempts,
             bestAccuracy,
             avgAccuracy,
-            bestScore,
-            avgScore,
-            totalQuestions,
-            lastAttempt,
             avgTime,
             bestTime,
-            avgMoves
+            lastAttempt
         };
     };
+
+    const currentStats = selectedGroupTitle !== '__all__' ? getStats(groupedResults[selectedGroupTitle]) : null;
 
     if (results.length === 0) {
         return (
             <Paper
                 elevation={0}
                 sx={{
-                    p: 4,
+                    p: 6,
                     border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: 0,
+                    borderRadius: '12px',
                     textAlign: 'center',
+                    bgcolor: alpha(theme.palette.background.paper, 0.5)
                 }}
             >
-                <SportsEsportsIcon sx={{ fontSize: 64, color: theme.palette.text.secondary, mb: 2 }} />
-                <Typography variant="h5" sx={{ color: theme.palette.text.secondary }}>
+                <SportsEsportsIcon sx={{ fontSize: 64, color: theme.palette.action.disabled, mb: 2 }} />
+                <Typography variant="h6" color="text.secondary">
                     {t('game.noGamesCompleted')}
                 </Typography>
                 <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 1 }}>
@@ -193,429 +203,251 @@ export default function GameResultsTab({ results }: GameResultsTabProps) {
     }
 
     return (
-        <>
-            {/* Панель фильтров */}
-            <Paper
-                elevation={0}
+        <Box
+            sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', md: 'row' },
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: '12px',
+                overflow: 'hidden',
+                minHeight: 600,
+                bgcolor: theme.palette.background.paper
+            }}
+        >
+            {/* ── Левая панель: Список групп ── */}
+            <Box
                 sx={{
-                    p: 3,
-                    mb: 4,
-                    border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: 0,
+                    width: { xs: '100%', md: 280 },
+                    borderRight: { xs: 'none', md: `1px solid ${theme.palette.divider}` },
+                    borderBottom: { xs: `1px solid ${theme.palette.divider}`, md: 'none' },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.primary.main, 0.02) : '#fafafa',
                 }}
             >
-                <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems="center" justifyContent="space-between">
-                    <Stack direction="row" spacing={2} alignItems="center">
-                        <SortIcon color="action" />
-                        <Typography variant="body2" color="text.secondary">
-                            {t('history.sort')}:
+                <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+                    <Typography variant="subtitle2" color="text.secondary" fontWeight={600}>
+                        {t('history.gamesTab') || 'GAMES'}
+                    </Typography>
+                </Box>
+                <List disablePadding sx={{ overflow: 'auto', flex: 1, maxHeight: { xs: 200, md: 'none' } }}>
+                    <ListItem disablePadding>
+                        <ListItemButton
+                            selected={selectedGroupTitle === '__all__'}
+                            onClick={() => setSelectedGroupTitle('__all__')}
+                            sx={{
+                                borderLeft: `3px solid ${selectedGroupTitle === '__all__' ? theme.palette.primary.main : 'transparent'}`,
+                                '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.08) }
+                            }}
+                        >
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                <ViewListIcon color={selectedGroupTitle === '__all__' ? 'primary' : 'action'} />
+                            </ListItemIcon>
+                            <ListItemText
+                                primary={t('allResults') || 'All Results'}
+                                primaryTypographyProps={{ fontWeight: selectedGroupTitle === '__all__' ? 600 : 400 }}
+                            />
+                            <Chip label={results.length} size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                        </ListItemButton>
+                    </ListItem>
+                    <Divider />
+                    {sortedGroups.map(([title, grpResults]) => (
+                        <ListItem key={title} disablePadding>
+                            <ListItemButton
+                                selected={selectedGroupTitle === title}
+                                onClick={() => setSelectedGroupTitle(title)}
+                                sx={{
+                                    borderLeft: `3px solid ${selectedGroupTitle === title ? theme.palette.primary.main : 'transparent'}`,
+                                    '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.08) }
+                                }}
+                            >
+                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                    <SportsEsportsIcon color={selectedGroupTitle === title ? 'primary' : 'action'} fontSize="small" />
+                                </ListItemIcon>
+                                <ListItemText
+                                    primary={title}
+                                    primaryTypographyProps={{
+                                        fontWeight: selectedGroupTitle === title ? 600 : 400,
+                                        noWrap: true,
+                                        fontSize: '0.9rem'
+                                    }}
+                                />
+                                <Chip label={grpResults.length} size="small" sx={{ height: 20, fontSize: '0.7rem', ml: 1 }} />
+                            </ListItemButton>
+                        </ListItem>
+                    ))}
+                </List>
+            </Box>
+
+            {/* ── Правая панель: Результаты ── */}
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', bgcolor: theme.palette.background.default }}>
+                {/* Header */}
+                <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, bgcolor: theme.palette.background.paper }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+                        <Typography variant="h6" fontWeight={700}>
+                            {selectedGroupTitle === '__all__' ? (t('allResults') || 'Все результаты') : selectedGroupTitle}
                         </Typography>
+
                         <ToggleButtonGroup
                             value={sortBy}
                             exclusive
-                            onChange={(_, value) => value && setSortBy(value)}
+                            onChange={(_, v) => v && setSortBy(v)}
                             size="small"
-                            sx={{
-                                '& .MuiToggleButton-root': {
-                                    borderRadius: 0,
-                                    textTransform: 'none',
-                                }
-                            }}
+                            sx={{ height: 32 }}
                         >
-                            <ToggleButton value="date">
-                                <AccessTimeIcon fontSize="small" sx={{ mr: 1 }} />
-                                {t('history.sortByDate')}
+                            <ToggleButton value="date" sx={{ px: 2, textTransform: 'none' }}>
+                                <AccessTimeIcon fontSize="small" sx={{ mr: 0.5 }} /> {t('history.sortByDate')}
                             </ToggleButton>
-                            <ToggleButton value="score">
-                                <EmojiEventsIcon fontSize="small" sx={{ mr: 1 }} />
-                                {t('history.sortByScore')}
+                            <ToggleButton value="score" sx={{ px: 2, textTransform: 'none' }}>
+                                <StarIcon fontSize="small" sx={{ mr: 0.5 }} /> {t('history.sortByScore')}
                             </ToggleButton>
                         </ToggleButtonGroup>
                     </Stack>
 
-                    <Stack direction="row" spacing={2} alignItems="center">
-                        <Typography variant="body2" color="text.secondary">
-                            {t('history.view')}:
-                        </Typography>
-                        <ToggleButtonGroup
-                            value={viewMode}
-                            exclusive
-                            onChange={(_, value) => value && setViewMode(value)}
-                            size="small"
+                    {/* Stats */}
+                    {currentStats && (
+                        <Stack
+                            direction={{ xs: 'column', sm: 'row' }}
+                            spacing={2}
                             sx={{
-                                '& .MuiToggleButton-root': {
-                                    borderRadius: 0,
-                                    textTransform: 'none',
-                                }
+                                mt: 1,
+                                p: 2,
+                                bgcolor: alpha(theme.palette.info.main, 0.04),
+                                borderRadius: '8px',
+                                border: `1px solid ${alpha(theme.palette.info.main, 0.1)}`
                             }}
                         >
-                            <ToggleButton value="grouped">
-                                <FolderIcon fontSize="small" sx={{ mr: 1 }} />
-                                {t('history.viewGrouped')}
-                            </ToggleButton>
-                            <ToggleButton value="list">
-                                <ViewListIcon fontSize="small" sx={{ mr: 1 }} />
-                                {t('history.viewList')}
-                            </ToggleButton>
-                        </ToggleButtonGroup>
-                    </Stack>
-                </Stack>
-            </Paper>
-
-            {/* Отображение результатов */}
-            {viewMode === 'grouped' ? (
-                <Stack spacing={3}>
-                    {Object.entries(groupedResults).map(([testTitle, testResults]) => {
-                        const stats = getTestStats(testResults);
-                        const sortedTestResults = [...testResults].sort((a, b) =>
-                            new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
-                        );
-
-                        return (
-                            <Accordion
-                                key={testTitle}
-                                defaultExpanded
-                                elevation={0}
-                                sx={{
-                                    border: `1px solid ${theme.palette.divider}`,
-                                    borderRadius: 0,
-                                    '&:before': { display: 'none' },
-                                    '&.Mui-expanded': {
-                                        margin: 0,
-                                    }
-                                }}
-                            >
-                                <AccordionSummary
-                                    expandIcon={<ExpandMoreIcon />}
-                                    sx={{
-                                        borderRadius: 0,
-                                        '&:hover': {
-                                            bgcolor: alpha(theme.palette.primary.main, 0.05),
-                                        }
-                                    }}
-                                >
-                                    <Box sx={{ width: '100%', pr: 2 }}>
-                                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                                            <Stack direction="row" alignItems="center" spacing={2}>
-                                                <SportsEsportsIcon color="primary" />
-                                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                                    {testTitle}
-                                                </Typography>
-                                                <Chip
-                                                    label={`${stats.attempts} ${stats.attempts === 1 ? t('game.gameCompleted') : t('game.gamesCompleted')}`}
-                                                    size="small"
-                                                    variant="outlined"
-                                                    sx={{ borderRadius: 0 }}
-                                                />
-                                            </Stack>
-                                        </Stack>
-
-                                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} flexWrap="wrap">
-                                            <Stack direction="row" alignItems="center" spacing={1}>
-                                                <StarIcon fontSize="small" sx={{ color: theme.palette.warning.main }} />
-                                                <Typography variant="body2" color="text.secondary">
-                                                    {t('game.bestAccuracy')}:
-                                                </Typography>
-                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                    {stats.bestAccuracy}%
-                                                </Typography>
-                                            </Stack>
-
-                                            <Stack direction="row" alignItems="center" spacing={1}>
-                                                <TrendingUpIcon fontSize="small" color="info" />
-                                                <Typography variant="body2" color="text.secondary">
-                                                    {t('game.avgAccuracy')}:
-                                                </Typography>
-                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                    {stats.avgAccuracy.toFixed(1)}%
-                                                </Typography>
-                                            </Stack>
-
-                                            <Stack direction="row" alignItems="center" spacing={1}>
-                                                <TimerIcon fontSize="small" sx={{ color: theme.palette.secondary.main }} />
-                                                <Typography variant="body2" color="text.secondary">
-                                                    {t('history.avgTime')}:
-                                                </Typography>
-                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                    {formatTime(stats.avgTime)}
-                                                </Typography>
-                                            </Stack>
-
-                                            <Stack direction="row" alignItems="center" spacing={1}>
-                                                <AccessTimeIcon fontSize="small" color="action" />
-                                                <Typography variant="body2" color="text.secondary">
-                                                    {t('history.lastAttempt')}:
-                                                </Typography>
-                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                    {formatDate(stats.lastAttempt.completedAt, false)}
-                                                </Typography>
-                                            </Stack>
-                                        </Stack>
-                                    </Box>
-                                </AccordionSummary>
-
-                                <AccordionDetails sx={{ pt: 0 }}>
-                                    <Divider sx={{ mb: 2 }} />
-                                    <Stack spacing={2}>
-                                        {sortedTestResults.map((result, index) => {
-                                            const isExcellent = result.accuracy >= 90;
-                                            const isGood = result.accuracy >= 70;
-
-                                            return (
-                                                <Paper
-                                                    key={result._id}
-                                                    elevation={0}
-                                                    sx={{
-                                                        p: 3,
-                                                        border: `1px solid ${theme.palette.divider}`,
-                                                        borderRadius: 0,
-                                                        transition: 'all 0.2s ease',
-                                                        '&:hover': {
-                                                            borderColor: theme.palette.primary.main,
-                                                            transform: 'translateX(4px)',
-                                                            boxShadow: `4px 0 0 ${theme.palette.primary.main}`,
-                                                        },
-                                                    }}
-                                                >
-                                                    <Stack spacing={1.5}>
-                                                        <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
-                                                            <Chip
-                                                                label={`${t('game.game')} ${sortedTestResults.length - index}`}
-                                                                size="small"
-                                                                color="primary"
-                                                                sx={{ borderRadius: 0, fontWeight: 600 }}
-                                                            />
-                                                            <Chip
-                                                                icon={<SportsEsportsIcon fontSize="small" />}
-                                                                label={getGameTypeName(result.gameType)}
-                                                                size="small"
-                                                                sx={{
-                                                                    borderRadius: 0,
-                                                                    bgcolor: alpha(theme.palette.info.main, 0.1),
-                                                                    color: theme.palette.info.main,
-                                                                    fontWeight: 600,
-                                                                    border: `1px solid ${alpha(theme.palette.info.main, 0.3)}`,
-                                                                }}
-                                                            />
-                                                            <Stack direction="row" alignItems="center" spacing={0.5}>
-                                                                <AccessTimeIcon fontSize="small" color="action" />
-                                                                <Typography variant="body2" color="text.secondary">
-                                                                    {formatDate(result.completedAt)}
-                                                                </Typography>
-                                                            </Stack>
-                                                        </Stack>
-
-                                                        {/* Прогресс-бар */}
-                                                        <Stack direction="row" alignItems="center" spacing={2}>
-                                                            <Box
-                                                                sx={{
-                                                                    flex: 1,
-                                                                    maxWidth: 200,
-                                                                    height: 8,
-                                                                    bgcolor: theme.palette.grey[200],
-                                                                    position: 'relative',
-                                                                    overflow: 'hidden',
-                                                                }}
-                                                            >
-                                                                <Box
-                                                                    sx={{
-                                                                        position: 'absolute',
-                                                                        left: 0,
-                                                                        top: 0,
-                                                                        height: '100%',
-                                                                        width: `${result.accuracy}%`,
-                                                                        bgcolor: isExcellent
-                                                                            ? theme.palette.success.main
-                                                                            : isGood
-                                                                                ? theme.palette.warning.main
-                                                                                : theme.palette.error.main,
-                                                                        transition: 'width 0.3s ease',
-                                                                    }}
-                                                                />
-                                                            </Box>
-                                                            <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 50 }}>
-                                                                {result.accuracy}%
-                                                            </Typography>
-                                                        </Stack>
-
-                                                        {/* Статистика */}
-                                                        <Stack direction="row" spacing={3} flexWrap="wrap">
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {t('game.questionsAnswered')}: <strong>{result.correctAnswers}/{result.totalQuestions}</strong>
-                                                            </Typography>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {t('game.timeSpent')}: <strong>{formatTime(result.duration)}</strong>
-                                                            </Typography>
-                                                            {result.totalMoves > 0 && (
-                                                                <Typography variant="body2" color="text.secondary">
-                                                                    {t('game.moves')}: <strong>{result.totalMoves}</strong>
-                                                                </Typography>
-                                                            )}
-                                                            {result.bestStreak > 0 && (
-                                                                <Typography variant="body2" color="text.secondary">
-                                                                    {t('game.bestStreak')}: <strong>{result.bestStreak}</strong>
-                                                                </Typography>
-                                                            )}
-                                                            {result.gameData?.sessionsCount && (
-                                                                <Typography variant="body2" color="text.secondary">
-                                                                    {t('game.sessions')}: <strong>{result.gameData.sessionsCount}</strong>
-                                                                </Typography>
-                                                            )}
-                                                        </Stack>
-
-                                                        {result.test?.category && (
-                                                            <Chip
-                                                                label={result.test.category.name}
-                                                                size="small"
-                                                                sx={{
-                                                                    bgcolor: result.test.category.color || theme.palette.grey[300],
-                                                                    color: 'white',
-                                                                    fontSize: '0.7rem',
-                                                                    height: 22,
-                                                                    borderRadius: 0,
-                                                                    alignSelf: 'flex-start',
-                                                                }}
-                                                            />
-                                                        )}
-                                                    </Stack>
-                                                </Paper>
-                                            );
-                                        })}
+                            <Stack direction="row" alignItems="center" spacing={1}>
+                                <StarIcon fontSize="small" color="warning" />
+                                <Typography variant="body2" color="text.secondary">{t('game.bestAccuracy')}:</Typography>
+                                <Typography variant="body2" fontWeight={700}>{currentStats.bestAccuracy}%</Typography>
+                            </Stack>
+                            <Divider orientation="vertical" flexItem />
+                            <Stack direction="row" alignItems="center" spacing={1}>
+                                <TrendingUpIcon fontSize="small" color="info" />
+                                <Typography variant="body2" color="text.secondary">{t('game.avgAccuracy')}:</Typography>
+                                <Typography variant="body2" fontWeight={700}>{currentStats.avgAccuracy.toFixed(1)}%</Typography>
+                            </Stack>
+                            {currentStats.bestTime < Infinity && currentStats.bestTime > 0 && (
+                                <>
+                                    <Divider orientation="vertical" flexItem />
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                        <TimerIcon fontSize="small" color="success" />
+                                        <Typography variant="body2" color="text.secondary">{t('history.bestTime')}:</Typography>
+                                        <Typography variant="body2" fontWeight={700}>{formatTime(currentStats.bestTime)}</Typography>
                                     </Stack>
-                                </AccordionDetails>
-                            </Accordion>
-                        );
-                    })}
-                </Stack>
-            ) : (
-                <Stack spacing={3}>
-                    {sortedResults.map((result) => {
-                        const isExcellent = result.accuracy >= 90;
-                        const isGood = result.accuracy >= 70;
+                                </>
+                            )}
+                        </Stack>
+                    )}
+                </Box>
 
-                        return (
-                            <Paper
-                                key={result._id}
-                                elevation={0}
-                                sx={{
-                                    p: 4,
-                                    border: `1px solid ${theme.palette.divider}`,
-                                    borderRadius: 0,
-                                    transition: 'all 0.2s ease',
-                                    '&:hover': {
-                                        borderColor: theme.palette.primary.main,
-                                        transform: 'translateY(-2px)',
-                                        boxShadow: `0 4px 0 ${theme.palette.primary.main}`,
-                                    },
-                                }}
-                            >
-                                <Stack spacing={2}>
-                                    <Stack
-                                        direction="row"
-                                        justifyContent="space-between"
-                                        alignItems="flex-start"
+                {/* List */}
+                <Box sx={{ flex: 1, overflow: 'auto', p: 3, bgcolor: theme.palette.background.default }}>
+                    <Fade in key={selectedGroupTitle} timeout={400}>
+                        <Stack spacing={2}>
+                            {displayResults.map((result) => {
+                                const isExcellent = result.accuracy >= 90;
+                                const isGood = result.accuracy >= 70;
+
+                                return (
+                                    <Paper
+                                        key={result._id}
+                                        elevation={0}
+                                        sx={{
+                                            p: 2.5,
+                                            border: `1px solid ${theme.palette.divider}`,
+                                            borderRadius: '12px',
+                                            transition: 'all 0.2s ease',
+                                            '&:hover': {
+                                                borderColor: theme.palette.primary.main,
+                                                boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.08)}`,
+                                                transform: 'translateY(-2px)'
+                                            }
+                                        }}
                                     >
-                                        <Stack spacing={1}>
-                                            <Stack direction="row" alignItems="center" spacing={1.5}>
-                                                <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                                                    {result.testTitle}
+                                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                            <Box sx={{ flex: 1 }}>
+                                                <Stack direction="row" alignItems="center" spacing={1.5} mb={1}>
+                                                    {result.testTitle && selectedGroupTitle === '__all__' && (
+                                                        <Chip
+                                                            label={result.testTitle}
+                                                            size="small"
+                                                            sx={{ fontWeight: 600, fontSize: '0.75rem', borderRadius: '4px' }}
+                                                        />
+                                                    )}
+                                                    <Chip
+                                                        icon={<SportsEsportsIcon fontSize="small" />}
+                                                        label={getGameTypeName(result.gameType)}
+                                                        size="small"
+                                                        sx={{
+                                                            borderRadius: '4px',
+                                                            bgcolor: alpha(theme.palette.info.main, 0.1),
+                                                            color: theme.palette.info.main,
+                                                            fontWeight: 600,
+                                                            border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                                                            height: 22,
+                                                            fontSize: '0.7rem'
+                                                        }}
+                                                    />
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        {formatDate(result.completedAt)}
+                                                    </Typography>
+                                                </Stack>
+
+                                                {/* Progress Bar + Accuracy */}
+                                                <Stack direction="row" alignItems="center" spacing={2}>
+                                                    <Box sx={{ width: 120, height: 6, bgcolor: theme.palette.grey[200], borderRadius: 3, overflow: 'hidden' }}>
+                                                        <Box
+                                                            sx={{
+                                                                width: `${result.accuracy}%`,
+                                                                height: '100%',
+                                                                bgcolor: isExcellent ? theme.palette.success.main : isGood ? theme.palette.warning.main : theme.palette.error.main
+                                                            }}
+                                                        />
+                                                    </Box>
+                                                    <Typography variant="body2" fontWeight={600} color={isExcellent ? 'success.main' : isGood ? 'warning.main' : 'error.main'}>
+                                                        {result.accuracy}%
+                                                    </Typography>
+                                                    {result.duration && result.duration > 0 && (
+                                                        <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                            <AccessTimeIcon sx={{ fontSize: 14 }} /> {formatTime(result.duration)}
+                                                        </Typography>
+                                                    )}
+                                                </Stack>
+
+                                                {/* Additional Game Stats chips */}
+                                                <Stack direction="row" spacing={2} mt={1.5}>
+                                                    {result.totalMoves > 0 && (
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {t('game.moves')}: <strong>{result.totalMoves}</strong>
+                                                        </Typography>
+                                                    )}
+                                                    {result.bestStreak > 0 && (
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {t('game.bestStreak')}: <strong>{result.bestStreak}</strong>
+                                                        </Typography>
+                                                    )}
+                                                </Stack>
+                                            </Box>
+
+                                            {/* Score on right */}
+                                            <Box sx={{ textAlign: 'right', minWidth: 60 }}>
+                                                <Typography variant="h6" fontWeight={700} color={theme.palette.text.primary}>
+                                                    {result.score}
                                                 </Typography>
-                                                <Chip
-                                                    icon={<SportsEsportsIcon fontSize="small" />}
-                                                    label={getGameTypeName(result.gameType)}
-                                                    size="small"
-                                                    sx={{
-                                                        borderRadius: 0,
-                                                        bgcolor: alpha(theme.palette.info.main, 0.1),
-                                                        color: theme.palette.info.main,
-                                                        fontWeight: 600,
-                                                        border: `1px solid ${alpha(theme.palette.info.main, 0.3)}`,
-                                                    }}
-                                                />
-                                            </Stack>
-                                            {result.test?.category && (
-                                                <Chip
-                                                    label={result.test.category.name}
-                                                    size="small"
-                                                    sx={{
-                                                        bgcolor: result.test.category.color || theme.palette.grey[300],
-                                                        color: 'white',
-                                                        fontSize: '0.75rem',
-                                                        height: 24,
-                                                        borderRadius: 0,
-                                                        alignSelf: 'flex-start',
-                                                    }}
-                                                />
-                                            )}
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {t('score')}
+                                                </Typography>
+                                            </Box>
                                         </Stack>
-                                        <Chip
-                                            label={`${result.accuracy}%`}
-                                            color={isExcellent ? 'success' : isGood ? 'warning' : 'error'}
-                                            variant="outlined"
-                                            icon={<EmojiEventsIcon />}
-                                            sx={{ fontSize: '1.1rem', px: 2, borderRadius: 0, fontWeight: 700 }}
-                                        />
-                                    </Stack>
-
-                                    {/* Прогресс-бар */}
-                                    <Stack direction="row" alignItems="center" spacing={2}>
-                                        <Box
-                                            sx={{
-                                                flex: 1,
-                                                height: 10,
-                                                bgcolor: theme.palette.grey[200],
-                                                position: 'relative',
-                                                overflow: 'hidden',
-                                            }}
-                                        >
-                                            <Box
-                                                sx={{
-                                                    position: 'absolute',
-                                                    left: 0,
-                                                    top: 0,
-                                                    height: '100%',
-                                                    width: `${result.accuracy}%`,
-                                                    bgcolor: isExcellent
-                                                        ? theme.palette.success.main
-                                                        : isGood
-                                                            ? theme.palette.warning.main
-                                                            : theme.palette.error.main,
-                                                    transition: 'width 0.3s ease',
-                                                }}
-                                            />
-                                        </Box>
-                                    </Stack>
-
-                                    <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
-                                        <Stack direction="row" spacing={1} alignItems="center">
-                                            <AccessTimeIcon fontSize="small" color="action" />
-                                            <Typography variant="body2" color="text.secondary">
-                                                {formatDate(result.completedAt)}
-                                            </Typography>
-                                        </Stack>
-                                        <Typography variant="body2" color="text.secondary">
-                                            {t('game.questionsAnswered')}: <strong>{result.correctAnswers}/{result.totalQuestions}</strong>
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary">
-                                            {t('game.timeSpent')}: <strong>{formatTime(result.duration)}</strong>
-                                        </Typography>
-                                        {result.totalMoves > 0 && (
-                                            <Typography variant="body2" color="text.secondary">
-                                                {t('game.moves')}: <strong>{result.totalMoves}</strong>
-                                            </Typography>
-                                        )}
-                                        {result.bestStreak > 0 && (
-                                            <Typography variant="body2" color="text.secondary">
-                                                {t('game.bestStreak')}: <strong>{result.bestStreak}</strong>
-                                            </Typography>
-                                        )}
-                                    </Stack>
-                                </Stack>
-                            </Paper>
-                        );
-                    })}
-                </Stack>
-            )}
-        </>
+                                    </Paper>
+                                );
+                            })}
+                        </Stack>
+                    </Fade>
+                </Box>
+            </Box>
+        </Box>
     );
 }

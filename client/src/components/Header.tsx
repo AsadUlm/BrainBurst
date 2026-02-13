@@ -1,20 +1,9 @@
-import {
-  Box,
-  Toolbar,
-  Typography,
-  Stack,
-  Divider,
-  useTheme,
-  IconButton,
-  Menu,
-  MenuItem,
-  Avatar,
-  Tooltip
-} from '@mui/material';
+import { Box, Toolbar, Typography, Stack, Divider, useTheme, IconButton, Menu, MenuItem, Avatar, Tooltip } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
+import QuizIcon from '@mui/icons-material/Quiz';
 import HomeIcon from '@mui/icons-material/Home';
 import ArticleIcon from '@mui/icons-material/Article';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
@@ -59,7 +48,23 @@ export default function Header() {
 
   const handleLogout = () => {
     handleMenuClose();
+
+    // Сохраняем офлайн-результаты перед выходом
+    const offlineResults = localStorage.getItem('offlineTestResults');
+    const offlineSyncStatus = localStorage.getItem('offlineResultsSyncStatus');
+
+    // Очищаем localStorage
     localStorage.clear();
+
+    // Восстанавливаем офлайн-результаты
+    if (offlineResults) {
+      localStorage.setItem('offlineTestResults', offlineResults);
+      console.log('[Logout] Preserved offline results');
+    }
+    if (offlineSyncStatus) {
+      localStorage.setItem('offlineResultsSyncStatus', offlineSyncStatus);
+    }
+
     navigate('/login');
   };
 
@@ -166,6 +171,8 @@ export default function Header() {
           {/* Navigation Icons */}
           <Stack direction="row" spacing={0.5} sx={{ flexGrow: 1 }}>
             <NavIconButton label={t('header.home')} path="/" icon={<HomeIcon />} />
+
+            <NavIconButton label={t('tests')} path="/tests" icon={<QuizIcon />} />
 
             <NavIconButton label={t('header.history')} path="/myresults" icon={<ArticleIcon />} />
 
@@ -327,7 +334,7 @@ export default function Header() {
                     <Stack direction="row" alignItems="center" spacing={1.5}>
                       <InfoIcon fontSize="small" color="action" />
                       <Typography variant="body2" color="text.secondary">
-                        v3.1.3
+                        v4.1.2
                       </Typography>
                     </Stack>
                   </MenuItem>

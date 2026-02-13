@@ -314,7 +314,7 @@ export default function PuzzleQuestion({
                         sx={{
                             height: 8,
                             mb: 3,
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             backgroundColor: theme.palette.action.hover,
                             '& .MuiLinearProgress-bar': {
                                 backgroundColor: theme.palette.primary.main
@@ -356,7 +356,7 @@ export default function PuzzleQuestion({
                             p: 2,
                             minHeight: 80,
                             bgcolor: theme.palette.grey[50],
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             border: `2px dashed ${theme.palette.primary.main}`,
                         }}
                     >
@@ -373,7 +373,7 @@ export default function PuzzleQuestion({
                                                 fontSize: '1rem',
                                                 fontWeight: 500,
                                                 cursor: 'pointer',
-                                                borderRadius: 0,
+                                                borderRadius: '16px',
                                                 bgcolor: theme.palette.primary.light,
                                                 color: theme.palette.primary.contrastText,
                                                 '&:hover': {
@@ -396,7 +396,7 @@ export default function PuzzleQuestion({
                             onClick={handleClear}
                             sx={{
                                 mt: 1,
-                                borderRadius: 0,
+                                borderRadius: '16px',
                                 fontWeight: 600,
                                 textTransform: 'none'
                             }}
@@ -420,7 +420,7 @@ export default function PuzzleQuestion({
                                 sx={{
                                     fontSize: '1rem',
                                     cursor: 'pointer',
-                                    borderRadius: 0,
+                                    borderRadius: '16px',
                                     bgcolor: theme.palette.grey[200],
                                     '&:hover': {
                                         bgcolor: theme.palette.grey[300],
@@ -465,7 +465,7 @@ export default function PuzzleQuestion({
                             onClick={handlePrevious}
                             disabled={isFirstQuestion}
                             sx={{
-                                borderRadius: 0,
+                                borderRadius: '16px',
                                 fontWeight: 600,
                                 textTransform: 'none'
                             }}
@@ -480,7 +480,7 @@ export default function PuzzleQuestion({
                                     variant="outlined"
                                     onClick={onCheckAnswer}
                                     sx={{
-                                        borderRadius: 0,
+                                        borderRadius: '16px',
                                         fontWeight: 600,
                                         textTransform: 'none'
                                     }}
@@ -493,7 +493,7 @@ export default function PuzzleQuestion({
                                     variant="outlined"
                                     onClick={onShowAnswer}
                                     sx={{
-                                        borderRadius: 0,
+                                        borderRadius: '16px',
                                         fontWeight: 600,
                                         textTransform: 'none'
                                     }}
@@ -508,7 +508,7 @@ export default function PuzzleQuestion({
                         onClick={handleNext}
                         sx={{
                             px: 6,
-                            borderRadius: 0,
+                            borderRadius: '16px',
                             fontWeight: 600,
                             textTransform: 'none',
                             ml: 'auto'

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const ResultSchema = new mongoose.Schema({
+    clientResultId: { type: String, unique: true, sparse: true }, // Уникальный ID от клиента для защиты от дублирования
     userEmail: { type: String, required: true },
     testId: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
     testTitle: { type: String, required: true },

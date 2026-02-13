@@ -1,4 +1,4 @@
-import { Box, Typography, Paper, Stack, Chip, CircularProgress, useTheme, alpha } from '@mui/material';
+import { Box, Typography, Paper, Stack, Chip, CircularProgress, useTheme, alpha, Button } from '@mui/material';
 // useTheme and alpha used in sub-components
 import { useTranslation } from 'react-i18next';
 import AssessmentIcon from '@mui/icons-material/Assessment';
@@ -8,18 +8,22 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 import TouchAppIcon from '@mui/icons-material/TouchApp';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { Result } from './types';
 
 interface ResultsTabProps {
     results: Result[];
     loading: boolean;
     categoryColor: string;
+    onLoadMore?: () => void;
+    hasMore?: boolean;
+    loadingMore?: boolean;
 }
 
-export default function ResultsTab({ results, loading, categoryColor }: ResultsTabProps) {
+export default function ResultsTab({ results, loading, categoryColor, onLoadMore, hasMore, loadingMore }: ResultsTabProps) {
     const { t } = useTranslation();
 
-    if (loading) {
+    if (loading && results.length === 0) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
                 <CircularProgress size={48} />
@@ -44,6 +48,29 @@ export default function ResultsTab({ results, loading, categoryColor }: ResultsT
                             categoryColor={categoryColor}
                         />
                     ))}
+
+                    {hasMore && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', pt: 2 }}>
+                            <Button
+                                variant="outlined"
+                                onClick={onLoadMore}
+                                disabled={loadingMore}
+                                startIcon={loadingMore ? <CircularProgress size={20} color="inherit" /> : <ExpandMoreIcon />}
+                                sx={{
+                                    borderRadius: '12px',
+                                    px: 4,
+                                    color: categoryColor,
+                                    borderColor: alpha(categoryColor, 0.5),
+                                    '&:hover': {
+                                        borderColor: categoryColor,
+                                        bgcolor: alpha(categoryColor, 0.05)
+                                    }
+                                }}
+                            >
+                                {loadingMore ? t('loading') : t('loadMore')}
+                            </Button>
+                        </Box>
+                    )}
                 </Stack>
             )}
         </Box>
@@ -63,7 +90,7 @@ function EmptyResults() {
                 p: 6,
                 textAlign: 'center',
                 border: `1px dashed ${theme.palette.divider}`,
-                borderRadius: 0,
+                borderRadius: '16px',
                 bgcolor: alpha(theme.palette.grey[500], 0.02),
             }}
         >
@@ -123,7 +150,7 @@ function ResultCard({ result, categoryColor }: { result: Result; categoryColor: 
             variant="outlined"
             sx={{
                 p: 3,
-                borderRadius: 0,
+                borderRadius: '16px',
                 border: `1px solid ${theme.palette.divider}`,
                 transition: 'all 0.2s ease',
                 '&:hover': {
@@ -140,7 +167,7 @@ function ResultCard({ result, categoryColor }: { result: Result; categoryColor: 
                             label={modeLabel}
                             size="small"
                             sx={{
-                                borderRadius: 0,
+                                borderRadius: '16px',
                                 bgcolor: alpha(modeColor, 0.1),
                                 color: modeColor,
                                 border: `1px solid ${alpha(modeColor, 0.3)}`,
@@ -151,7 +178,7 @@ function ResultCard({ result, categoryColor }: { result: Result; categoryColor: 
                             label={new Date(result.completedAt).toLocaleDateString()}
                             size="small"
                             variant="outlined"
-                            sx={{ borderRadius: 0 }}
+                            sx={{ borderRadius: '16px' }}
                         />
                         {result.mode === 'game' && result.moves ? (
                             <Chip
@@ -159,7 +186,7 @@ function ResultCard({ result, categoryColor }: { result: Result; categoryColor: 
                                 label={`${result.moves} ${t('game.moves')}`}
                                 size="small"
                                 variant="outlined"
-                                sx={{ borderRadius: 0 }}
+                                sx={{ borderRadius: '16px' }}
                             />
                         ) : result.timeTaken ? (
                             <Chip
@@ -167,7 +194,7 @@ function ResultCard({ result, categoryColor }: { result: Result; categoryColor: 
                                 label={`${Math.floor(result.timeTaken / 60)}:${String(result.timeTaken % 60).padStart(2, '0')}`}
                                 size="small"
                                 variant="outlined"
-                                sx={{ borderRadius: 0 }}
+                                sx={{ borderRadius: '16px' }}
                             />
                         ) : null}
                     </Stack>

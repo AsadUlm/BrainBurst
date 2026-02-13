@@ -44,7 +44,7 @@ export default function TestHeader({ test, categoryColor }: TestHeaderProps) {
                 p: 4,
                 mb: 4,
                 border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 0,
+                borderRadius: '16px',
                 background: `linear-gradient(135deg, ${alpha(categoryColor, 0.05)} 0%, ${alpha(categoryColor, 0.02)} 100%)`
             }}
         >
@@ -60,7 +60,7 @@ export default function TestHeader({ test, categoryColor }: TestHeaderProps) {
                                 icon={<CategoryIcon />}
                                 label={category.name}
                                 sx={{
-                                    borderRadius: 0,
+                                    borderRadius: '16px',
                                     backgroundColor: alpha(categoryColor, 0.15),
                                     color: categoryColor,
                                     border: `1px solid ${alpha(categoryColor, 0.3)}`,
@@ -72,7 +72,7 @@ export default function TestHeader({ test, categoryColor }: TestHeaderProps) {
                             icon={<HelpOutlineIcon />}
                             label={`${totalQuestions} ${t('test.question')}`}
                             variant="outlined"
-                            sx={{ borderRadius: 0, fontWeight: 600 }}
+                            sx={{ borderRadius: '16px', fontWeight: 600 }}
                         />
                         {multipleChoiceCount > 0 && (
                             <Chip

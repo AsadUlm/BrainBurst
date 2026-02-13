@@ -185,7 +185,7 @@ export default function TestAnalyticsTab({ testId, categoryColor }: TestAnalytic
                         p: 2,
                         mb: 3,
                         border: `1px solid ${theme.palette.divider}`,
-                        borderRadius: 0,
+                        borderRadius: '16px',
                         bgcolor: analytics.improvementRate >= 0
                             ? alpha(theme.palette.success.main, 0.05)
                             : alpha(theme.palette.error.main, 0.05),
@@ -266,7 +266,7 @@ function ProgressChart({ data, categoryColor }: {
                     <Chip
                         label={t(`test.mode.${item.mode}`)}
                         size="small"
-                        sx={{ mt: 0.5, borderRadius: 0, fontSize: '0.7rem' }}
+                        sx={{ mt: 0.5, borderRadius: '16px', fontSize: '0.7rem' }}
                     />
                 </Paper>
             );
@@ -333,7 +333,7 @@ function ModeBreakdown({ data }: { data: { standard: number; exam: number; pract
     }
 
     return (
-        <Paper elevation={0} sx={{ p: 3, border: `1px solid ${theme.palette.divider}`, borderRadius: 0, height: '100%' }}>
+        <Paper elevation={0} sx={{ p: 3, border: `1px solid ${theme.palette.divider}`, borderRadius: '16px', height: '100%' }}>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
                 {t('analytics.modeBreakdown')}
             </Typography>
@@ -399,7 +399,7 @@ function ModeBreakdown({ data }: { data: { standard: number; exam: number; pract
                         <Chip
                             label={item.value}
                             size="small"
-                            sx={{ borderRadius: 0, fontWeight: 700, minWidth: 40 }}
+                            sx={{ borderRadius: '16px', fontWeight: 700, minWidth: 40 }}
                         />
                     </Box>
                 ))}
@@ -454,7 +454,7 @@ function DifficultQuestions({ questions }: { questions: QuestionStat[] }) {
                                         label={`${q.accuracy}% ${t('testAnalytics.accuracy')}`}
                                         size="small"
                                         sx={{
-                                            borderRadius: 0,
+                                            borderRadius: '16px',
                                             bgcolor: q.accuracy < 50
                                                 ? alpha(theme.palette.error.main, 0.1)
                                                 : alpha(theme.palette.success.main, 0.1),

@@ -372,7 +372,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
               sx={{
                 height: 8,
                 mb: 3,
-                borderRadius: 0,
+                borderRadius: '16px',
                 backgroundColor: theme.palette.action.hover,
                 '& .MuiLinearProgress-bar': {
                   backgroundColor: theme.palette.primary.main
@@ -402,7 +402,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
               severity="info"
               sx={{
                 mb: 3,
-                borderRadius: 0,
+                borderRadius: '16px',
                 backgroundColor: theme.palette.mode === 'dark' ? 'rgba(33, 150, 243, 0.1)' : 'rgba(33, 150, 243, 0.05)'
               }}
             >
@@ -426,7 +426,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
               sx={{
                 mb: 4,
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: 0,
+                  borderRadius: '16px',
                 }
               }}
             />
@@ -447,7 +447,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
                       alignItems: 'center',
                       justifyContent: 'center',
                       border: `2px solid ${answers[current] === i ? theme.palette.primary.main : theme.palette.divider}`,
-                      borderRadius: 0,
+                      borderRadius: '16px',
                       backgroundColor: answers[current] === i
                         ? theme.palette.primary.main
                         : 'transparent',
@@ -474,7 +474,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
                       p: 1.5,
                       flex: 1,
                       border: `2px solid ${answers[current] === i ? theme.palette.primary.main : theme.palette.divider}`,
-                      borderRadius: 0,
+                      borderRadius: '16px',
                       backgroundColor: answers[current] === i
                         ? theme.palette.mode === 'dark' ? 'rgba(144, 202, 249, 0.08)' : 'rgba(25, 118, 210, 0.04)'
                         : 'transparent',
@@ -500,7 +500,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
                 disabled={questionTimeLeft <= 0 || isProcessing}
                 sx={{
                   px: 6,
-                  borderRadius: 0,
+                  borderRadius: '16px',
                   fontWeight: 600,
                   textTransform: 'none'
                 }}
@@ -515,7 +515,7 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
               startIcon={isProcessing && <CircularProgress size={16} color="inherit" />}
               sx={{
                 px: 6,
-                borderRadius: 0,
+                borderRadius: '16px',
                 fontWeight: 600,
                 textTransform: 'none',
                 ml: 'auto'

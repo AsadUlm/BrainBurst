@@ -13,7 +13,37 @@
         "logout": "로그아웃",
         "administrator": "관리자",
         "user": "사용자",
-        "settings": "설정"
+        "settings": "설정",
+        "tests": "테스트"
+    },
+    "dashboard": {
+        "welcome": "{{name}}님, 환영합니다!",
+        "welcomeGuest": "BrainBurst에 오신 것을 환영합니다!",
+        "subtitle": "지식 관리 센터",
+        "quickStats": "빠른 통계",
+        "testsCompleted": "완료한 테스트",
+        "avgScore": "평균 점수",
+        "newsAndUpdates": "뉴스 및 업데이트",
+        "newFeature": "새로운 기능",
+        "update": "업데이트",
+        "readMore": "더 읽기",
+        "quickActions": "빠른 작업",
+        "startTest": "테스트 시작",
+        "viewAnalytics": "분석 보기",
+        "history": "기록",
+        "bestScore": "최고 점수",
+        "startLearning": "학습 시작",
+        "startNow": "지금",
+        "recommendedTests": "추천 테스트",
+        "popular": "인기",
+        "new": "신규",
+        "go": "이동",
+        "news": {
+            "gamesAvailable": "테스트를 위한 게임 모드 출시!",
+            "detailedAnalytics": "더욱 강력하고 상세해진 분석 기능",
+            "bugFixes": "버그 수정 및 성능 최적화",
+            "uiUpdate": "사용자 인터페이스(UI) 디자인 개편"
+        }
     },
     "auth": {
         "email": "이메일",
@@ -108,6 +138,7 @@
         "groupByCategory": "카테고리별 그룹화",
         "filterByCategory": "카테고리 필터",
         "allCategories": "모든 카테고리",
+        "categories": "카테고리",
         "searchTests": "테스트 검색...",
         "showFilters": "필터 표시",
         "hideFilters": "필터 숨기기",
@@ -123,7 +154,24 @@
             "exam": "시험",
             "practice": "연습"
         },
-        "newMode": "새로운"
+        "newMode": "새로운",
+        "timeSettings": "시간 설정",
+        "resultSaved": "결과가 성공적으로 저장되었습니다",
+        "resultSavedOffline": "결과가 로컬에 저장되었으며 연결이 복원되면 전송됩니다",
+        "offlineResults": {
+            "title": "저장되지 않은 결과",
+            "description": "네트워크 문제로 서버에 전송되지 못한 테스트 결과는 로컬에 저장되며 앱 로드 시 자동으로 동기화됩니다.",
+            "pending": "{{count}}개의 저장되지 않은 결과가 있습니다. 아래 버튼을 눌러 동기화하세요.",
+            "syncNow": "지금 동기화",
+            "syncing": "동기화 중...",
+            "allSynced": "모든 결과가 동기화되었습니다",
+            "allSyncedDescription": "저장되지 않은 결과가 없습니다. 모든 데이터가 서버에 성공적으로 전송되었습니다.",
+            "syncSuccess": "{{count}}개의 결과가 성공적으로 동기화되었습니다",
+            "syncPartial": "{{total}}개 중 {{synced}}개가 동기화되었습니다",
+            "syncError": "{{count}}개의 결과를 동기화하지 못했습니다. 인터넷 연결을 확인하세요.",
+            "syncingResults": "{{count}}개의 결과 동기화 중...",
+            "noResults": "동기화할 결과가 없습니다"
+        }
     },
     "game": {
         "title": "게임 모드",
@@ -208,6 +256,9 @@
         "plays": "플레이",
         "gameType": "게임 유형"
     },
+    "gameMode": {
+        "memoryMatch": "카드 맞추기"
+    },
     "testAnalytics": {
         "title": "테스트 분석",
         "attempts": "시도",
@@ -288,6 +339,7 @@
         "test": "테스트",
         "score": "점수",
         "date": "날짜",
+        "allResults": "모든 결과",
         "noResults": "결과 없음",
         "creatingTest": "테스트 생성",
         "timer": "타이머:",
