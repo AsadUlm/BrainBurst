@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { verifyToken } = require('../middleware/authMiddleware');
+const Test = require('../models/Test');
 
 const router = express.Router();
 const JWT_SECRET = 'super-secret-key'; // ❗в .env в будущем
@@ -37,7 +38,43 @@ router.post('/login', async (req, res) => {
     if (!isMatch) return res.status(401).json({ error: 'Неверный email или пароль' });
 
     const token = jwt.sign({ id: user._id, userId: user._id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, role: user.role, email: user.email, });
+
+    // Логика проверки новых уведомлений
+    const lastCheck = user.lastNotificationCheck || new Date(0); // Если нет даты, проверяем всё
+    const now = new Date();
+
+    // Считаем новые тесты
+    const newTestsCount = await Test.countDocuments({
+        isVisible: true,
+        // 1. Критерий новизны: создан недавно ИЛИ стал доступен недавно ИЛИ был обновлен (например, дали доступ)
+        $or: [
+            { createdAt: { $gt: lastCheck } },
+            { updatedAt: { $gt: lastCheck } },
+            { availableFrom: { $gt: lastCheck, $lte: now } }
+        ],
+        // 2. Критерий доступа: доступен всем (пустой массив) ИЛИ пользователю разрешен доступ
+        $and: [
+            {
+                $or: [
+                    { allowedUsers: { $size: 0 } },
+                    { allowedUsers: user._id }
+                ]
+            },
+            // 3. Критерий актуальности: тест не просрочен
+            {
+                $or: [
+                    { availableUntil: null },
+                    { availableUntil: { $gt: now } }
+                ]
+            }
+        ]
+    });
+
+    // Обновляем дату последней проверки
+    user.lastNotificationCheck = now;
+    await user.save();
+
+    res.json({ token, role: user.role, email: user.email, newTestsCount });
 });
 
 module.exports = router;

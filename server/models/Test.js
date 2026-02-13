@@ -139,11 +139,12 @@ const TestSchema = new mongoose.Schema({
         type: Number,
         default: null
     },
-    createdAt: {
-        type: Date,
-        default: Date.now,
+    examQuestionTime: {
+        type: Number,
+        default: null
     },
-});
+    // createdAt удален, так как timestamps: true создаст его автоматически
+}, { timestamps: true });
 
 module.exports = mongoose.model('Test', TestSchema);
 

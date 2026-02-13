@@ -413,7 +413,7 @@ export default function AdminGameResults() {
                                     <Typography variant="h6" fontWeight={700}>{t('game.popularGames')}</Typography>
                                 </Stack>
                                 <Stack spacing={2}>
-                                    {popularGames.map((game, index) => {
+                                    {popularGames.map((game) => {
                                         const maxCount = popularGames[0]?.count || 1;
                                         const percent = (game.count / maxCount) * 100;
                                         return (

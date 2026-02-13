@@ -50,6 +50,9 @@ export default function Login() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('role', data.role);
       localStorage.setItem('email', data.email);
+      if (data.newTestsCount && data.newTestsCount > 0) {
+        localStorage.setItem('newTestsCount', data.newTestsCount.toString());
+      }
       navigate('/');
     } catch {
       setError(t('common.error'));

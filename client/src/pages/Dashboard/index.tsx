@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Container, Typography, Paper, Button, Stack, useTheme, alpha, Avatar } from '@mui/material';
+import { Box, Container, Typography, Paper, Button, Stack, useTheme, alpha, Avatar, Snackbar, Alert } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -107,6 +107,15 @@ export default function Dashboard() {
     const navigate = useNavigate();
     const email = localStorage.getItem('email');
     const [stats, setStats] = useState({ totalTests: 0, avgScore: 0, bestScore: 0 });
+    const [notification, setNotification] = useState<{ open: boolean; count: number }>({ open: false, count: 0 });
+
+    useEffect(() => {
+        const newTests = localStorage.getItem('newTestsCount');
+        if (newTests && parseInt(newTests) > 0) {
+            setNotification({ open: true, count: parseInt(newTests) });
+            localStorage.removeItem('newTestsCount');
+        }
+    }, []);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -348,6 +357,22 @@ export default function Dashboard() {
                     </Grid>
                 </Grid>
             </motion.div>
+
+            <Snackbar
+                open={notification.open}
+                autoHideDuration={6000}
+                onClose={() => setNotification({ ...notification, open: false })}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+                <Alert
+                    onClose={() => setNotification({ ...notification, open: false })}
+                    severity="info"
+                    variant="filled"
+                    sx={{ width: '100%' }}
+                >
+                    {t('dashboard.newTestsAvailable', { count: notification.count })}
+                </Alert>
+            </Snackbar>
         </Container>
     );
 }
