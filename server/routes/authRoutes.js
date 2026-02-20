@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 const Test = require('../models/Test');
+const Notification = require('../models/Notification');
 
 const router = express.Router();
 const JWT_SECRET = 'super-secret-key'; // ❗в .env в будущем
@@ -39,42 +40,7 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign({ id: user._id, userId: user._id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
 
-    // Логика проверки новых уведомлений
-    const lastCheck = user.lastNotificationCheck || new Date(0); // Если нет даты, проверяем всё
-    const now = new Date();
-
-    // Считаем новые тесты
-    const newTestsCount = await Test.countDocuments({
-        isVisible: true,
-        // 1. Критерий новизны: создан недавно ИЛИ стал доступен недавно ИЛИ был обновлен (например, дали доступ)
-        $or: [
-            { createdAt: { $gt: lastCheck } },
-            { updatedAt: { $gt: lastCheck } },
-            { availableFrom: { $gt: lastCheck, $lte: now } }
-        ],
-        // 2. Критерий доступа: доступен всем (пустой массив) ИЛИ пользователю разрешен доступ
-        $and: [
-            {
-                $or: [
-                    { allowedUsers: { $size: 0 } },
-                    { allowedUsers: user._id }
-                ]
-            },
-            // 3. Критерий актуальности: тест не просрочен
-            {
-                $or: [
-                    { availableUntil: null },
-                    { availableUntil: { $gt: now } }
-                ]
-            }
-        ]
-    });
-
-    // Обновляем дату последней проверки
-    user.lastNotificationCheck = now;
-    await user.save();
-
-    res.json({ token, role: user.role, email: user.email, newTestsCount });
+    res.json({ token, role: user.role, email: user.email });
 });
 
 // Получить профиль текущего пользователя
@@ -120,6 +86,14 @@ router.post('/add-gems', verifyToken, requireAdmin, async (req, res) => {
 
         user.gems = (user.gems || 0) + val;
         await user.save();
+
+        await Notification.create({
+            user: user._id,
+            type: 'gem',
+            title: 'Начисление Гемов',
+            message: `Вам начислено ${val} гемов. Текущий баланс: ${user.gems}.`,
+            isRead: false
+        });
 
         res.json({ success: true, gems: user.gems });
     } catch (err) {

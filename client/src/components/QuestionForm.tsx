@@ -12,6 +12,7 @@ import {
   MenuItem,
   Chip,
   Stack,
+  useTheme,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -45,6 +46,7 @@ export default function QuestionForm({
   onChange,
 }: Props) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const questionType = question.questionType || 'multiple-choice';
 
   const handleTypeChange = (newType: QuestionType) => {
@@ -155,14 +157,14 @@ export default function QuestionForm({
   };
 
   return (
-    <Box sx={{ border: '1px solid #ccc', p: 2, mb: 3, borderRadius: 2 }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        {t('questionForm.questionNumber')}{index + 1}
+    <Box sx={{ border: `1px solid ${theme?.palette?.divider || '#ccc'}`, p: 2.5, mb: 3, borderRadius: '12px' }}>
+      <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
+        {t('questionForm.questionNumber')} {index + 1}
       </Typography>
 
       {/* Выбор типа вопроса */}
-      <FormControl fullWidth sx={{ mb: 2 }}>
-        <InputLabel>{t('questionForm.questionType')}</InputLabel>
+      <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+        <InputLabel size="small">{t('questionForm.questionType')}</InputLabel>
         <Select
           value={questionType}
           label={t('questionForm.questionType')}
@@ -176,19 +178,20 @@ export default function QuestionForm({
 
       <TextField
         fullWidth
+        size="small"
         label={t('questionForm.questionText')}
         value={question.text}
         onChange={(e) => onChange({ ...question, text: e.target.value })}
         multiline
-        minRows={3}
-        maxRows={8}
-        sx={{ mb: 2 }}
+        minRows={2}
+        maxRows={6}
+        sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
       />
 
       {/* Множественный выбор */}
       {questionType === 'multiple-choice' && (
-        <>
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+        <Box sx={{ pl: 1 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary', fontWeight: 600 }}>
             {t('questionForm.answerOptions')}
           </Typography>
 
@@ -199,17 +202,18 @@ export default function QuestionForm({
             }
           >
             {question.options.map((opt, i) => (
-              <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', mb: 2, gap: 1 }}>
-                <Radio value={i} sx={{ mt: 1 }} />
+              <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5, gap: 1 }}>
+                <Radio value={i} size="small" sx={{ mt: 0.5 }} />
                 <TextField
+                  size="small"
                   label={`${t('questionForm.option')} ${i + 1}`}
                   value={opt}
                   onChange={(e) => handleOptionChange(i, e.target.value)}
                   fullWidth
                   multiline
-                  minRows={2}
-                  maxRows={6}
-                  sx={{ flex: 1 }}
+                  minRows={1}
+                  maxRows={4}
+                  sx={{ flex: 1, '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
                 />
                 {question.options.length > 1 && (
                   <IconButton
@@ -236,51 +240,56 @@ export default function QuestionForm({
               {t('questionForm.addOption')}
             </Button>
           )}
-        </>
+        </Box>
       )}
 
       {/* Открытый текст */}
       {questionType === 'open-text' && (
-        <Box>
-          <Typography variant="subtitle1" sx={{ mb: 1, color: 'text.secondary' }}>
+        <Box sx={{ pl: 1 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600 }}>
             {t('questionForm.openTextDescription')}
           </Typography>
           <TextField
             fullWidth
+            size="small"
             label={t('questionForm.correctAnswer')}
             value={question.options[0] || ''}
             onChange={(e) => handleOptionChange(0, e.target.value)}
             multiline
             minRows={2}
-            maxRows={6}
-            sx={{ mb: 2 }}
+            maxRows={4}
+            sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
           />
 
           <TextField
             fullWidth
+            size="small"
             label={t('questionForm.hint')}
             placeholder={t('questionForm.hintPlaceholder')}
             value={question.hint || ''}
             onChange={(e) => onChange({ ...question, hint: e.target.value })}
             multiline
-            minRows={2}
+            minRows={1}
+            maxRows={3}
             helperText={t('questionForm.hintHelper')}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
           />
         </Box>
       )}
 
       {/* Пазл */}
       {questionType === 'puzzle' && (
-        <Box>
+        <Box sx={{ pl: 1 }}>
           <TextField
             fullWidth
+            size="small"
             label={t('questionForm.correctSentence')}
             value={question.correctSentence || ''}
             onChange={(e) => onChange({ ...question, correctSentence: e.target.value })}
             multiline
             minRows={2}
             maxRows={4}
-            sx={{ mb: 2 }}
+            sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
             helperText={t('questionForm.correctSentenceHelp')}
           />
 
@@ -294,7 +303,7 @@ export default function QuestionForm({
             {t('questionForm.splitIntoWords')}
           </Button>
 
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary', fontWeight: 600 }}>
             {t('questionForm.puzzleWords')} ({question.puzzleWords?.length || 0})
           </Typography>
 

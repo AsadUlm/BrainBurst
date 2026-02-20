@@ -24,6 +24,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import TuneIcon from '@mui/icons-material/Tune';
 import SyncIcon from '@mui/icons-material/Sync';
 import CloudOffIcon from '@mui/icons-material/CloudOff';
+import LanguageIcon from '@mui/icons-material/Language';
+import LanguageSwitcher from './LanguageSwitcher';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useUserSettings } from '../contexts/SettingsContext';
@@ -40,7 +42,7 @@ export default function UserSettingsDialog({ open, onClose }: UserSettingsDialog
     const theme = useTheme();
     const { t } = useTranslation();
     const { settings, updateSettings } = useUserSettings();
-    const [selectedTab, setSelectedTab] = useState('test');
+    const [selectedTab, setSelectedTab] = useState('general');
     const [localSettings, setLocalSettings] = useState<UserSettings>(settings);
 
     // Состояние для офлайн-результатов
@@ -174,8 +176,9 @@ export default function UserSettingsDialog({ open, onClose }: UserSettingsDialog
     );
 
     /* ─────────── Навигация слева ─────────── */
-    type TabKey = 'test' | 'offline';
+    type TabKey = 'general' | 'test' | 'offline';
     const tabs: { key: TabKey; label: string; icon: React.ReactNode; badge?: number }[] = [
+        { key: 'general', label: t('settings.general'), icon: <LanguageIcon fontSize="small" /> },
         { key: 'test', label: t('settings.testSettings'), icon: <TuneIcon fontSize="small" /> },
         {
             key: 'offline',
@@ -187,6 +190,7 @@ export default function UserSettingsDialog({ open, onClose }: UserSettingsDialog
 
     /* ─────────── Заголовок правой панели ─────────── */
     const tabTitle: Record<TabKey, string> = {
+        general: t('settings.general'),
         test: t('settings.testSettings'),
         offline: t('test.offlineResults.title')
     };
@@ -327,6 +331,17 @@ export default function UserSettingsDialog({ open, onClose }: UserSettingsDialog
                             }
                         }}
                     >
+                        {/* ── Общие настройки ── */}
+                        {selectedTab === 'general' && (
+                            <Box>
+                                <SettingRow
+                                    label={t('common.language')}
+                                >
+                                    <LanguageSwitcher />
+                                </SettingRow>
+                            </Box>
+                        )}
+
                         {/* ── Настройки теста ── */}
                         {selectedTab === 'test' && (
                             <Box>

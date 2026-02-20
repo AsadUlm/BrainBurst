@@ -9,6 +9,7 @@ const authRoutes = require('./routes/authRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const gameRoutes = require('./routes/gameRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const createDefaultAdmin = require('./middleware/createDefaultAdmin');
 
 const app = express();
@@ -26,6 +27,7 @@ app.use('/api/game-results', gameResultRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/games', gameRoutes);
+app.use('/api/notifications', notificationRoutes);
 createDefaultAdmin();
 
 const clientPath = path.join(__dirname, "./frontend/dist");

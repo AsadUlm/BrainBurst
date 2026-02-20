@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Container, Typography, Paper, Button, Stack, useTheme, alpha, Avatar, Snackbar, Alert } from '@mui/material';
+import { Box, Container, Typography, Paper, Button, Stack, useTheme, alpha, Avatar } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -102,20 +102,11 @@ const StatCard = ({ icon, value, label, color }: { icon: React.ReactNode, value:
 };
 
 export default function Dashboard() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const theme = useTheme();
     const navigate = useNavigate();
     const email = localStorage.getItem('email');
     const [stats, setStats] = useState({ totalTests: 0, avgScore: 0, bestScore: 0 });
-    const [notification, setNotification] = useState<{ open: boolean; count: number }>({ open: false, count: 0 });
-
-    useEffect(() => {
-        const newTests = localStorage.getItem('newTestsCount');
-        if (newTests && parseInt(newTests) > 0) {
-            setNotification({ open: true, count: parseInt(newTests) });
-            localStorage.removeItem('newTestsCount');
-        }
-    }, []);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -142,7 +133,15 @@ export default function Dashboard() {
     }, []);
 
     // Mock data - в будущем можно заменить на реальные данные
-    const userName = email?.split('@')[0] || 'Guest';
+    const userName = email?.split('@')[0];
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString(i18n.language || 'en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    };
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -181,7 +180,7 @@ export default function Dashboard() {
                                     WebkitBackgroundClip: 'text',
                                     WebkitTextFillColor: 'transparent',
                                 }}>
-                                    {t('dashboard.welcome', { name: userName })}
+                                    {userName ? t('dashboard.welcome', { name: userName }) : t('dashboard.welcomeGuest')}
                                 </Typography>
                                 <Typography variant="h6" color="text.secondary" fontWeight={400}>
                                     {t('dashboard.subtitle')}
@@ -234,8 +233,16 @@ export default function Dashboard() {
                                 <Grid container spacing={3}>
                                     <Grid size={{ xs: 12, md: 6 }}>
                                         <NewsCard
+                                            title={t('dashboard.news.notifications')}
+                                            date={formatDate('2026-02-20')}
+                                            tag={t('dashboard.newFeature')}
+                                            color={theme.palette.success.main}
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <NewsCard
                                             title={t('dashboard.news.gemsSystem')}
-                                            date="Feb 20, 2026"
+                                            date={formatDate('2026-02-20')}
                                             tag={t('dashboard.newFeature')}
                                             color={theme.palette.warning.main}
                                         />
@@ -243,7 +250,7 @@ export default function Dashboard() {
                                     <Grid size={{ xs: 12, md: 6 }}>
                                         <NewsCard
                                             title={t('dashboard.news.workOnMistakes')}
-                                            date="Feb 20, 2026"
+                                            date={formatDate('2026-02-20')}
                                             tag={t('dashboard.newFeature')}
                                             color={theme.palette.secondary.main}
                                         />
@@ -251,7 +258,7 @@ export default function Dashboard() {
                                     <Grid size={{ xs: 12, md: 6 }}>
                                         <NewsCard
                                             title={t('dashboard.news.gamesAvailable')}
-                                            date="Feb 12, 2026"
+                                            date={formatDate('2026-02-12')}
                                             tag={t('dashboard.newFeature')}
                                             color={theme.palette.secondary.main}
                                         />
@@ -259,7 +266,7 @@ export default function Dashboard() {
                                     <Grid size={{ xs: 12, md: 6 }}>
                                         <NewsCard
                                             title={t('dashboard.news.detailedAnalytics')}
-                                            date="Feb 10, 2026"
+                                            date={formatDate('2026-02-10')}
                                             tag={t('dashboard.update')}
                                             color={theme.palette.primary.main}
                                         />
@@ -267,7 +274,7 @@ export default function Dashboard() {
                                     <Grid size={{ xs: 12, md: 6 }}>
                                         <NewsCard
                                             title={t('dashboard.news.bugFixes')}
-                                            date="Feb 08, 2026"
+                                            date={formatDate('2026-02-08')}
                                             tag={t('dashboard.update')}
                                             color={theme.palette.info.main}
                                         />
@@ -275,7 +282,7 @@ export default function Dashboard() {
                                     <Grid size={{ xs: 12, md: 6 }}>
                                         <NewsCard
                                             title={t('dashboard.news.uiUpdate')}
-                                            date="Feb 05, 2026"
+                                            date={formatDate('2026-02-05')}
                                             tag={t('dashboard.update')}
                                             color={theme.palette.success.main}
                                         />
@@ -374,21 +381,6 @@ export default function Dashboard() {
                 </Grid>
             </motion.div>
 
-            <Snackbar
-                open={notification.open}
-                autoHideDuration={6000}
-                onClose={() => setNotification({ ...notification, open: false })}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            >
-                <Alert
-                    onClose={() => setNotification({ ...notification, open: false })}
-                    severity="info"
-                    variant="filled"
-                    sx={{ width: '100%' }}
-                >
-                    {t('dashboard.newTestsAvailable', { count: notification.count })}
-                </Alert>
-            </Snackbar>
         </Container>
     );
 }

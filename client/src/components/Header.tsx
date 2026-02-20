@@ -1,9 +1,11 @@
-import { Box, Toolbar, Typography, Stack, Divider, useTheme, IconButton, Menu, MenuItem, Avatar, Tooltip } from '@mui/material';
+import { Box, Toolbar, Typography, Stack, Divider, useTheme, IconButton, Menu, MenuItem, Avatar, Tooltip, Popover, Badge, alpha } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useUser } from '../contexts/UserContext';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import { ru } from 'date-fns/locale';
 import QuizIcon from '@mui/icons-material/Quiz';
 import HomeIcon from '@mui/icons-material/Home';
 import ArticleIcon from '@mui/icons-material/Article';
@@ -17,8 +19,11 @@ import LoginIcon from '@mui/icons-material/Login';
 import InfoIcon from '@mui/icons-material/Info';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DiamondIcon from '@mui/icons-material/Diamond';
-import LanguageSwitcher from './LanguageSwitcher';
 import UserSettingsDialog from './UserSettingsDialog';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import DoneAllIcon from '@mui/icons-material/DoneAll';
+import CircleNotificationsIcon from '@mui/icons-material/CircleNotifications';
+import { useNotifications } from '../contexts/NotificationContext';
 
 export default function Header() {
   const theme = useTheme();
@@ -26,6 +31,8 @@ export default function Header() {
   const location = useLocation();
   const { isAuthenticated, isAdmin, role } = useAuth();
   const { user } = useUser();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
@@ -251,6 +258,25 @@ export default function Header() {
                   </Stack>
                 </Tooltip>
 
+                <Tooltip title={t('header.notifications') || "Уведомления"} arrow>
+                  <IconButton
+                    onClick={(e) => setNotifAnchorEl(e.currentTarget)}
+                    sx={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: '12px',
+                      color: theme.palette.text.secondary,
+                      '&:hover': {
+                        backgroundColor: theme.palette.action.hover
+                      }
+                    }}
+                  >
+                    <Badge badgeContent={unreadCount} color="error">
+                      <NotificationsIcon />
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
+
                 <Tooltip title={t('header.settings')} arrow>
                   <IconButton
                     onClick={handleSettingsOpen}
@@ -324,12 +350,6 @@ export default function Header() {
 
                   <Divider />
 
-                  <Box sx={{ px: 2, py: 1.5 }}>
-                    <LanguageSwitcher />
-                  </Box>
-
-                  <Divider />
-
                   <MenuItem
                     sx={{
                       py: 1.5,
@@ -383,6 +403,99 @@ export default function Header() {
       </Box>
 
       <UserSettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      <Popover
+        open={Boolean(notifAnchorEl)}
+        anchorEl={notifAnchorEl}
+        onClose={() => setNotifAnchorEl(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{
+          sx: {
+            width: 360,
+            maxHeight: 500,
+            mt: 1.5,
+            borderRadius: '16px',
+            boxShadow: theme.shadows[4],
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <Box p={2} display="flex" justifyContent="space-between" alignItems="center" bgcolor={theme.palette.background.default} borderBottom={`1px solid ${theme.palette.divider}`}>
+          <Typography variant="h6" fontWeight={700}>{t('header.notifications') || "Уведомления"}</Typography>
+          {unreadCount > 0 && (
+            <Tooltip title="Отметить все как прочитанные">
+              <IconButton size="small" onClick={() => markAllAsRead()}>
+                <DoneAllIcon fontSize="small" color="primary" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
+        <Box sx={{ overflowY: 'auto', maxHeight: 400 }}>
+          {notifications.length === 0 ? (
+            <Stack alignItems="center" justifyContent="center" height={200} spacing={2} sx={{ opacity: 0.5 }}>
+              <NotificationsIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary">Нет новых уведомлений</Typography>
+            </Stack>
+          ) : (
+            notifications.map((notif) => {
+              const isGem = notif.type === 'gem';
+              const isTest = notif.type === 'test';
+
+              return (
+                <Box
+                  key={notif._id}
+                  onClick={() => markAsRead(notif._id)}
+                  sx={{
+                    p: 2,
+                    borderBottom: `1px solid ${theme.palette.divider}`,
+                    bgcolor: notif.isRead ? 'transparent' : alpha(theme.palette.primary.main, 0.04),
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    '&:hover': { bgcolor: alpha(theme.palette.action.hover, 0.08) },
+                    position: 'relative'
+                  }}
+                >
+                  <Stack direction="row" spacing={2} alignItems="flex-start">
+                    <Avatar sx={{
+                      bgcolor: isGem ? alpha(theme.palette.warning.main, 0.1) : (isTest ? alpha(theme.palette.info.main, 0.1) : alpha(theme.palette.grey[500], 0.1)),
+                      color: isGem ? theme.palette.warning.main : (isTest ? theme.palette.info.main : theme.palette.text.secondary),
+                      width: 44,
+                      height: 44,
+                      borderRadius: '12px'
+                    }}>
+                      {isGem ? <DiamondIcon /> : (isTest ? <CircleNotificationsIcon /> : <NotificationsIcon />)}
+                    </Avatar>
+                    <Box flex={1}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                        <Typography variant="subtitle2" fontWeight={700} sx={{ lineHeight: 1.3, mb: 0.5 }}>
+                          {notif.title}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', ml: 1, mt: 0.3 }}>
+                          {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true, locale: ru })}
+                        </Typography>
+                      </Stack>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, lineHeight: 1.5, fontSize: '0.875rem' }}>
+                        {notif.message}
+                      </Typography>
+                    </Box>
+                    {!notif.isRead && (
+                      <Box sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        bgcolor: theme.palette.primary.main,
+                        mt: 1,
+                        flexShrink: 0
+                      }} />
+                    )}
+                  </Stack>
+                </Box>
+              );
+            })
+          )}
+        </Box>
+      </Popover>
     </Box>
   );
 }

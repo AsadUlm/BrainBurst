@@ -8,16 +8,15 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
-  Divider,
   useTheme,
   Paper,
   CircularProgress,
-  MenuItem,
   Select,
   FormControl,
   InputLabel,
   Pagination,
   Stack,
+  MenuItem,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
@@ -161,207 +160,246 @@ export default function AdminCreateTest() {
 
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ mb: 6 }}>
+    <Container maxWidth={false} sx={{ py: 3, maxWidth: 1280 }}>
+      <Box sx={{ mb: 3 }}>
         <Typography
-          variant="h3"
+          variant="h5"
           sx={{
-            fontWeight: 600,
+            fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
-            gap: 2,
+            gap: 1.5,
           }}
         >
-          <DescriptionIcon fontSize="large" />
+          <DescriptionIcon fontSize="medium" color="primary" />
           {t('admin.creatingTest')}
-          <Divider
-            sx={{
-              flex: 1,
-              height: 4,
-              backgroundColor: theme.palette.divider,
-            }}
-          />
         </Typography>
       </Box>
 
-      <Paper
-        elevation={0}
-        sx={{
-          p: 4,
-          border: `1px solid ${theme.palette.divider}`,
-          borderRadius: 0,
-          mb: 6,
-        }}
-      >
-        <TextField
-          fullWidth
-          label={t('admin.testName')}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          sx={{ mb: 4 }}
-        />
-
-        <Box sx={{ mb: 4 }}>
-          <Typography
-            variant="h5"
-            sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            <CategoryIcon />
-            {t('admin.category')}
-          </Typography>
-
-          <FormControl fullWidth>
-            <InputLabel>{t('admin.selectCategory')}</InputLabel>
-            <Select
-              value={selectedCategory}
-              label={t('admin.selectCategory')}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              <MenuItem value="">
-                <em>{t('admin.noCategory')}</em>
-              </MenuItem>
-              {categories.map((cat) => (
-                <MenuItem key={cat._id} value={cat._id}>
-                  {cat.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
-
-        <Box sx={{ mb: 4 }}>
-          <Typography
-            variant="h5"
-            sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            <TimerIcon />
-            {t('admin.timeSettings')}
-          </Typography>
-
-          {/* Настройки для стандартного режима */}
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, alignItems: 'flex-start' }}>
+        {/* Левая панель - Основные настройки */}
+        <Box sx={{ width: { xs: '100%', md: '350px' }, flexShrink: 0, position: { md: 'sticky' }, top: { md: 24 } }}>
           <Paper
             elevation={0}
             sx={{
               p: 3,
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: '12px',
+              mb: { xs: 3, md: 0 },
+            }}
+          >
+            <TextField
+              fullWidth
+              size="small"
+              label={t('admin.testName')}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              sx={{ mb: 3, '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+            />
+
+            <Box sx={{ mb: 3 }}>
+              <Typography
+                variant="subtitle1"
+                sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}
+              >
+                <CategoryIcon />
+                {t('admin.category')}
+              </Typography>
+
+              <FormControl fullWidth>
+                <InputLabel size="small">{t('admin.selectCategory')}</InputLabel>
+                <Select
+                  size="small"
+                  value={selectedCategory}
+                  label={t('admin.selectCategory')}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  sx={{ borderRadius: '8px' }}
+                >
+                  <MenuItem value="">
+                    <em>{t('admin.noCategory')}</em>
+                  </MenuItem>
+                  {categories.map((cat) => (
+                    <MenuItem key={cat._id} value={cat._id}>
+                      {cat.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            <Box sx={{ mb: 4 }}>
+              <Typography
+                variant="subtitle1"
+                sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}
+              >
+                <TimerIcon fontSize="small" />
+                {t('admin.timeSettings')}
+              </Typography>
+
+              {/* Настройки для стандартного режима */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  mb: 3,
+                  border: `2px solid ${theme.palette.primary.main}`,
+                  borderRadius: 0,
+                  bgcolor: alpha(theme.palette.primary.main, 0.05)
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+                  {t('test.standardTest')}
+                </Typography>
+
+                <RadioGroup
+                  row
+                  value={useStandardGlobalTimer ? 'global' : 'per-question'}
+                  onChange={(e) => setUseStandardGlobalTimer(e.target.value === 'global')}
+                  sx={{ mb: 1.5 }}
+                >
+                  <FormControlLabel
+                    value="global"
+                    control={<Radio size="small" />}
+                    label={<Typography variant="body2">{t('admin.globalTimer')}</Typography>}
+                    sx={{ mr: 4 }}
+                  />
+                  <FormControlLabel
+                    value="per-question"
+                    control={<Radio size="small" />}
+                    label={<Typography variant="body2">{t('admin.perQuestionTimer')}</Typography>}
+                  />
+                </RadioGroup>
+
+                {useStandardGlobalTimer ? (
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label={t('admin.totalTestTime')}
+                    type="number"
+                    value={standardTimeLimit}
+                    onChange={(e) => setStandardTimeLimit(Number(e.target.value))}
+                    sx={{ maxWidth: 200, '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+                    helperText={t('admin.totalTestTimeHelp')}
+                  />
+                ) : (
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label={t('admin.timePerQuestion')}
+                    type="number"
+                    value={standardQuestionTime}
+                    onChange={(e) => setStandardQuestionTime(Number(e.target.value))}
+                    sx={{ maxWidth: 200, '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+                    helperText={t('admin.timePerQuestionHelp')}
+                  />
+                )}
+              </Paper>
+
+              {/* Настройки для режима экзамена */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  border: `1px solid ${theme.palette.error.main}`,
+                  borderRadius: '8px',
+                  bgcolor: alpha(theme.palette.error.main, 0.05)
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, color: theme.palette.error.main }}>
+                  {t('test.examMode')}
+                </Typography>
+
+                <RadioGroup
+                  row
+                  value={useExamGlobalTimer ? 'global' : 'per-question'}
+                  onChange={(e) => setUseExamGlobalTimer(e.target.value === 'global')}
+                  sx={{ mb: 1.5 }}
+                >
+                  <FormControlLabel
+                    value="global"
+                    control={<Radio size="small" />}
+                    label={<Typography variant="body2">{t('admin.globalTimer')}</Typography>}
+                    sx={{ mr: 4 }}
+                  />
+                  <FormControlLabel
+                    value="per-question"
+                    control={<Radio size="small" />}
+                    label={<Typography variant="body2">{t('admin.perQuestionTimer')}</Typography>}
+                  />
+                </RadioGroup>
+
+                {useExamGlobalTimer ? (
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label={t('admin.totalTestTime')}
+                    type="number"
+                    value={examTimeLimit}
+                    onChange={(e) => setExamTimeLimit(Number(e.target.value))}
+                    sx={{ maxWidth: 200, '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+                    helperText={t('admin.totalTestTimeHelp')}
+                  />
+                ) : (
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label={t('admin.timePerQuestion')}
+                    type="number"
+                    value={examQuestionTime}
+                    onChange={(e) => setExamQuestionTime(Number(e.target.value))}
+                    sx={{ maxWidth: 200, '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+                    helperText={t('admin.timePerQuestionHelp')}
+                  />
+                )}
+              </Paper>
+            </Box>
+          </Paper>
+        </Box>
+
+        {/* Правая панель - Вопросы */}
+        <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: '12px',
               mb: 3,
-              border: `2px solid ${theme.palette.primary.main}`,
-              borderRadius: 0,
-              bgcolor: alpha(theme.palette.primary.main, 0.05)
             }}
           >
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-              {t('test.standardTest')}
+            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
+              {t('admin.question')}
             </Typography>
 
-            <RadioGroup
-              row
-              value={useStandardGlobalTimer ? 'global' : 'per-question'}
-              onChange={(e) => setUseStandardGlobalTimer(e.target.value === 'global')}
-              sx={{ mb: 2 }}
-            >
-              <FormControlLabel
-                value="global"
-                control={<Radio />}
-                label={t('admin.globalTimer')}
-                sx={{ mr: 4 }}
-              />
-              <FormControlLabel
-                value="per-question"
-                control={<Radio />}
-                label={t('admin.perQuestionTimer')}
-              />
-            </RadioGroup>
-
-            {useStandardGlobalTimer ? (
-              <TextField
-                fullWidth
-                label={t('admin.totalTestTime')}
-                type="number"
-                value={standardTimeLimit}
-                onChange={(e) => setStandardTimeLimit(Number(e.target.value))}
-                sx={{ maxWidth: 300 }}
-                helperText={t('admin.totalTestTimeHelp')}
-              />
-            ) : (
-              <TextField
-                fullWidth
-                label={t('admin.timePerQuestion')}
-                type="number"
-                value={standardQuestionTime}
-                onChange={(e) => setStandardQuestionTime(Number(e.target.value))}
-                sx={{ maxWidth: 300 }}
-                helperText={t('admin.timePerQuestionHelp')}
-              />
+            {questions.length > 0 && (
+              <Stack spacing={2} sx={{ mb: 3 }}>
+                <Typography variant="body2" color="text.secondary">
+                  {t('common.showing')} {((currentPage - 1) * questionsPerPage) + 1}-{Math.min(currentPage * questionsPerPage, questions.length)} {t('common.of')} {questions.length} {t('common.questions')}
+                </Typography>
+                {totalPages > 1 && (
+                  <Pagination
+                    count={totalPages}
+                    page={currentPage}
+                    onChange={(_, page) => setCurrentPage(page)}
+                    color="primary"
+                    showFirstButton
+                    showLastButton
+                    sx={{ display: 'flex', justifyContent: 'center' }}
+                  />
+                )}
+              </Stack>
             )}
-          </Paper>
 
-          {/* Настройки для режима экзамена */}
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              border: `2px solid ${theme.palette.error.main}`,
-              borderRadius: 0,
-              bgcolor: alpha(theme.palette.error.main, 0.05)
-            }}
-          >
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: theme.palette.error.main }}>
-              {t('test.examMode')}
-            </Typography>
-
-            <RadioGroup
-              row
-              value={useExamGlobalTimer ? 'global' : 'per-question'}
-              onChange={(e) => setUseExamGlobalTimer(e.target.value === 'global')}
-              sx={{ mb: 2 }}
-            >
-              <FormControlLabel
-                value="global"
-                control={<Radio />}
-                label={t('admin.globalTimer')}
-                sx={{ mr: 4 }}
+            {paginatedQuestions.map(({ question, globalIndex }) => (
+              <QuestionForm
+                key={globalIndex}
+                index={globalIndex}
+                question={question}
+                onChange={(data) => updateQuestion(globalIndex, data)}
               />
-              <FormControlLabel
-                value="per-question"
-                control={<Radio />}
-                label={t('admin.perQuestionTimer')}
-              />
-            </RadioGroup>
+            ))}
 
-            {useExamGlobalTimer ? (
-              <TextField
-                fullWidth
-                label={t('admin.totalTestTime')}
-                type="number"
-                value={examTimeLimit}
-                onChange={(e) => setExamTimeLimit(Number(e.target.value))}
-                sx={{ maxWidth: 300 }}
-                helperText={t('admin.totalTestTimeHelp')}
-              />
-            ) : (
-              <TextField
-                fullWidth
-                label={t('admin.timePerQuestion')}
-                type="number"
-                value={examQuestionTime}
-                onChange={(e) => setExamQuestionTime(Number(e.target.value))}
-                sx={{ maxWidth: 300 }}
-                helperText={t('admin.timePerQuestionHelp')}
-              />
-            )}
-          </Paper>
-        </Box>
-
-        <Typography variant="h5" sx={{ mb: 3 }}>
-          {t('admin.question')}
-        </Typography>
-
-        {questions.length > 0 && (
-          <Stack spacing={2} sx={{ mb: 3 }}>
-            <Typography variant="body2" color="text.secondary">
-              {t('common.showing')} {((currentPage - 1) * questionsPerPage) + 1}-{Math.min(currentPage * questionsPerPage, questions.length)} {t('common.of')} {questions.length} {t('common.questions')}
-            </Typography>
-            {totalPages > 1 && (
+            {totalPages > 1 && questions.length > 0 && (
               <Pagination
                 count={totalPages}
                 page={currentPage}
@@ -369,64 +407,46 @@ export default function AdminCreateTest() {
                 color="primary"
                 showFirstButton
                 showLastButton
-                sx={{ display: 'flex', justifyContent: 'center' }}
+                sx={{ display: 'flex', justifyContent: 'center', my: 3 }}
               />
             )}
-          </Stack>
-        )}
 
-        {paginatedQuestions.map(({ question, globalIndex }) => (
-          <QuestionForm
-            key={globalIndex}
-            index={globalIndex}
-            question={question}
-            onChange={(data) => updateQuestion(globalIndex, data)}
-          />
-        ))}
+            <Button
+              variant="outlined"
+              onClick={addQuestion}
+              size="small"
+              sx={{
+                width: '100%',
+                py: 1.5,
+                borderStyle: 'dashed',
+                borderRadius: '8px',
+                fontWeight: 600
+              }}
+            >
+              {t('admin.addQuestion')}
+            </Button>
+          </Paper>
 
-        {totalPages > 1 && questions.length > 0 && (
-          <Pagination
-            count={totalPages}
-            page={currentPage}
-            onChange={(_, page) => setCurrentPage(page)}
-            color="primary"
-            showFirstButton
-            showLastButton
-            sx={{ display: 'flex', justifyContent: 'center', my: 3 }}
-          />
-        )}
-
-        <Button
-          variant="outlined"
-          onClick={addQuestion}
-          sx={{
-            width: '100%',
-            py: 2,
-            borderStyle: 'dashed',
-          }}
-        >
-          {t('admin.addQuestion')}
-        </Button>
-      </Paper>
-
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-        <Button
-          variant="outlined"
-          onClick={() => navigate('/admin')}
-          sx={{ px: 5, py: 1.5 }}
-          disabled={submitting}
-        >
-          {t('common.cancel')}
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleSubmit}
-          disabled={!title || questions.length === 0 || submitting}
-          sx={{ px: 5, py: 1.5 }}
-        >
-          {submitting ? <CircularProgress size={24} color="inherit" /> : t('admin.saveTest')}
-        </Button>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 4 }}>
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/admin')}
+              sx={{ px: 5, py: 1.5 }}
+              disabled={submitting}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSubmit}
+              disabled={!title || questions.length === 0 || submitting}
+              sx={{ px: 5, py: 1.5 }}
+            >
+              {submitting ? <CircularProgress size={24} color="inherit" /> : t('admin.saveTest')}
+            </Button>
+          </Box>
+        </Box>
       </Box>
     </Container>
   );
