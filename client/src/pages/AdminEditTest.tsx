@@ -32,6 +32,10 @@ interface Question {
   options: string[];
   correctIndex: number;
   time?: number;
+  hint?: string;
+  questionType?: 'multiple-choice' | 'open-text' | 'puzzle';
+  puzzleWords?: string[];
+  correctSentence?: string;
 }
 
 interface Category {

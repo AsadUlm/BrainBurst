@@ -11,6 +11,7 @@ export interface Question {
     questionType?: QuestionType;
     puzzleWords?: string[]; // Массив слов в правильном порядке (для puzzle)
     correctSentence?: string; // Правильное предложение для отображения
+    hint?: string; // Подсказка для открытых вопросов
 }
 
 export interface Test {

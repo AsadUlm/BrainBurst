@@ -1,6 +1,7 @@
 import { Box, Toolbar, Typography, Stack, Divider, useTheme, IconButton, Menu, MenuItem, Avatar, Tooltip } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useUser } from '../contexts/UserContext';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import QuizIcon from '@mui/icons-material/Quiz';
@@ -15,6 +16,7 @@ import HowToRegIcon from '@mui/icons-material/HowToReg';
 import LoginIcon from '@mui/icons-material/Login';
 import InfoIcon from '@mui/icons-material/Info';
 import SettingsIcon from '@mui/icons-material/Settings';
+import DiamondIcon from '@mui/icons-material/Diamond';
 import LanguageSwitcher from './LanguageSwitcher';
 import UserSettingsDialog from './UserSettingsDialog';
 
@@ -23,6 +25,7 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, isAdmin, role } = useAuth();
+  const { user } = useUser();
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
@@ -239,6 +242,15 @@ export default function Header() {
               </>
             ) : (
               <>
+                <Tooltip title={t('header.gemsTooltip')} arrow placement="bottom">
+                  <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mr: 1, px: 1.5, py: 0.5, bgcolor: theme.palette.mode === 'dark' ? 'rgba(33, 150, 243, 0.1)' : 'rgba(33, 150, 243, 0.05)', borderRadius: '12px', border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(33, 150, 243, 0.2)' : 'rgba(33, 150, 243, 0.1)'}`, cursor: 'default' }}>
+                    <DiamondIcon sx={{ fontSize: 20, color: theme.palette.primary.main }} />
+                    <Typography variant="body2" fontWeight={700} color="primary">
+                      {user?.gems ?? 0}
+                    </Typography>
+                  </Stack>
+                </Tooltip>
+
                 <Tooltip title={t('header.settings')} arrow>
                   <IconButton
                     onClick={handleSettingsOpen}
@@ -334,7 +346,7 @@ export default function Header() {
                     <Stack direction="row" alignItems="center" spacing={1.5}>
                       <InfoIcon fontSize="small" color="action" />
                       <Typography variant="body2" color="text.secondary">
-                        v4.1.2
+                        v4.4.3
                       </Typography>
                     </Stack>
                   </MenuItem>

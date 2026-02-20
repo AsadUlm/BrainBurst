@@ -30,6 +30,7 @@ interface Question {
   questionType?: QuestionType;
   puzzleWords?: string[];
   correctSentence?: string;
+  hint?: string;
 }
 
 interface Props {
@@ -51,6 +52,7 @@ export default function QuestionForm({
       text: question.text,
       time: question.time,
       questionType: newType,
+      hint: question.hint,
     };
 
     if (newType === 'multiple-choice') {
@@ -251,6 +253,18 @@ export default function QuestionForm({
             multiline
             minRows={2}
             maxRows={6}
+            sx={{ mb: 2 }}
+          />
+
+          <TextField
+            fullWidth
+            label={t('questionForm.hint')}
+            placeholder={t('questionForm.hintPlaceholder')}
+            value={question.hint || ''}
+            onChange={(e) => onChange({ ...question, hint: e.target.value })}
+            multiline
+            minRows={2}
+            helperText={t('questionForm.hintHelper')}
           />
         </Box>
       )}

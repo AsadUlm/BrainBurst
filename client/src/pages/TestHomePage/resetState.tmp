@@ -1,0 +1,8 @@
+
+    /* -------- Reset state on ID change -------- */
+    useEffect(() => {
+        setResults([]);
+        setHasLoadedResults(false);
+        setResultsPage(1);
+        setResultsTotalPages(1);
+    }, [id]);

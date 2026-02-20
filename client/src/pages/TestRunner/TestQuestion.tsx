@@ -24,6 +24,9 @@ import { useTranslation } from 'react-i18next';
 import { Test, Answer } from './types';
 import { useUserSettings } from '../../contexts/SettingsContext';
 import ProgressGrid from '../../components/ProgressGrid';
+import { useUser } from '../../contexts/UserContext';
+import DiamondIcon from '@mui/icons-material/Diamond';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
 
 interface Props {
   test: Test;
@@ -35,19 +38,23 @@ interface Props {
   onNext: (nextIndex: number, updatedAnswers?: Answer[]) => void;
   onPrevious?: () => void;
   mode: 'standard' | 'exam';
+  hintsUsed: number[];
+  setHintsUsed: React.Dispatch<React.SetStateAction<number[]>>;
 }
 
-export default function TestQuestion({ test, current, answers, setAnswers, questionTimesLeft, setQuestionTimesLeft, onNext, onPrevious, mode }: Props) {
+export default function TestQuestion({ test, current, answers, setAnswers, questionTimesLeft, setQuestionTimesLeft, onNext, onPrevious, mode, hintsUsed, setHintsUsed }: Props) {
   const theme = useTheme();
   const question = test.questions[current];
   const { t } = useTranslation();
   const { settings } = useUserSettings();
+  const { user, spendGem } = useUser();
 
-  // Определяем, является ли вопрос открытым (только один вариант ответа)
-  const isOpenQuestion = question.options.length === 1;
+  // Определяем, является ли вопрос открытым (по типу или по количеству вариантов)
+  const isOpenQuestion = question.questionType === 'open-text' || question.options.length === 1;
   const [textAnswer, setTextAnswer] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAnswerRequired, setShowAnswerRequired] = useState(false);
+  const [showHintError, setShowHintError] = useState(false);
   const lastActionTime = useRef<number>(0);
   const autoAdvanceTimerRef = useRef<number | null>(null);
   const questionMountTime = useRef<number>(Date.now());
@@ -267,6 +274,26 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
     }
   }, [current, isOpenQuestion, textAnswer, onPrevious, isProcessing]);
 
+  const hasHint = !!question.hint && question.hint.length > 0;
+  const hintUsed = hintsUsed.includes(current);
+
+  const handleUseHint = async () => {
+    if (!user || user.gems < 1) {
+      setShowHintError(true);
+      return;
+    }
+    try {
+      const success = await spendGem();
+      if (success) {
+        setHintsUsed(prev => [...prev, current]);
+      } else {
+        setShowHintError(true);
+      }
+    } catch {
+      setShowHintError(true);
+    }
+  };
+
   // Обработка горячих клавиш
   useEffect(() => {
     // Проверяем настройки - если горячие клавиши отключены, не добавляем обработчик
@@ -412,6 +439,35 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
             </Alert>
           )}
 
+          {/* Hint Section */}
+          {isOpenQuestion && hasHint && mode === 'standard' && (
+            <Box sx={{ mb: 2 }}>
+              {!hintUsed ? (
+                <Button
+                  variant="outlined"
+                  startIcon={<LightbulbIcon />}
+                  endIcon={
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      <DiamondIcon fontSize="small" />
+                      <Typography variant="caption" fontWeight="bold">1</Typography>
+                    </Stack>
+                  }
+                  onClick={handleUseHint}
+                  disabled={!user || user.gems < 1}
+                  color="warning"
+                  size="small"
+                  sx={{ borderRadius: '12px' }}
+                >
+                  {t('test.getHint')}
+                </Button>
+              ) : (
+                <Alert severity="info" icon={<LightbulbIcon />} sx={{ borderRadius: '12px' }}>
+                  {question.hint}
+                </Alert>
+              )}
+            </Box>
+          )}
+
           {isOpenQuestion ? (
             // Открытый вопрос - текстовое поле для ввода
             <TextField
@@ -542,6 +598,22 @@ export default function TestQuestion({ test, current, answers, setAnswers, quest
           sx={{ width: '100%', borderRadius: 0 }}
         >
           {t('test.answerRequired')}
+        </Alert>
+      </Snackbar>
+
+      {/* Уведомление об ошибке использования подсказки */}
+      <Snackbar
+        open={showHintError}
+        autoHideDuration={3000}
+        onClose={() => setShowHintError(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setShowHintError(false)}
+          severity="error"
+          sx={{ width: '100%', borderRadius: 0 }}
+        >
+          {t('test.hintError')}
         </Alert>
       </Snackbar>
     </Container>

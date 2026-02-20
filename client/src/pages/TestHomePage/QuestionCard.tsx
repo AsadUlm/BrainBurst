@@ -15,9 +15,9 @@ export default function QuestionCard({ question, index }: QuestionCardProps) {
     const theme = useTheme();
     const { t } = useTranslation();
 
-    const questionType = question.questionType || (question.options.length === 1 ? 'open' : 'multiple-choice');
+    const questionType = question.questionType || (question.options.length === 1 ? 'open-text' : 'multiple-choice');
     const isPuzzle = questionType === 'puzzle';
-    const isOpenQuestion = questionType === 'open';
+    const isOpenQuestion = questionType === 'open-text';
 
     return (
         <Paper

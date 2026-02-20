@@ -234,6 +234,22 @@ export default function Dashboard() {
                                 <Grid container spacing={3}>
                                     <Grid size={{ xs: 12, md: 6 }}>
                                         <NewsCard
+                                            title={t('dashboard.news.gemsSystem')}
+                                            date="Feb 20, 2026"
+                                            tag={t('dashboard.newFeature')}
+                                            color={theme.palette.warning.main}
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <NewsCard
+                                            title={t('dashboard.news.workOnMistakes')}
+                                            date="Feb 20, 2026"
+                                            tag={t('dashboard.newFeature')}
+                                            color={theme.palette.secondary.main}
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <NewsCard
                                             title={t('dashboard.news.gamesAvailable')}
                                             date="Feb 12, 2026"
                                             tag={t('dashboard.newFeature')}

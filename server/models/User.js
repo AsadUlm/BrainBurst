@@ -19,7 +19,9 @@ const UserSchema = new mongoose.Schema({
         requireAnswerBeforeNext: { type: Boolean, default: false },
         returnToUnanswered: { type: Boolean, default: true },
         showProgressGrid: { type: Boolean, default: true }
-    }
+    },
+    // Валюта для подсказок
+    gems: { type: Number, default: 10 }
 });
 
 // Хэшируем пароль перед сохранением

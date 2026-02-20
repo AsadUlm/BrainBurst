@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Typography, Box, Paper, Chip, useTheme,
   alpha, Stack, TextField, InputAdornment,
@@ -7,8 +7,11 @@ import {
   Divider,
   Select,
   MenuItem,
-  SelectChangeEvent
+  SelectChangeEvent,
+  IconButton,
+  Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
+import DiamondIcon from '@mui/icons-material/Diamond';
 import SearchIcon from '@mui/icons-material/Search';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import PersonIcon from '@mui/icons-material/Person';
@@ -21,10 +24,12 @@ import SortIcon from '@mui/icons-material/Sort';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import PercentIcon from '@mui/icons-material/Percent';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 import { LoadingPage } from './Loading';
 import TestResultDialog from './MyHistory/components/TestResultDialog';
 import { useTranslation } from 'react-i18next';
+import { useUser } from '../contexts/UserContext';
 
 // Типы данных (экспортируем, если нужны где-то еще)
 interface Category {
@@ -62,6 +67,7 @@ export interface Result {
   endTime?: string;
   timePerQuestion?: number[];
   mode?: 'standard' | 'exam' | 'practice' | 'game';
+  hintsUsed?: number[];
 }
 
 export interface ResultDetail extends Omit<Result, 'mistakes'> {
@@ -74,11 +80,13 @@ export interface ResultDetail extends Omit<Result, 'mistakes'> {
     puzzleWords?: string[];
     correctSentence?: string;
   }[];
+  hintsUsed?: number[];
 }
 
 export default function AdminResults() {
   const theme = useTheme();
   const { t, i18n } = useTranslation();
+  const { refreshUser } = useUser();
 
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,6 +115,47 @@ export default function AdminResults() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedResult, setSelectedResult] = useState<ResultDetail | null>(null);
+
+  // Gems Dialog State
+  const [gemDialogOpen, setGemDialogOpen] = useState(false);
+  const [gemEmail, setGemEmail] = useState('');
+  const [gemAmount, setGemAmount] = useState('0');
+  const [submittingGem, setSubmittingGem] = useState(false);
+
+  const handleOpenGemDialog = (email: string) => {
+    setGemEmail(email);
+    setGemAmount('0');
+    setGemDialogOpen(true);
+  };
+
+  const handleGemSubmit = async () => {
+    if (!gemEmail) return;
+    setSubmittingGem(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/auth/add-gems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ email: gemEmail, amount: gemAmount })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(t('admin.gemsAdded', { amount: gemAmount, email: gemEmail }) || `Added ${gemAmount} gems to ${gemEmail}`);
+        setGemDialogOpen(false);
+        refreshUser();
+      } else {
+        alert(data.error || 'Failed to add gems');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error adding gems');
+    } finally {
+      setSubmittingGem(false);
+    }
+  };
 
   // Debounce search
   useEffect(() => {
@@ -191,6 +240,29 @@ export default function AdminResults() {
     setDialogOpen(false);
   };
 
+  const handleDeleteResult = async (id: string) => {
+    if (!window.confirm(t('common.confirmDelete') || 'Are you sure you want to delete this result?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/results/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        setResults(prev => prev.filter(r => r._id !== id));
+        setTotalResults(prev => prev - 1);
+      } else {
+        console.error('Failed to delete result');
+      }
+    } catch (error) {
+      console.error('Error deleting result:', error);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = {
       day: 'numeric',
@@ -224,6 +296,22 @@ export default function AdminResults() {
       default: return theme.palette.success.main;
     }
   };
+
+  const displayedGroups = useMemo(() => {
+    const _groups: { title: string; items: Result[] }[] = [];
+    const map = new Map<string, Result[]>();
+
+    results.forEach(r => {
+      const title = r.testTitle || 'Untitled';
+      if (!map.has(title)) {
+        const items: Result[] = [];
+        map.set(title, items);
+        _groups.push({ title, items });
+      }
+      map.get(title)!.push(r);
+    });
+    return _groups;
+  }, [results]);
 
   if (loading && page === 1 && results.length === 0) return <LoadingPage />;
 
@@ -305,6 +393,8 @@ export default function AdminResults() {
 
             <Divider />
 
+            <Divider />
+
             <Box>
               <Typography variant="subtitle2" fontWeight={600} mb={1.5} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <CategoryIcon fontSize="small" color="action" />
@@ -380,94 +470,150 @@ export default function AdminResults() {
               <Typography variant="h6" color="text.secondary">{t('admin.noResults')}</Typography>
             </Paper>
           ) : (
-            <Stack spacing={2}>
-              {results.map((result) => {
-                const percentage = result.total > 0 ? Math.round((result.score / result.total) * 100) : 0;
-                const isExcellent = percentage >= 90;
-                const isGood = percentage >= 70;
-                const color = isExcellent ? 'success' : isGood ? 'warning' : 'error';
-                const modeColor = getModeColor(result.mode);
+            <Stack spacing={3}>
+              {displayedGroups.map((group, groupIndex) => (
+                <Box key={group.title || groupIndex}>
+                  {group.title && (
+                    <Typography
+                      variant="h6"
+                      gutterBottom
+                      sx={{
+                        px: 2,
+                        py: 1,
+                        borderLeft: `4px solid ${theme.palette.primary.main}`,
+                        bgcolor: alpha(theme.palette.primary.main, 0.05),
+                        borderRadius: '0 8px 8px 0',
+                        fontWeight: 600,
+                        mb: 2
+                      }}
+                    >
+                      {group.title}
+                    </Typography>
+                  )}
+                  <Stack spacing={2}>
+                    {group.items.map((result) => {
+                      const percentage = result.total > 0 ? Math.round((result.score / result.total) * 100) : 0;
+                      const isExcellent = percentage >= 90;
+                      const isGood = percentage >= 70;
+                      const color = isExcellent ? 'success' : isGood ? 'warning' : 'error';
+                      const modeColor = getModeColor(result.mode);
 
-                return (
-                  <Paper
-                    key={result._id}
-                    elevation={0}
-                    onClick={() => handleOpenDialog(result)}
-                    sx={{
-                      p: 2.5,
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: '16px',
-                      transition: 'all 0.2s ease',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        borderColor: theme.palette.primary.main,
-                        boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.08)}`,
-                        transform: 'translateY(-2px)'
-                      }
-                    }}
-                  >
-                    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2}>
-                      <Box sx={{ flex: 1 }}>
-                        <Stack direction="row" spacing={1} alignItems="center" mb={1}>
-                          <Chip
-                            label={result.testTitle}
-                            size="small"
-                            sx={{ fontWeight: 600, fontSize: '0.85rem' }}
-                          />
-                          <Chip
-                            icon={getModeIcon(result.mode)}
-                            label={t(`test.mode.${result.mode || 'standard'}`)}
-                            size="small"
-                            variant="outlined"
+                      return (
+                        <Paper
+                          key={result._id}
+                          elevation={0}
+                          onClick={() => handleOpenDialog(result)}
+                          sx={{
+                            p: 2.5,
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: '16px',
+                            transition: 'all 0.2s ease',
+                            cursor: 'pointer',
+                            '&:hover': {
+                              borderColor: theme.palette.primary.main,
+                              boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.08)}`,
+                              transform: 'translateY(-2px)'
+                            }
+                          }}
+                        >
+                          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2}>
+                            <Box sx={{ flex: 1 }}>
+                              <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                                <Chip
+                                  label={result.testTitle}
+                                  size="small"
+                                  sx={{ fontWeight: 600, fontSize: '0.85rem' }}
+                                />
+                                <Chip
+                                  icon={getModeIcon(result.mode)}
+                                  label={t(`test.mode.${result.mode || 'standard'}`)}
+                                  size="small"
+                                  variant="outlined"
 
-                            sx={{
-                              borderColor: alpha(modeColor, 0.3),
-                              color: modeColor,
-                              height: 24,
-                              '& .MuiChip-icon': { color: modeColor }
-                            }}
-                          />
-                        </Stack>
+                                  sx={{
+                                    borderColor: alpha(modeColor, 0.3),
+                                    color: modeColor,
+                                    height: 24,
+                                    '& .MuiChip-icon': { color: modeColor }
+                                  }}
+                                />
+                              </Stack>
 
-                        <Stack direction="row" alignItems="center" spacing={2} color="text.secondary">
-                          <Stack direction="row" alignItems="center" spacing={0.5}>
-                            <PersonIcon fontSize="small" sx={{ opacity: 0.7 }} />
-                            <Typography variant="body2">{result.userEmail}</Typography>
-                          </Stack>
-                          <Divider orientation="vertical" flexItem sx={{ height: 12, alignSelf: 'center' }} />
-                          <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                            {formatDate(result.createdAt)}
-                          </Typography>
-                        </Stack>
-                      </Box>
+                              <Stack direction="row" alignItems="center" spacing={2} color="text.secondary">
+                                <Stack direction="row" alignItems="center" spacing={0.5}>
+                                  <PersonIcon fontSize="small" sx={{ opacity: 0.7 }} />
+                                  <Typography variant="body2">{result.userEmail}</Typography>
+                                </Stack>
+                                <Divider orientation="vertical" flexItem sx={{ height: 12, alignSelf: 'center' }} />
+                                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                                  {formatDate(result.createdAt)}
+                                </Typography>
+                              </Stack>
+                            </Box>
 
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'space-between', sm: 'flex-end' } }}>
-                        <Stack alignItems="end">
-                          <Stack direction="row" alignItems="center" spacing={1}>
-                            {result.duration && (
-                              <Chip
-                                icon={<AccessTimeIcon />}
-                                label={formatTime(result.duration)}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'space-between', sm: 'flex-end' } }}>
+                              <Stack alignItems="end">
+                                <Stack direction="row" alignItems="center" spacing={1}>
+                                  {result.duration && (
+                                    <Chip
+                                      icon={<AccessTimeIcon />}
+                                      label={formatTime(result.duration)}
+                                      size="small"
+                                      sx={{ bgcolor: alpha(theme.palette.grey[500], 0.1), border: 'none' }}
+                                    />
+                                  )}
+                                </Stack>
+                              </Stack>
+
+                              <Box sx={{ textAlign: 'right', minWidth: 80 }}>
+                                <Typography variant="h5" fontWeight={700} color={`${color}.main`}>
+                                  {result.score}/{result.total}
+                                </Typography>
+                                <Typography variant="caption" fontWeight={600} sx={{ color: theme.palette.text.secondary }}>
+                                  {percentage}%
+                                </Typography>
+                              </Box>
+
+                              <IconButton
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenGemDialog(result.userEmail);
+                                }}
+                                color="info"
                                 size="small"
-                                sx={{ bgcolor: alpha(theme.palette.grey[500], 0.1), border: 'none' }}
-                              />
-                            )}
-                          </Stack>
-                        </Stack>
+                                sx={{
+                                  opacity: 0.6,
+                                  '&:hover': { opacity: 1, bgcolor: alpha(theme.palette.info.main, 0.1) }
+                                }}
+                              >
+                                <DiamondIcon />
+                              </IconButton>
 
-                        <Box sx={{ textAlign: 'right', minWidth: 80 }}>
-                          <Typography variant="h5" fontWeight={700} color={`${color}.main`}>
-                            {result.score}/{result.total}
-                          </Typography>
-                          <Typography variant="caption" fontWeight={600} sx={{ color: theme.palette.text.secondary }}>
-                            {percentage}%
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </Stack>
-                  </Paper>
-                );
-              })}
+                              <IconButton
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteResult(result._id);
+                                }}
+                                color="error"
+                                size="small"
+                                sx={{
+                                  opacity: 0.6,
+                                  '&:hover': {
+                                    opacity: 1,
+                                    bgcolor: alpha(theme.palette.error.main, 0.1)
+                                  }
+                                }}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </Box>
+                          </Stack>
+                        </Paper>
+                      );
+                    })}
+                  </Stack>
+                </Box>
+              ))}
             </Stack>
           )}
 
@@ -491,6 +637,32 @@ export default function AdminResults() {
           )}
         </Box>
       </Stack>
+
+      <Dialog open={gemDialogOpen} onClose={() => setGemDialogOpen(false)}>
+        <DialogTitle>{t('admin.addGemsTitle') || 'Give Gems'}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            {t('admin.addGemsDesc', { email: gemEmail }) || `Adding gems for user: ${gemEmail}`}
+          </Typography>
+          <TextField
+            autoFocus
+            margin="dense"
+            label={t('admin.amount') || "Amount"}
+            type="number"
+            fullWidth
+            variant="outlined"
+            value={gemAmount}
+            onChange={(e) => setGemAmount(e.target.value)}
+            inputProps={{ step: "0.1" }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setGemDialogOpen(false)}>{t('common.cancel')}</Button>
+          <Button onClick={handleGemSubmit} variant="contained" disabled={submittingGem}>
+            {submittingGem ? <CircularProgress size={24} /> : (t('common.add') || 'Add')}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <TestResultDialog
         open={dialogOpen}

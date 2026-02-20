@@ -48,6 +48,11 @@ const QuestionSchema = new mongoose.Schema({
             return this.questionType === 'puzzle';
         }
     },
+    // Подсказка для вопроса (опционально, только для open-text)
+    hint: {
+        type: String,
+        default: ''
+    },
     time: { type: Number },
 });
 
@@ -132,10 +137,6 @@ const TestSchema = new mongoose.Schema({
         default: true
     },
     examTimeLimit: {
-        type: Number,
-        default: null
-    },
-    examQuestionTime: {
         type: Number,
         default: null
     },

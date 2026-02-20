@@ -1,6 +1,6 @@
 // components/TestRunner/TestResultSummary.tsx
 import { Box, Button, Chip, Container, Paper, Stack, Typography, useTheme } from '@mui/material';
-import { CheckCircle, ErrorOutline, Lock as LockIcon } from '@mui/icons-material';
+import { CheckCircle, ErrorOutline, Lock as LockIcon, Lightbulb as LightbulbIcon } from '@mui/icons-material';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import HomeIcon from '@mui/icons-material/Home';
 import { Test, Answer } from './types';
@@ -17,6 +17,7 @@ interface Props {
   isExamMode?: boolean;
   canViewContent?: boolean;
   userAttempts?: number;
+  hintsUsed?: number[];
 }
 
 export default function TestResultSummary({
@@ -28,7 +29,8 @@ export default function TestResultSummary({
   isPracticeMode = false,
   isExamMode = false,
   canViewContent = true,
-  userAttempts = 0
+  userAttempts = 0,
+  hintsUsed = []
 }: Props) {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -169,6 +171,7 @@ export default function TestResultSummary({
         ) : (
           test.questions.map((q, i) => {
             const userAnswer = answers[i];
+            const isHintUsed = hintsUsed.includes(i);
             const questionType = q.questionType || 'multiple-choice';
             const isOpenQuestion = questionType === 'open-text' || q.options.length === 1;
             const isPuzzle = questionType === 'puzzle';
@@ -203,8 +206,18 @@ export default function TestResultSummary({
                   )
                 }}
               >
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
                   {t('test.question')} {i + 1}: {q.text}
+                  {isHintUsed && (
+                    <Chip
+                      icon={<LightbulbIcon style={{ fontSize: 16 }} />}
+                      label={t('test.hintUsed')}
+                      size="small"
+                      color="warning"
+                      variant="outlined"
+                      sx={{ height: 24, fontSize: '0.75rem' }}
+                    />
+                  )}
                 </Typography>
 
                 {isPuzzle ? (
@@ -303,8 +316,6 @@ export default function TestResultSummary({
             );
           })
         )}
-
-        {/* End of content lock conditional */}
 
         {/* Кнопки для режима практики */}
         {isPracticeMode && (onRestart || onBackToTests) && (

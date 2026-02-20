@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo } from 'react';
 import {
   Typography, Card, CardContent, Box, useTheme, alpha, Stack,
   Chip, TextField, InputAdornment, List, ListItem, ListItemButton, ListItemIcon,
-  ListItemText, FormControl, Select, MenuItem, Switch, IconButton, Badge, Theme, Fade, Tooltip
+  ListItemText, FormControl, Select, MenuItem, Switch, IconButton, Badge, Theme, Fade, Tooltip,
+  Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, Button, CircularProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +21,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import LockIcon from '@mui/icons-material/Lock';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 
 import TestVisibilityModal from '../components/TestVisibilityModal';
 import { LoadingPage } from './Loading';
@@ -42,7 +44,7 @@ interface Test {
   description?: string;
   questions: Question[];
   timeLimit?: number;
-  category?: Category | string; // Adjusted to handle string reference
+  category?: Category | string;
   useStandardGlobalTimer?: boolean;
   standardTimeLimit?: number;
   standardQuestionTime?: number;
@@ -54,10 +56,78 @@ interface Test {
   attemptsToUnlock?: number;
 }
 
+
+
 export default function AdminTestList() {
   const [tests, setTests] = useState<Test[]>([]);
   const [categories, setCategories] = useState<Record<string, Category>>({});
   const [loading, setLoading] = useState(true);
+
+  // Mistake Test Dialog
+  const [mistakeDialogOpen, setMistakeDialogOpen] = useState(false);
+  const [selectedTestIdForMistakes, setSelectedTestIdForMistakes] = useState<string>('');
+  const [selectedTestTitleForMistakes, setSelectedTestTitleForMistakes] = useState<string>('');
+  const [users, setUsers] = useState<{ _id: string, email: string }[]>([]);
+  const [selectedUser, setSelectedUser] = useState<{ _id: string, email: string } | null>(null);
+  const [mistakeTestCreating, setMistakeTestCreating] = useState(false);
+
+  // Fetch users when dialog opens
+  useEffect(() => {
+    if (mistakeDialogOpen && users.length === 0) {
+      const token = localStorage.getItem('token');
+      fetch('/api/results/users', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setUsers(data);
+        })
+        .catch(console.error);
+    }
+  }, [mistakeDialogOpen, users.length]);
+
+  const handleOpenMistakeDialog = (testId: string, title: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setSelectedTestIdForMistakes(testId);
+    setSelectedTestTitleForMistakes(title);
+    setMistakeDialogOpen(true);
+    setSelectedUser(null);
+  };
+
+  const handleCreateMistakeTest = async () => {
+    if (!selectedUser || !selectedTestIdForMistakes) return;
+
+    setMistakeTestCreating(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/tests/mistakes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          originalTestId: selectedTestIdForMistakes,
+          userId: selectedUser._id
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert(t('test.mistakeTestCreated') || 'Mistake test created successfully!');
+        setMistakeDialogOpen(false);
+        fetchTests(); // Refresh list
+      } else {
+        alert(data.error || 'Failed to create test');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error creating test');
+    } finally {
+      setMistakeTestCreating(false);
+    }
+  };
 
   // Фильтры и сортировка
   const [searchQuery, setSearchQuery] = useState('');
@@ -557,12 +627,43 @@ export default function AdminTestList() {
                   handleDelete={handleDelete}
                   handleEdit={handleEdit}
                   handleVisibility={handleVisibility}
+                  handleOpenMistakeDialog={handleOpenMistakeDialog}
                 />
               </Box>
             </Fade>
           </Box>
         </Box>
       </Box>
+
+      {/* Mistake Test Dialog */}
+      <Dialog open={mistakeDialogOpen} onClose={() => setMistakeDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('test.createMistakeTest')}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {t('test.createMistakeTestDesc', { title: selectedTestTitleForMistakes })}
+          </Typography>
+
+          <FormControl fullWidth>
+            <Autocomplete
+              options={users}
+              getOptionLabel={(option) => option.email}
+              value={selectedUser}
+              onChange={(_, newValue) => setSelectedUser(newValue)}
+              renderInput={(params) => <TextField {...params} label={t('admin.selectUser')} />}
+            />
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMistakeDialogOpen(false)}>{t('common.cancel')}</Button>
+          <Button
+            onClick={handleCreateMistakeTest}
+            variant="contained"
+            disabled={!selectedUser || mistakeTestCreating}
+          >
+            {mistakeTestCreating ? <CircularProgress size={24} /> : t('common.create')}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <TestVisibilityModal
         open={visibilityModalOpen}
@@ -585,7 +686,8 @@ function TestGrid({
   t,
   handleDelete,
   handleEdit,
-  handleVisibility
+  handleVisibility,
+  handleOpenMistakeDialog
 }: {
   tests: Test[];
   categories: Record<string, Category>;
@@ -594,6 +696,7 @@ function TestGrid({
   handleDelete: (id: string, e: React.MouseEvent) => void;
   handleEdit: (id: string, e: React.MouseEvent) => void;
   handleVisibility: (id: string, title: string, e: React.MouseEvent) => void;
+  handleOpenMistakeDialog: (id: string, title: string, e: React.MouseEvent) => void;
 }) {
   return (
     <Box
@@ -680,7 +783,16 @@ function TestGrid({
                 </Typography>
 
                 {/* Admin Actions */}
-                <Stack direction="row" spacing={0.5}>
+                <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
+                  <Tooltip title={t('test.createMistakeTest') || "Create Mistake Test"}>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => handleOpenMistakeDialog(test._id, test.title, e)}
+                      sx={{ color: 'warning.main', p: 0.5 }}
+                    >
+                      <AutoFixHighIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                   <Tooltip title={t('admin.visibilitySettings')}>
                     <IconButton
                       size="small"
@@ -703,7 +815,7 @@ function TestGrid({
                     <IconButton
                       size="small"
                       onClick={(e) => handleDelete(test._id, e)}
-                      sx={{ color: 'error.main', p: 0.5 }}
+                      sx={{ color: '#d32f2f', p: 0.5 }}
                     >
                       <DeleteIcon fontSize="small" />
                     </IconButton>

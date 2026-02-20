@@ -23,6 +23,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import CloseIcon from '@mui/icons-material/Close';
 import LockIcon from '@mui/icons-material/Lock';
 import { EmojiEvents, AccessTime, FilterList, ExpandMore, ExpandLess } from '@mui/icons-material';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import { useTranslation } from 'react-i18next';
 
 type QuestionType = 'multiple-choice' | 'open-text' | 'puzzle';
@@ -49,6 +50,7 @@ interface ResultDetail {
   answers?: Answer[];         // индексы выбранных ответов или текстовые ответы
   correctAnswers?: number[];  // индексы правильных ответов
   shuffledQuestions?: Question[];  // вопросы в порядке, как их видел пользователь
+  hintsUsed?: number[];
 }
 
 interface Props {
@@ -75,7 +77,7 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
     result.shuffledQuestions.forEach((q, idx) => {
       const userAnswer = result.answers?.[idx];
       const correctAnswer = result.correctAnswers?.[idx];
-      const isOpenQuestion = q.options.length === 1 && q.questionType !== 'puzzle';
+      const isOpenQuestion = q.questionType === 'open-text' || q.options.length === 1;
       const isPuzzleQuestion = q.questionType === 'puzzle';
 
       let isCorrect = false;
@@ -110,7 +112,7 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
 
         const userAnswer = result.answers?.[idx];
         const correctAnswer = result.correctAnswers?.[idx];
-        const isOpenQuestion = q.options.length === 1 && q.questionType !== 'puzzle';
+        const isOpenQuestion = q.questionType === 'open-text' || q.options.length === 1;
         const isPuzzleQuestion = q.questionType === 'puzzle';
 
         let isCorrect = false;
@@ -352,7 +354,7 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
             {paginatedQuestions.map(({ q, idx }) => {
               const userAnswer = result.answers?.[idx];
               const correctAnswer = result.correctAnswers?.[idx];
-              const isOpenQuestion = q.options && q.options.length === 1 && q.questionType !== 'puzzle';
+              const isOpenQuestion = q.questionType === 'open-text' || (q.options && q.options.length === 1);
               const isPuzzleQuestion = q.questionType === 'puzzle';
               const isExpanded = expandedQuestions.has(idx);
 
@@ -369,6 +371,8 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
               } else {
                 isCorrect = userAnswer === correctAnswer;
               }
+
+              const isHintUsed = result.hintsUsed?.includes(idx);
 
               return (
                 <Paper
@@ -409,9 +413,21 @@ export default function TestResultDialog({ open, onClose, result }: Props) {
                     )}
 
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
-                        {t('test.question')} {idx + 1}
-                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          {t('test.question')} {idx + 1}
+                        </Typography>
+                        {isHintUsed && (
+                          <Chip
+                            icon={<LightbulbIcon style={{ fontSize: 14 }} />}
+                            label={t('test.hintUsed')}
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                            sx={{ height: 20, fontSize: '0.7rem' }}
+                          />
+                        )}
+                      </Stack>
                       <Typography
                         variant="body1"
                         sx={{

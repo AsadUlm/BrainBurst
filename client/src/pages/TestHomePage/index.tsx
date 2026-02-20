@@ -44,6 +44,15 @@ export default function TestHomePage() {
     const [resultsPage, setResultsPage] = useState(1);
     const [resultsTotalPages, setResultsTotalPages] = useState(1);
     const [loadingMoreResults, setLoadingMoreResults] = useState(false);
+    const [hasLoadedResults, setHasLoadedResults] = useState(false);
+
+    /* -------- Reset state on ID change -------- */
+    useEffect(() => {
+        setResults([]);
+        setHasLoadedResults(false);
+        setResultsPage(1);
+        setResultsTotalPages(1);
+    }, [id]);
 
     /* -------- Load test data + attempts -------- */
     useEffect(() => {
@@ -171,15 +180,18 @@ export default function TestHomePage() {
         } finally {
             setResultsLoading(false);
             setLoadingMoreResults(false);
+            if (page === 1) {
+                setHasLoadedResults(true);
+            }
         }
     }, [id]);
 
     /* -------- Lazy-load results on tab switch -------- */
     useEffect(() => {
-        if (currentTab === 'results' && results.length === 0 && !resultsLoading) {
+        if (currentTab === 'results' && !hasLoadedResults && !resultsLoading) {
             loadResults(1);
         }
-    }, [currentTab, results.length, resultsLoading, loadResults]);
+    }, [currentTab, hasLoadedResults, resultsLoading, loadResults]);
 
     const handleLoadMoreResults = useCallback(() => {
         if (resultsPage < resultsTotalPages) {
@@ -246,6 +258,7 @@ export default function TestHomePage() {
                                         fontWeight: 600,
                                         minHeight: 64,
                                         borderRadius: '16px',
+                                        outline: 'none',
                                     },
                                     '& .Mui-selected': {
                                         color: categoryColor,

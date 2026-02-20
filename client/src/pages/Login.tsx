@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useUser } from '../contexts/UserContext';
 import EmailIcon from '@mui/icons-material/Email';
 import LockIcon from '@mui/icons-material/Lock';
 import Visibility from '@mui/icons-material/Visibility';
@@ -30,6 +31,7 @@ export default function Login() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const theme = useTheme();
+  const { refreshUser } = useUser();
 
   const handleLogin = async () => {
     setError('');
@@ -53,6 +55,7 @@ export default function Login() {
       if (data.newTestsCount && data.newTestsCount > 0) {
         localStorage.setItem('newTestsCount', data.newTestsCount.toString());
       }
+      await refreshUser(); // Refresh user context data
       navigate('/');
     } catch {
       setError(t('common.error'));

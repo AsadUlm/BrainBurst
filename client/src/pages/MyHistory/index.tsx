@@ -324,13 +324,11 @@ export default function MyHistory() {
         onChange={(_, newValue) => setCurrentTab(newValue)}
         sx={{
           mb: 3,
-          borderBottom: `1px solid ${theme.palette.divider}`,
           '& .MuiTab-root': {
             textTransform: 'none',
             fontWeight: 600,
             fontSize: '0.95rem',
             minHeight: 48,
-            borderRadius: '16px 16px 0 0',
           }
         }}
         variant="scrollable"
@@ -417,7 +415,7 @@ export default function MyHistory() {
                     {t('test.availableTests') || 'TESTS'}
                   </Typography>
                 </Box>
-                <List disablePadding sx={{ overflow: 'auto', flex: 1, maxHeight: { xs: 200, md: 600 } }}>
+                <List disablePadding sx={{ overflow: 'auto', flex: 1 }}>
                   <ListItem disablePadding>
                     <ListItemButton
                       selected={selectedTestTitle === '__all__'}
@@ -431,7 +429,7 @@ export default function MyHistory() {
                         <ViewListIcon color={selectedTestTitle === '__all__' ? 'primary' : 'action'} />
                       </ListItemIcon>
                       <ListItemText
-                        primary={t('allResults') || 'All Results'}
+                        primary={t('history.allResults')}
                         primaryTypographyProps={{ fontWeight: selectedTestTitle === '__all__' ? 600 : 400 }}
                       />
                       <Chip
@@ -477,7 +475,7 @@ export default function MyHistory() {
                 <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, bgcolor: theme.palette.background.paper }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
                     <Typography variant="h6" fontWeight={700}>
-                      {selectedTestTitle === '__all__' ? (t('allResults') || 'All Results') : selectedTestTitle}
+                      {selectedTestTitle === '__all__' ? (t('history.allResults')) : selectedTestTitle}
                     </Typography>
 
                     <ToggleButtonGroup

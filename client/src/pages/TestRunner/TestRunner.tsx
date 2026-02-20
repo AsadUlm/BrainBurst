@@ -8,6 +8,7 @@ import TestResultSummary from './TestResultSummary';
 import { Test, Answer } from './types'; // вынесем типы отдельно
 import { Container, Snackbar, Alert } from '@mui/material';
 import { useUserSettings } from '../../contexts/SettingsContext';
+import { useUser } from '../../contexts/UserContext';
 import { saveOfflineResult } from '../../utils/offlineResults';
 
 interface TestRunnerProps {
@@ -18,6 +19,7 @@ export default function TestRunner({ mode }: TestRunnerProps) {
   const { id } = useParams();
   const { t } = useTranslation();
   const { settings } = useUserSettings();
+  const { refreshUser } = useUser();
   const [test, setTest] = useState<Test | null>(null);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -32,6 +34,7 @@ export default function TestRunner({ mode }: TestRunnerProps) {
   const [canViewContent, setCanViewContent] = useState(true);
   const isSavingRef = useRef(false);
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'offline' | null>(null);
+  const [hintsUsed, setHintsUsed] = useState<number[]>([]);
 
 
   const storageKey = `testProgress_${id}_${mode}`;
@@ -44,10 +47,11 @@ export default function TestRunner({ mode }: TestRunnerProps) {
         current,
         questionTimesLeft,
         startTime: startTime?.toISOString(),
-        timePerQuestion
+        timePerQuestion,
+        hintsUsed
       }));
     }
-  }, [answers, current, questionTimesLeft, startTime, timePerQuestion, test, showResult, storageKey]);
+  }, [answers, current, questionTimesLeft, startTime, timePerQuestion, hintsUsed, test, showResult, storageKey]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -87,6 +91,7 @@ export default function TestRunner({ mode }: TestRunnerProps) {
           correctIndex: shuffled.findIndex(o => o.isCorrect),
           time: q.time,
           questionType: q.questionType,
+          hint: q.hint,
         };
       });
 
@@ -162,7 +167,8 @@ export default function TestRunner({ mode }: TestRunnerProps) {
     };
 
     loadData();
-  }, [id, storageKey, mode]);
+    refreshUser();
+  }, [id, storageKey, mode, refreshUser]);
 
   // Handle beforeunload for exit confirmation - MUST be before early returns
   useEffect(() => {
@@ -283,6 +289,7 @@ export default function TestRunner({ mode }: TestRunnerProps) {
       endTime: endTime.toISOString(),
       duration,
       timePerQuestion,
+      hintsUsed,
       mode,
     };
 
@@ -355,6 +362,10 @@ export default function TestRunner({ mode }: TestRunnerProps) {
           if (saved.timePerQuestion) {
             setTimePerQuestion(saved.timePerQuestion);
           }
+          // Восстанавливаем использованные подсказки
+          if (saved.hintsUsed) {
+            setHintsUsed(saved.hintsUsed);
+          }
           setResumeAvailable(false);
         }}
       />
@@ -371,6 +382,7 @@ export default function TestRunner({ mode }: TestRunnerProps) {
         isExamMode={mode === 'exam'}
         canViewContent={canViewContent}
         userAttempts={userAttempts}
+        hintsUsed={hintsUsed}
       />
     );
   }
@@ -484,6 +496,8 @@ export default function TestRunner({ mode }: TestRunnerProps) {
             setCurrent(current - 1);
           }
         } : undefined}
+        hintsUsed={hintsUsed}
+        setHintsUsed={setHintsUsed}
       />
 
       {/* Уведомления о статусе сохранения */}

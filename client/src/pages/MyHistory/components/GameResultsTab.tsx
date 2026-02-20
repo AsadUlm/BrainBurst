@@ -23,6 +23,7 @@ import TimerIcon from '@mui/icons-material/Timer';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import StarIcon from '@mui/icons-material/Star';
 import ViewListIcon from '@mui/icons-material/ViewList';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import { useTranslation } from 'react-i18next';
 
 interface GameResult {
@@ -55,6 +56,7 @@ interface GameResult {
             color?: string;
         };
     };
+    hintsUsed?: number[];
 }
 
 interface GameResultsTabProps {
@@ -393,6 +395,23 @@ export default function GameResultsTab({ results }: GameResultsTabProps) {
                                                     <Typography variant="body2" color="text.secondary">
                                                         {formatDate(result.completedAt)}
                                                     </Typography>
+                                                    {result.hintsUsed && result.hintsUsed.length > 0 && (
+                                                        <Chip
+                                                            icon={<LightbulbIcon style={{ fontSize: 14 }} />}
+                                                            label={t('test.hintUsed') || 'Hint Used'}
+                                                            size="small"
+                                                            color="warning"
+                                                            variant="outlined"
+                                                            sx={{
+                                                                height: 22,
+                                                                fontSize: '0.7rem',
+                                                                borderRadius: '4px',
+                                                                borderColor: theme.palette.warning.main,
+                                                                color: theme.palette.warning.main,
+                                                                ml: 1
+                                                            }}
+                                                        />
+                                                    )}
                                                 </Stack>
 
                                                 {/* Progress Bar + Accuracy */}

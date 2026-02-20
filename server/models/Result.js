@@ -22,6 +22,7 @@ const ResultSchema = new mongoose.Schema({
     endTime: { type: Date },
     duration: { type: Number }, // Длительность в секундах
     timePerQuestion: [Number], // Время на каждый вопрос в секундах
+    hintsUsed: [Number], // Индексы вопросов, где использована подсказка
     mode: { type: String, enum: ['standard', 'exam', 'practice', 'game'], default: 'standard' }, // Режим прохождения
     // Дополнительные поля для режима игры
     moves: { type: Number }, // Количество ходов в игре

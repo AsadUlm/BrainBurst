@@ -25,6 +25,7 @@ router.post('/', async (req, res) => {
             endTime,
             duration,
             timePerQuestion,
+            hintsUsed,
             mode
         } = req.body;
 
@@ -60,6 +61,7 @@ router.post('/', async (req, res) => {
             endTime,
             duration,
             timePerQuestion,
+            hintsUsed,
             mode
         });
 
@@ -213,7 +215,7 @@ router.get('/mine', verifyToken, async (req, res) => {
         // Используем projection для оптимизации (исключаем тяжелые поля)
         // answers, shuffledQuestions, mistakes, correctAnswers не нужны для списка
         const results = await Result.find(query)
-            .select('_id testTitle score total mode createdAt duration testId startTime endTime')
+            .select('_id testTitle score total mode createdAt duration testId startTime endTime hintsUsed')
             .sort(sortOption)
             .skip(skip)
             .limit(limitParsed)
@@ -899,6 +901,7 @@ router.get('/:id', verifyToken, async (req, res) => {
             response.correctAnswers = result.correctAnswers;
             response.mistakes = result.mistakes;
             response.shuffledQuestions = result.shuffledQuestions;
+            response.hintsUsed = result.hintsUsed;
         }
 
         res.json(response);
@@ -908,4 +911,22 @@ router.get('/:id', verifyToken, async (req, res) => {
     }
 });
 
+
+// Удалить результат (только для админа)
+router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
+    try {
+        const result = await Result.findById(req.params.id);
+        if (!result) {
+            return res.status(404).json({ error: 'Result not found' });
+        }
+
+        await Result.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Result deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting result:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 module.exports = router;
+

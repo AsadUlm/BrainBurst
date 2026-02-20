@@ -1,7 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { verifyToken } = require('../middleware/authMiddleware');
+const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 const Test = require('../models/Test');
 
 const router = express.Router();
@@ -75,6 +75,56 @@ router.post('/login', async (req, res) => {
     await user.save();
 
     res.json({ token, role: user.role, email: user.email, newTestsCount });
+});
+
+// Получить профиль текущего пользователя
+router.get('/me', verifyToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.userId).select('-password');
+        if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Потратить гем (для подсказки)
+router.post('/spend-gem', verifyToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.userId);
+        if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+
+        if (user.gems < 1) {
+            return res.status(400).json({ error: 'Недостаточно гемов' });
+        }
+
+        user.gems -= 1;
+        await user.save();
+
+        res.json({ success: true, gems: user.gems });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Начислить гемы (админ)
+router.post('/add-gems', verifyToken, requireAdmin, async (req, res) => {
+    try {
+        const { email, amount } = req.body;
+        const user = await User.findOne({ email });
+
+        if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+
+        const val = parseFloat(amount);
+        if (isNaN(val)) return res.status(400).json({ error: 'Неверное количество' });
+
+        user.gems = (user.gems || 0) + val;
+        await user.save();
+
+        res.json({ success: true, gems: user.gems });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 module.exports = router;

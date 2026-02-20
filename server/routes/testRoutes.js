@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Test = require('../models/Test');
+const Result = require('../models/Result');
+const User = require('../models/User');
 const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 
 // Middleware для опциональной авторизации
@@ -229,7 +231,113 @@ router.get('/', optionalAuth, async (req, res) => {
         console.error('❌ Ошибка получения тестов:', err);
         res.status(500).json({ error: err.message });
     }
-}); router.get('/:id', async (req, res) => {
+});
+
+// Создание теста на основе ошибок (работа над ошибками)
+router.post('/mistakes', verifyToken, requireAdmin, async (req, res) => {
+    try {
+        const { originalTestId, userId, title } = req.body;
+
+        if (!originalTestId || !userId) {
+            return res.status(400).json({ error: 'originalTestId and userId are required' });
+        }
+
+        // 1. Получаем пользователя и проверяем его существование
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // 2. Получаем исходный тест для настроек и оригинальных вопросов
+        const originalTest = await Test.findById(originalTestId);
+        if (!originalTest) {
+            return res.status(404).json({ error: 'Original test not found' });
+        }
+
+        // 3. Получаем все результаты пользователя по этому тесту
+        const results = await Result.find({
+            testId: originalTestId,
+            userEmail: user.email
+        });
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'No results found for this user/test' });
+        }
+
+        // 4. Собираем уникальные вопросы с ошибками
+        const mistakeQuestionsMap = new Map(); // Key: question text, Value: question object
+
+        results.forEach(result => {
+            // result.mistakes содержит индексы неправильных ответов в shuffledQuestions
+            if (result.mistakes && result.shuffledQuestions) {
+                result.mistakes.forEach(mistakeIndex => {
+                    // Проверка границ массива
+                    if (mistakeIndex < 0 || mistakeIndex >= result.shuffledQuestions.length) {
+                        return; // Пропускаем невалидный индекс
+                    }
+
+                    const visibleQuestion = result.shuffledQuestions[mistakeIndex];
+                    // Находим ОРИГИНАЛЬНЫЙ вопрос для получения correctIndex и других полей,
+                    // которые могут отсутствовать в результатах (санитизированных)
+                    if (visibleQuestion && visibleQuestion.text && !mistakeQuestionsMap.has(visibleQuestion.text)) {
+                        const originalQuestion = originalTest.questions.find(q => q.text === visibleQuestion.text);
+
+                        if (originalQuestion) {
+                            const cleanQuestion = originalQuestion.toObject();
+                            delete cleanQuestion._id;
+                            mistakeQuestionsMap.set(visibleQuestion.text, cleanQuestion);
+                        }
+                    }
+                });
+            }
+        });
+
+        const questions = Array.from(mistakeQuestionsMap.values());
+
+        if (questions.length === 0) {
+            return res.status(400).json({ error: 'User has no mistakes in this test' });
+        }
+
+        // 5. Создаем новый тест
+        const newTitle = title || `${originalTest.title}_work_on_mistakes`;
+
+        const newTestData = {
+            title: newTitle,
+            questions: questions,
+            // Копируем настройки времени
+            timeLimit: originalTest.timeLimit,
+            useStandardGlobalTimer: originalTest.useStandardGlobalTimer,
+            standardTimeLimit: originalTest.standardTimeLimit,
+            standardQuestionTime: originalTest.standardQuestionTime,
+            useExamGlobalTimer: originalTest.useExamGlobalTimer,
+            examTimeLimit: originalTest.examTimeLimit,
+            examQuestionTime: originalTest.examQuestionTime,
+            // Категория та же
+            category: '6997d40225e3ef2eb616c453',
+
+            hideContent: true,
+            practiceMode: "disabled",
+            practiceAttemptsRequired: 0,
+            gameMode: "enabled",
+            gameAttemptsRequired: 0,
+
+
+            isVisible: true,
+            description: `Work on mistakes for ${originalTest.title}`
+        };
+
+        const newTest = new Test(newTestData);
+        await newTest.save();
+
+        res.status(201).json(newTest);
+
+    } catch (error) {
+        console.error('Error creating mistake test:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+router.get('/:id', async (req, res) => {
     const test = await Test.findById(req.params.id).populate('category');
     if (!test) return res.status(404).json({ error: 'Test not found' });
     res.json(test);

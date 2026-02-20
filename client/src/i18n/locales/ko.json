@@ -14,7 +14,8 @@
         "administrator": "관리자",
         "user": "사용자",
         "settings": "설정",
-        "tests": "테스트"
+        "tests": "테스트",
+        "gemsTooltip": "젠은 테스트에서 힌트를 받는 데 사용할 수 있습니다"
     },
     "dashboard": {
         "welcome": "{{name}}님, 환영합니다!",
@@ -100,6 +101,9 @@
         "answerRequired": "다음 질문으로 넘어가기 전에 답변을 선택해 주세요",
         "testResult": "테스트 결과",
         "correctAnswersCount": "정답 수:",
+        "hintUsed": "힌트 사용됨",
+        "getHint": "힌트 받기",
+        "hintError": "힌트를 사용할 수 없습니다. 보석 잔액을 확인하거나 나중에 다시 시도하세요.",
         "continueTestPrompt": "테스트 「{{title}}」를 계속하시겠습니까?",
         "enterAnswer": "답변을 입력하세요",
         "yourAnswerPlaceholder": "답변...",
@@ -158,6 +162,9 @@
         "timeSettings": "시간 설정",
         "resultSaved": "결과가 성공적으로 저장되었습니다",
         "resultSavedOffline": "결과가 로컬에 저장되었으며 연결이 복원되면 전송됩니다",
+        "createMistakeTest": "오답 기반 테스트 생성",
+        "createMistakeTestDesc": "\"{{title}}\" 테스트에서 사용자의 오답을 기반으로 새 테스트를 생성합니다",
+        "mistakeTestCreated": "오답 기반 테스트가 성공적으로 생성되었습니다!",
         "offlineResults": {
             "title": "저장되지 않은 결과",
             "description": "네트워크 문제로 서버에 전송되지 못한 테스트 결과는 로컬에 저장되며 앱 로드 시 자동으로 동기화됩니다.",
@@ -303,7 +310,8 @@
         "modeExam": "시험",
         "modePractice": "연습",
         "testsTab": "테스트",
-        "gamesTab": "게임"
+        "gamesTab": "게임",
+        "allResults": "모든 결과"
     },
     "practice": {
         "correct": "정답입니다!",
@@ -382,7 +390,6 @@
         "averageScore": "평균 점수",
         "searchPlaceholder": "이메일 또는 테스트 이름으로 검색...",
         "filter": "필터",
-        "allResults": "모든 결과",
         "successOnly": "오류 없음",
         "withErrors": "오류 있음",
         "groupBy": "그룹화",
@@ -455,7 +462,12 @@
         "showing": "표시 중",
         "results": "결과",
         "completedAt": "완료 날짜",
-        "time": "시간"
+        "time": "시간",
+        "selectUser": "사용자 선택",
+        "addGemsTitle": "잼 지급",
+        "addGemsDesc": "{{email}} 님에게 잼 지급",
+        "amount": "수량",
+        "gemsAdded": "{{email}} 님에게 {{amount}} 잼을 성공적으로 지급했습니다"
     },
     "questionForm": {
         "questionNumber": "질문 #",
@@ -470,6 +482,9 @@
         "addOption": "옵션 추가",
         "correctAnswer": "정답",
         "openTextDescription": "사용자는 텍스트 답변을 입력해야 합니다",
+        "hint": "힌트",
+        "hintPlaceholder": "사용자를 위한 힌트 텍스트...",
+        "hintHelper": "이 힌트는 1개의 보석으로 볼 수 있습니다",
         "correctSentence": "올바른 문장",
         "correctSentenceHelp": "조합해야 할 문장을 입력하세요",
         "splitIntoWords": "단어로 분리",
@@ -508,7 +523,9 @@
         "filter": "필터",
         "expandAll": "모두 펼치기",
         "collapseAll": "모두 접기",
-        "allRights": "모든 권리 보유"
+        "allRights": "모든 권리 보유",
+        "create": "생성",
+        "add": "추가"
     },
     "analytics": {
         "title": "분석 및 통계",

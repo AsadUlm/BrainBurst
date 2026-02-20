@@ -47,7 +47,7 @@ export default function PracticeQuestion({
     const { t } = useTranslation();
     const { settings } = useUserSettings();
 
-    const isOpenQuestion = question.options.length === 1;
+    const isOpenQuestion = question.questionType === 'open-text' || question.options.length === 1;
     const [textAnswer, setTextAnswer] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const lastActionTime = useRef<number>(0);
