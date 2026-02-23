@@ -471,149 +471,177 @@ export default function AdminResults() {
             </Paper>
           ) : (
             <Stack spacing={3}>
-              {displayedGroups.map((group, groupIndex) => (
-                <Box key={group.title || groupIndex}>
-                  {group.title && (
-                    <Typography
-                      variant="h6"
-                      gutterBottom
-                      sx={{
-                        px: 2,
-                        py: 1,
-                        borderLeft: `4px solid ${theme.palette.primary.main}`,
-                        bgcolor: alpha(theme.palette.primary.main, 0.05),
-                        borderRadius: '0 8px 8px 0',
-                        fontWeight: 600,
-                        mb: 2
-                      }}
-                    >
-                      {group.title}
-                    </Typography>
-                  )}
-                  <Stack spacing={2}>
-                    {group.items.map((result) => {
-                      const percentage = result.total > 0 ? Math.round((result.score / result.total) * 100) : 0;
-                      const isExcellent = percentage >= 90;
-                      const isGood = percentage >= 70;
-                      const color = isExcellent ? 'success' : isGood ? 'warning' : 'error';
-                      const modeColor = getModeColor(result.mode);
+              {displayedGroups.map((group, groupIndex) => {
+                const firstItem = group.items[0];
+                const categoryObj = firstItem?.test?.category && typeof firstItem.test.category === 'object'
+                  ? (firstItem.test.category as Category)
+                  : null;
+                const catColor = categoryObj?.color || theme.palette.primary.main;
+                const catName = categoryObj?.name || '';
 
-                      return (
-                        <Paper
-                          key={result._id}
-                          elevation={0}
-                          onClick={() => handleOpenDialog(result)}
+                return (
+                  <Box key={group.title || groupIndex} sx={{ mb: 4 }}>
+                    {group.title && (
+                      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+                        <Typography
+                          variant="h6"
                           sx={{
-                            p: 2.5,
-                            border: `1px solid ${theme.palette.divider}`,
-                            borderRadius: '16px',
-                            transition: 'all 0.2s ease',
-                            cursor: 'pointer',
-                            '&:hover': {
-                              borderColor: theme.palette.primary.main,
-                              boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.08)}`,
-                              transform: 'translateY(-2px)'
-                            }
+                            px: 2,
+                            py: 1,
+                            borderLeft: `4px solid ${catColor}`,
+                            bgcolor: alpha(catColor, 0.05),
+                            borderRadius: '0 8px 8px 0',
+                            fontWeight: 600,
+                            m: 0
                           }}
                         >
-                          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2}>
-                            <Box sx={{ flex: 1 }}>
-                              <Stack direction="row" spacing={1} alignItems="center" mb={1}>
-                                <Chip
-                                  label={result.testTitle}
-                                  size="small"
-                                  sx={{ fontWeight: 600, fontSize: '0.85rem' }}
-                                />
-                                <Chip
-                                  icon={getModeIcon(result.mode)}
-                                  label={t(`test.mode.${result.mode || 'standard'}`)}
-                                  size="small"
-                                  variant="outlined"
+                          {group.title}
+                        </Typography>
+                        {catName && (
+                          <Chip
+                            icon={<CategoryIcon fontSize="small" />}
+                            label={catName}
+                            size="small"
+                            sx={{
+                              bgcolor: alpha(catColor, 0.1),
+                              color: catColor,
+                              fontWeight: 600,
+                              borderColor: alpha(catColor, 0.2),
+                              border: '1px solid',
+                              '& .MuiChip-icon': { color: catColor }
+                            }}
+                          />
+                        )}
+                      </Stack>
+                    )}
+                    <Stack spacing={2}>
+                      {group.items.map((result) => {
+                        const percentage = result.total > 0 ? Math.round((result.score / result.total) * 100) : 0;
+                        const isExcellent = percentage >= 90;
+                        const isGood = percentage >= 70;
+                        const color = isExcellent ? 'success' : isGood ? 'warning' : 'error';
+                        const modeColor = getModeColor(result.mode);
 
-                                  sx={{
-                                    borderColor: alpha(modeColor, 0.3),
-                                    color: modeColor,
-                                    height: 24,
-                                    '& .MuiChip-icon': { color: modeColor }
-                                  }}
-                                />
-                              </Stack>
+                        return (
+                          <Paper
+                            key={result._id}
+                            elevation={0}
+                            onClick={() => handleOpenDialog(result)}
+                            sx={{
+                              p: 2.5,
+                              border: `1px solid ${alpha(catColor, 0.2)}`,
+                              borderLeft: `6px solid ${catColor}`,
+                              bgcolor: alpha(catColor, 0.02),
+                              borderRadius: '16px',
+                              transition: 'all 0.2s ease',
+                              cursor: 'pointer',
+                              '&:hover': {
+                                borderColor: catColor,
+                                boxShadow: `0 4px 12px ${alpha(catColor, 0.15)}`,
+                                transform: 'translateY(-2px)',
+                                bgcolor: alpha(catColor, 0.04)
+                              }
+                            }}
+                          >
+                            <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2}>
+                              <Box sx={{ flex: 1 }}>
+                                <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                                  <Chip
+                                    label={result.testTitle}
+                                    size="small"
+                                    sx={{ fontWeight: 600, fontSize: '0.85rem' }}
+                                  />
+                                  <Chip
+                                    icon={getModeIcon(result.mode)}
+                                    label={t(`test.mode.${result.mode || 'standard'}`)}
+                                    size="small"
+                                    variant="outlined"
 
-                              <Stack direction="row" alignItems="center" spacing={2} color="text.secondary">
-                                <Stack direction="row" alignItems="center" spacing={0.5}>
-                                  <PersonIcon fontSize="small" sx={{ opacity: 0.7 }} />
-                                  <Typography variant="body2">{result.userEmail}</Typography>
+                                    sx={{
+                                      borderColor: alpha(modeColor, 0.3),
+                                      color: modeColor,
+                                      height: 24,
+                                      '& .MuiChip-icon': { color: modeColor }
+                                    }}
+                                  />
                                 </Stack>
-                                <Divider orientation="vertical" flexItem sx={{ height: 12, alignSelf: 'center' }} />
-                                <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                                  {formatDate(result.createdAt)}
-                                </Typography>
-                              </Stack>
-                            </Box>
 
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'space-between', sm: 'flex-end' } }}>
-                              <Stack alignItems="end">
-                                <Stack direction="row" alignItems="center" spacing={1}>
-                                  {result.duration && (
-                                    <Chip
-                                      icon={<AccessTimeIcon />}
-                                      label={formatTime(result.duration)}
-                                      size="small"
-                                      sx={{ bgcolor: alpha(theme.palette.grey[500], 0.1), border: 'none' }}
-                                    />
-                                  )}
+                                <Stack direction="row" alignItems="center" spacing={2} color="text.secondary">
+                                  <Stack direction="row" alignItems="center" spacing={0.5}>
+                                    <PersonIcon fontSize="small" sx={{ opacity: 0.7 }} />
+                                    <Typography variant="body2">{result.userEmail}</Typography>
+                                  </Stack>
+                                  <Divider orientation="vertical" flexItem sx={{ height: 12, alignSelf: 'center' }} />
+                                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                                    {formatDate(result.createdAt)}
+                                  </Typography>
                                 </Stack>
-                              </Stack>
-
-                              <Box sx={{ textAlign: 'right', minWidth: 80 }}>
-                                <Typography variant="h5" fontWeight={700} color={`${color}.main`}>
-                                  {result.score}/{result.total}
-                                </Typography>
-                                <Typography variant="caption" fontWeight={600} sx={{ color: theme.palette.text.secondary }}>
-                                  {percentage}%
-                                </Typography>
                               </Box>
 
-                              <IconButton
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenGemDialog(result.userEmail);
-                                }}
-                                color="info"
-                                size="small"
-                                sx={{
-                                  opacity: 0.6,
-                                  '&:hover': { opacity: 1, bgcolor: alpha(theme.palette.info.main, 0.1) }
-                                }}
-                              >
-                                <DiamondIcon />
-                              </IconButton>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'space-between', sm: 'flex-end' } }}>
+                                <Stack alignItems="end">
+                                  <Stack direction="row" alignItems="center" spacing={1}>
+                                    {result.duration && (
+                                      <Chip
+                                        icon={<AccessTimeIcon />}
+                                        label={formatTime(result.duration)}
+                                        size="small"
+                                        sx={{ bgcolor: alpha(theme.palette.grey[500], 0.1), border: 'none' }}
+                                      />
+                                    )}
+                                  </Stack>
+                                </Stack>
 
-                              <IconButton
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteResult(result._id);
-                                }}
-                                color="error"
-                                size="small"
-                                sx={{
-                                  opacity: 0.6,
-                                  '&:hover': {
-                                    opacity: 1,
-                                    bgcolor: alpha(theme.palette.error.main, 0.1)
-                                  }
-                                }}
-                              >
-                                <DeleteIcon />
-                              </IconButton>
-                            </Box>
-                          </Stack>
-                        </Paper>
-                      );
-                    })}
-                  </Stack>
-                </Box>
-              ))}
+                                <Box sx={{ textAlign: 'right', minWidth: 80 }}>
+                                  <Typography variant="h5" fontWeight={700} color={`${color}.main`}>
+                                    {result.score}/{result.total}
+                                  </Typography>
+                                  <Typography variant="caption" fontWeight={600} sx={{ color: theme.palette.text.secondary }}>
+                                    {percentage}%
+                                  </Typography>
+                                </Box>
+
+                                <IconButton
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenGemDialog(result.userEmail);
+                                  }}
+                                  color="info"
+                                  size="small"
+                                  sx={{
+                                    opacity: 0.6,
+                                    '&:hover': { opacity: 1, bgcolor: alpha(theme.palette.info.main, 0.1) }
+                                  }}
+                                >
+                                  <DiamondIcon />
+                                </IconButton>
+
+                                <IconButton
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteResult(result._id);
+                                  }}
+                                  color="error"
+                                  size="small"
+                                  sx={{
+                                    opacity: 0.6,
+                                    '&:hover': {
+                                      opacity: 1,
+                                      bgcolor: alpha(theme.palette.error.main, 0.1)
+                                    }
+                                  }}
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Box>
+                            </Stack>
+                          </Paper>
+                        );
+                      })}
+                    </Stack>
+                  </Box>
+                );
+              })}
             </Stack>
           )}
 

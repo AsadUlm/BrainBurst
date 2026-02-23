@@ -26,7 +26,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const { user } = useUser();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [loading, setLoading] = useState(false);
+    const [loading] = useState(false);
 
     const fetchNotifications = useCallback(async () => {
         if (!user) return;
