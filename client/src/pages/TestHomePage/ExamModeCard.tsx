@@ -8,9 +8,13 @@ import type { Test } from './types';
 interface ExamModeCardProps {
     test: Test;
     onStart: () => void;
+    canAccessExam?: boolean;
+    examMessage?: string;
+    remainingAttempts?: number;
+    maxAttempts?: number;
 }
 
-export default function ExamModeCard({ test, onStart }: ExamModeCardProps) {
+export default function ExamModeCard({ test, onStart, canAccessExam = true, examMessage, remainingAttempts, maxAttempts }: ExamModeCardProps) {
     const theme = useTheme();
     const { t } = useTranslation();
 
@@ -67,29 +71,42 @@ export default function ExamModeCard({ test, onStart }: ExamModeCardProps) {
                         <CheckCircleIcon fontSize="small" color="error" />
                         <Typography variant="body2">{t('test.shuffledQuestions')}</Typography>
                     </Stack>
+                    {(remainingAttempts !== undefined || maxAttempts !== undefined) && (
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                            <CheckCircleIcon fontSize="small" color="error" />
+                            <Typography variant="body2" fontWeight={600}>
+                                {t('test.attemptsLeft', { defaultValue: 'Осталось попыток' })}: {remainingAttempts !== undefined ? remainingAttempts : '-'} / {maxAttempts !== undefined ? maxAttempts : '∞'}
+                            </Typography>
+                        </Stack>
+                    )}
                 </Stack>
 
-                <Button
-                    variant="outlined"
-                    size="large"
-                    fullWidth
-                    color="error"
-                    startIcon={<PlayArrowIcon />}
-                    onClick={onStart}
-                    sx={{
-                        py: 1.5,
-                        borderRadius: '16px',
-                        textTransform: 'none',
-                        fontSize: '1.1rem',
-                        fontWeight: 600,
-                        '&:hover': {
-                            transform: 'translateY(-2px)',
-                            borderWidth: 2
-                        }
-                    }}
-                >
-                    {t('test.startTest')}
-                </Button>
+                <Box>
+                    <Button
+                        variant="outlined"
+                        size="large"
+                        fullWidth
+                        color="error"
+                        startIcon={<PlayArrowIcon />}
+                        onClick={onStart}
+                        disabled={!canAccessExam}
+                        sx={{
+                            py: 1.5,
+                            borderRadius: '16px',
+                            textTransform: 'none',
+                            fontSize: '1.1rem',
+                            fontWeight: 600,
+                            ...(canAccessExam && {
+                                '&:hover': {
+                                    transform: 'translateY(-2px)',
+                                    borderWidth: 2
+                                }
+                            })
+                        }}
+                    >
+                        {canAccessExam ? t('test.startTest') : examMessage || t('test.unavailable')}
+                    </Button>
+                </Box>
             </Stack>
         </Paper>
     );

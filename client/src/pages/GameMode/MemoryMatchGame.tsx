@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Container, CircularProgress, Typography, Alert, Box } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import GameCard from './components/GameCard';
@@ -32,6 +32,10 @@ export default function MemoryMatchGame() {
     const difficulty = (location.state?.difficulty || 'closed') as DifficultyMode;
     const isOpenMode = difficulty === 'open';
 
+    const [searchParams] = useSearchParams();
+    const assignmentId = searchParams.get('assignmentId');
+    const [classId, setClassId] = useState<string | undefined>();
+
     // Таймер
     useEffect(() => {
         let interval: number;
@@ -62,7 +66,9 @@ export default function MemoryMatchGame() {
                     completedQuestionIds: Array.from(completedQuestions),
                     moves,
                     timeElapsed,
-                    cardCount
+                    cardCount,
+                    assignmentId,
+                    classId
                 })
             });
 
@@ -84,7 +90,7 @@ export default function MemoryMatchGame() {
         } finally {
             setIsSaving(false);
         }
-    }, [id, completedQuestions, moves, timeElapsed, cardCount, isSaving]);
+    }, [id, completedQuestions, moves, timeElapsed, cardCount, isSaving, assignmentId, classId]);
 
     // Автосохранение каждые 30 секунд
     useEffect(() => {
@@ -140,10 +146,21 @@ export default function MemoryMatchGame() {
                 return;
             }
 
-            // Получаем тест
-            const testRes = await fetch(`/api/tests/${id}`);
-            const testData = await testRes.json();
-            setTestTitle(testData.title);
+            // Получаем тест / Assignment
+            if (assignmentId) {
+                const assignRes = await fetch(`/api/assignments/${assignmentId}`, {
+                    headers: { Authorization: token ? `Bearer ${token}` : '' }
+                });
+                const assignData = await assignRes.json();
+                setTestTitle(assignData.test.title);
+                setClassId(assignData.classId);
+
+
+            } else {
+                const testRes = await fetch(`/api/tests/${id}`);
+                const testData = await testRes.json();
+                setTestTitle(testData.title);
+            }
 
             // Получаем прогресс
             const progressRes = await fetch(`/api/games/progress/${id}`, {
@@ -180,7 +197,7 @@ export default function MemoryMatchGame() {
         } finally {
             setLoading(false);
         }
-    }, [id, cardCount, navigate, t, createCards]);
+    }, [id, cardCount, navigate, t, createCards, assignmentId]);
 
     useEffect(() => {
         loadQuestions();
@@ -308,11 +325,13 @@ export default function MemoryMatchGame() {
 
     const handleContinue = () => {
         setShowComplete(false);
-        navigate(`/test/${id}/game`);
+        const navUrl = assignmentId ? `/test/${id}/game?assignmentId=${assignmentId}` : `/test/${id}/game`;
+        navigate(navUrl);
     };
 
     const handleFinish = () => {
-        navigate(`/test/${id}/game`);
+        const navUrl = assignmentId ? `/test/${id}/game?assignmentId=${assignmentId}` : `/test/${id}/game`;
+        navigate(navUrl);
     };
 
     const calculateAccuracy = (): number => {
@@ -336,7 +355,7 @@ export default function MemoryMatchGame() {
                     {error}
                 </Alert>
                 <Typography variant="body1" align="center" sx={{ mt: 2 }}>
-                    <a href={`/test/${id}/game`} style={{ color: 'inherit' }}>
+                    <a href={assignmentId ? `/test/${id}/game?assignmentId=${assignmentId}` : `/test/${id}/game`} style={{ color: 'inherit' }}>
                         {t('game.backToMenu')}
                     </a>
                 </Typography>

@@ -3,7 +3,7 @@ const router = express.Router();
 const Test = require('../models/Test');
 const Result = require('../models/Result');
 const User = require('../models/User');
-const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
+const { verifyToken, requireAdmin, requireTeacher } = require('../middleware/authMiddleware');
 
 // Middleware для опциональной авторизации
 const optionalAuth = (req, res, next) => {
@@ -24,12 +24,12 @@ const optionalAuth = (req, res, next) => {
 };
 
 
-router.post('/', verifyToken, requireAdmin, async (req, res) => {
+router.post('/', verifyToken, requireTeacher, async (req, res) => {
     try {
-        // Гарантируем что isVisible установлен (по умолчанию true)
         const testData = {
             ...req.body,
-            isVisible: req.body.isVisible !== undefined ? req.body.isVisible : true
+            status: req.body.status || 'class_only',
+            ownerId: req.user.userId
         };
 
         // Если timeLimit === null, удаляем его из объекта
@@ -45,7 +45,7 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
     }
 });
 
-router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
+router.put('/:id', verifyToken, requireTeacher, async (req, res) => {
     try {
         console.log('🔧 PUT /api/tests/:id - Обновление теста:', req.params.id);
         console.log('📦 Payload:', JSON.stringify(req.body, null, 2));
@@ -62,6 +62,13 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
 
         const updateData = { ...req.body };
         const updateOptions = { new: true };
+
+        const test = await Test.findById(req.params.id);
+        if (!test) return res.status(404).json({ error: 'Test not found' });
+
+        if (req.user.role !== 'admin' && test.ownerId && test.ownerId.toString() !== req.user.userId) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
 
         // Если timeLimit === null, используем $unset для удаления поля из БД
         // В этом случае используется режим "время на каждый вопрос", поэтому time должно остаться
@@ -101,17 +108,29 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
 router.get('/', optionalAuth, async (req, res) => {
     try {
         const userId = req.user?.userId; // Получаем ID пользователя из токена (если есть)
-        const isAdmin = req.user?.role === 'admin';
+        const userRole = req.user?.role;
+        const isAdmin = userRole === 'admin';
+        const isTeacher = userRole === 'teacher';
         const showAll = req.query.showAll === 'true'; // Параметр для админ-панели
 
         console.log('🔍 Запрос тестов. userId:', userId, 'isAdmin:', isAdmin, 'showAll:', showAll);
 
+        if (!isAdmin && !isTeacher) {
+            // Students can only see public tests in the global catalog. 
+            // In a real scenario, they shouldn't even see the catalog without assignments,
+            // but for now, we provide public tests if they do.
+        }
+
         let tests;
 
-        // ТОЛЬКО для админ-панели показываем все тесты с пагинацией и фильтрацией
-        if (isAdmin && showAll) {
+        // ТОЛЬКО для админ-панели (и teacher библиотеки) показываем все тесты с пагинацией и фильтрацией
+        if ((isAdmin || isTeacher) && showAll) {
             const { page = 1, limit = 12, search, category } = req.query;
             const query = {};
+
+            if (!isAdmin && isTeacher) {
+                query.ownerId = userId;
+            }
 
             if (search) {
                 query.title = { $regex: search, $options: 'i' };
@@ -144,26 +163,23 @@ router.get('/', optionalAuth, async (req, res) => {
             return;
         }
 
-        // Для всех остальных (включая админов на обычных страницах) применяем фильтрацию
+        // Для всех остальных (публичная библиотека) применяем фильтрацию
         const now = new Date();
 
         // Получаем все тесты с заполненными связями, но без тяжелых полей вопросов
-        tests = await Test.find({})
+        // Для не-Библиотеки показываем ТОЛЬКО публичные тесты
+        const baseQuery = { status: 'public' };
+
+        tests = await Test.find(baseQuery)
             .populate('category')
             .populate('allowedUsers', '_id')
             .select('-questions.text -questions.correctIndex -questions.explanation -questions.image -questions.audio -questions.puzzleWords -questions.correctSentence')
             .lean();
 
-        console.log('📋 Всего тестов в базе:', tests.length);
+        console.log('📋 Всего публичных тестов в базе:', tests.length);
 
         // Применяем все фильтры
         tests = tests.filter(test => {
-            // 1. Проверка видимости
-            const isVisibleField = test.isVisible !== undefined ? test.isVisible : true;
-            if (!isVisibleField) {
-                console.log(`❌ Тест "${test.title}" скрыт (isVisible: false)`);
-                return false;
-            }
 
             // 2. Проверка по датам
             if (test.availableFrom && new Date(test.availableFrom) > now) {
@@ -343,9 +359,18 @@ router.get('/:id', async (req, res) => {
     res.json(test);
 });
 
-// Удаление теста (только для админа)
-router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
+// Удаление теста (teacher или admin)
+router.delete('/:id', verifyToken, requireTeacher, async (req, res) => {
     try {
+        const test = await Test.findById(req.params.id);
+        if (!test) {
+            return res.status(404).json({ error: 'Тест не найден' });
+        }
+
+        if (req.user.role !== 'admin' && test.ownerId && test.ownerId.toString() !== req.user.userId) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
         const deleted = await Test.findByIdAndDelete(req.params.id);
         if (!deleted) {
             return res.status(404).json({ error: 'Тест не найден' });

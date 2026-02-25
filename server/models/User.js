@@ -2,9 +2,19 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
+    // Common fields
+    name: { type: String, required: true },
+    nickname: { type: String },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, default: 'user' }, // user | admin
+    role: { type: String, enum: ['student', 'teacher', 'admin', 'user'], default: 'student' }, // student | teacher | admin | user
+
+    // Teacher specific fields
+    organization: { type: String },
+    subject: { type: String },
+
+    // Student specific fields
+    studentId: { type: String },
     lastNotificationCheck: { type: Date, default: Date.now },
     settings: {
         // Настройки тестов

@@ -12,6 +12,8 @@ const GameResultSchema = new mongoose.Schema({
     userEmail: { type: String, required: true },
     testId: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
     testTitle: { type: String, required: true },
+    assignmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Assignment', sparse: true },
+    classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', sparse: true },
 
     // Тип игры (для будущего расширения)
     gameType: {

@@ -8,8 +8,8 @@ const mongoose = require('mongoose');
 // mongodb+srv://workaccasd:9m2jQiIaOErhbmNa@brainburst.ytksvbv.mongodb.net/?retryWrites=true&w=majority&appName=brainburst
 const connectDB = async () => {
     try {
-        /* await mongoose.connect('mongodb+srv://workaccasd:QwIvwrxxCKBJmFkt@brainburst.ytksvbv.mongodb.net/?retryWrites=true&w=majority&appName=brainburst', { */
-        await mongoose.connect('mongodb+srv://workaccasd:QwIvwrxxCKBJmFkt@brainburst.ytksvbv.mongodb.net/?retryWrites=true&w=majority&appName=brainburst', {
+       /*  await mongoose.connect('mongodb+srv://workaccasd:QwIvwrxxCKBJmFkt@brainburst.ytksvbv.mongodb.net/?retryWrites=true&w=majority&appName=brainburst', { */
+        await mongoose.connect('mongodb+srv://workaccasd:QwIvwrxxCKBJmFkt@brainburst.ytksvbv.mongodb.net/testv2?retryWrites=true&w=majority&appName=brainburst', {
             /* await mongoose.connect('mongodb://10.152.183.10:27017/brainburst', { */
             useNewUrlParser: true,
             useUnifiedTopology: true,

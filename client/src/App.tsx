@@ -25,6 +25,12 @@ import { SettingsProvider } from './contexts/SettingsContext';
 import { UserProvider } from './contexts/UserContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import OfflineResultsSync from './components/OfflineResultsSync';
+import RequireTeacher from './components/RequireTeacher';
+import TeacherClasses from './pages/TeacherClasses';
+import StudentClasses from './pages/StudentClasses';
+import ClassHomePage from './pages/ClassHomePage';
+import AssignmentResults from './pages/ClassHomePage/AssignmentResults';
+import MyProfile from './pages/MyProfile';
 
 export default function App() {
   return (
@@ -132,9 +138,58 @@ export default function App() {
                   path="/admin/create"
                   element={
                     <RequireAuth>
-                      <RequireAdmin>
+                      <RequireTeacher>
                         <AdminCreateTest />
-                      </RequireAdmin>
+                      </RequireTeacher>
+                    </RequireAuth>
+                  }
+                />
+
+                <Route
+                  path="/profile"
+                  element={
+                    <RequireAuth>
+                      <MyProfile />
+                    </RequireAuth>
+                  }
+                />
+
+                <Route
+                  path="/teacher/classes"
+                  element={
+                    <RequireAuth>
+                      <RequireTeacher>
+                        <TeacherClasses />
+                      </RequireTeacher>
+                    </RequireAuth>
+                  }
+                />
+
+                <Route
+                  path="/student/classes"
+                  element={
+                    <RequireAuth>
+                      <StudentClasses />
+                    </RequireAuth>
+                  }
+                />
+
+                <Route
+                  path="/class/:id"
+                  element={
+                    <RequireAuth>
+                      <ClassHomePage />
+                    </RequireAuth>
+                  }
+                />
+
+                <Route
+                  path="/class/:classId/assignment/:assignmentId"
+                  element={
+                    <RequireAuth>
+                      <RequireTeacher>
+                        <AssignmentResults />
+                      </RequireTeacher>
                     </RequireAuth>
                   }
                 />
@@ -143,9 +198,9 @@ export default function App() {
                   path="/admin"
                   element={
                     <RequireAuth>
-                      <RequireAdmin>
+                      <RequireTeacher>
                         <AdminDashboard />
-                      </RequireAdmin>
+                      </RequireTeacher>
                     </RequireAuth>
                   }
                 />
@@ -175,18 +230,18 @@ export default function App() {
                 <Route
                   path="/admin/edit/:id"
                   element={
-                    <RequireAdmin>
+                    <RequireTeacher>
                       <AdminEditTest />
-                    </RequireAdmin>
+                    </RequireTeacher>
                   }
                 />
 
                 <Route
                   path="/admin/tests"
                   element={
-                    <RequireAdmin>
+                    <RequireTeacher>
                       <AdminTestList />
-                    </RequireAdmin>
+                    </RequireTeacher>
                   }
                 />
 
@@ -194,9 +249,9 @@ export default function App() {
                   path="/admin/categories"
                   element={
                     <RequireAuth>
-                      <RequireAdmin>
+                      <RequireTeacher>
                         <AdminCategories />
-                      </RequireAdmin>
+                      </RequireTeacher>
                     </RequireAuth>
                   }
                 />

@@ -4,6 +4,8 @@ const ResultSchema = new mongoose.Schema({
     clientResultId: { type: String, unique: true, sparse: true }, // Уникальный ID от клиента для защиты от дублирования
     userEmail: { type: String, required: true },
     testId: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
+    assignmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Assignment', sparse: true },
+    classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', sparse: true },
     testTitle: { type: String, required: true },
     score: { type: Number, required: true },
     total: { type: Number, required: true },

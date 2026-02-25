@@ -12,9 +12,10 @@ import type { Test } from './types';
 interface TestHeaderProps {
     test: Test;
     categoryColor: string;
+    assignmentTitle?: string;
 }
 
-export default function TestHeader({ test, categoryColor }: TestHeaderProps) {
+export default function TestHeader({ test, categoryColor, assignmentTitle }: TestHeaderProps) {
     const theme = useTheme();
     const { t } = useTranslation();
 
@@ -51,9 +52,20 @@ export default function TestHeader({ test, categoryColor }: TestHeaderProps) {
             <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
                 <QuizIcon sx={{ fontSize: 40, color: categoryColor }} />
                 <Box sx={{ flex: 1 }}>
-                    <Typography variant="h3" sx={{ fontWeight: 600, mb: 1 }}>
-                        {test.title}
-                    </Typography>
+                    {assignmentTitle && assignmentTitle !== test.title ? (
+                        <>
+                            <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5, color: 'text.primary' }}>
+                                {assignmentTitle}
+                            </Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 500, mb: 1.5, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <span style={{ opacity: 0.7 }}>Оригинальный тест:</span> {test.title}
+                            </Typography>
+                        </>
+                    ) : (
+                        <Typography variant="h3" sx={{ fontWeight: 700, mb: 1 }}>
+                            {test.title}
+                        </Typography>
+                    )}
                     <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                         {category && (
                             <Chip

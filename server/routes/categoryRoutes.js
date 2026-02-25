@@ -1,20 +1,51 @@
 const express = require('express');
 const router = express.Router();
 const Category = require('../models/Category');
-const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
+const { verifyToken, requireAdmin, requireTeacher } = require('../middleware/authMiddleware');
 
-// GET /api/categories - Получить все категории (доступно всем)
-router.get('/', async (req, res) => {
+// GET /api/categories - Получить категории
+router.get('/', optionalAuth, async (req, res) => {
     try {
-        const categories = await Category.find().sort({ name: 1 });
+        const userRole = req.user?.role;
+        const userId = req.user?.userId;
+        let query = {};
+
+        if (userRole === 'teacher') {
+            // Teacher sees only their categories
+            query.ownerId = userId;
+        } else if (userRole === 'admin') {
+            // Admin sees all categories
+        } else {
+            // Students can fetch categories associated with their assignments if needed, 
+            // but for now, they might not need direct access. Reverting to all categories for backward compatibility 
+            // where tests don't have categories, or only showing ones with assignments.
+            // Let's allow fetching all categories for now, or just the global ones (without ownerId) 
+            // plus those used in their active classes. To simplify, allow all read, since tests are restricted.
+        }
+
+        const categories = await Category.find(query).sort({ name: 1 });
         res.json(categories);
     } catch (err) {
         res.status(500).json({ error: 'Ошибка получения категорий' });
     }
 });
 
-// POST /api/categories - Создать категорию (только админ)
-router.post('/', verifyToken, requireAdmin, async (req, res) => {
+// Middleware для опциональной авторизации (если его тут нет, нужно добавить)
+function optionalAuth(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        const jwt = require('jsonwebtoken');
+        try {
+            const decoded = jwt.verify(token, 'super-secret-key'); // !! Взять из .env в реальном проекте
+            req.user = decoded;
+        } catch (err) { }
+    }
+    next();
+}
+
+// POST /api/categories - Создать категорию (teacher или admin)
+router.post('/', verifyToken, requireTeacher, async (req, res) => {
     try {
         const { name, description, color } = req.body;
 
@@ -26,6 +57,7 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
             name,
             description,
             color: color || '#1976d2',
+            ownerId: req.user.userId
         });
 
         await category.save();
@@ -38,20 +70,25 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
     }
 });
 
-// PUT /api/categories/:id - Обновить категорию (только админ)
-router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
+// PUT /api/categories/:id - Обновить категорию (teacher или admin)
+router.put('/:id', verifyToken, requireTeacher, async (req, res) => {
     try {
         const { name, description, color } = req.body;
 
-        const category = await Category.findByIdAndUpdate(
-            req.params.id,
-            { name, description, color },
-            { new: true, runValidators: true }
-        );
-
+        const category = await Category.findById(req.params.id);
         if (!category) {
             return res.status(404).json({ error: 'Категория не найдена' });
         }
+
+        if (req.user.role !== 'admin' && category.ownerId && category.ownerId.toString() !== req.user.userId) {
+            return res.status(403).json({ error: 'Доступ запрещен' });
+        }
+
+        category.name = name || category.name;
+        category.description = description !== undefined ? description : category.description;
+        category.color = color || category.color;
+
+        await category.save();
 
         res.json(category);
     } catch (err) {
@@ -59,14 +96,20 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
     }
 });
 
-// DELETE /api/categories/:id - Удалить категорию (только админ)
-router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
+// DELETE /api/categories/:id - Удалить категорию (teacher или admin)
+router.delete('/:id', verifyToken, requireTeacher, async (req, res) => {
     try {
-        const category = await Category.findByIdAndDelete(req.params.id);
+        const category = await Category.findById(req.params.id);
 
         if (!category) {
             return res.status(404).json({ error: 'Категория не найдена' });
         }
+
+        if (req.user.role !== 'admin' && category.ownerId && category.ownerId.toString() !== req.user.userId) {
+            return res.status(403).json({ error: 'Доступ запрещен' });
+        }
+
+        await Category.findByIdAndDelete(req.params.id);
 
         res.json({ message: 'Категория удалена' });
     } catch (err) {

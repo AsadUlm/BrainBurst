@@ -156,7 +156,7 @@ export default function AdminTestList() {
     }
 
     // Fetch Categories
-    const categoriesPromise = fetch('/api/categories')
+    const categoriesPromise = fetch('/api/categories', { headers })
       .then((res) => res.json())
       .then((cats: Category[]) => {
         const categoryMap: Record<string, Category> = {};

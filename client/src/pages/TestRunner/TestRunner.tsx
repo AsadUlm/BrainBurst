@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import TestResumePrompt from './TestResumePrompt';
 import TestQuestion from './TestQuestion';
@@ -35,6 +35,9 @@ export default function TestRunner({ mode }: TestRunnerProps) {
   const isSavingRef = useRef(false);
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'offline' | null>(null);
   const [hintsUsed, setHintsUsed] = useState<number[]>([]);
+  const [searchParams] = useSearchParams();
+  const assignmentId = searchParams.get('assignmentId');
+  const [classId, setClassId] = useState<string | undefined>();
 
 
   const storageKey = `testProgress_${id}_${mode}`;
@@ -56,9 +59,26 @@ export default function TestRunner({ mode }: TestRunnerProps) {
   useEffect(() => {
     const loadData = async () => {
       const token = localStorage.getItem('token');
+      let data: Test;
 
-      const testRes = await fetch(`/api/tests/${id}`);
-      const data: Test = await testRes.json();
+      if (assignmentId) {
+        const assignRes = await fetch(`/api/assignments/${assignmentId}`, {
+          headers: { Authorization: token ? `Bearer ${token}` : '' }
+        });
+        const assignData = await assignRes.json();
+        data = assignData.test;
+        setClassId(assignData.classId);
+
+        if (token && mode === 'exam') {
+          fetch(`/api/assignments/${assignmentId}/progress/start`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+          }).catch(err => console.error('Failed to update progress', err));
+        }
+      } else {
+        const testRes = await fetch(`/api/tests/${id}`);
+        data = await testRes.json();
+      }
 
       // Перемешиваем сами вопросы для стандартного режима И режима экзамена
       const shuffledQuestionsOrder = (mode === 'standard' || mode === 'exam')
@@ -291,6 +311,8 @@ export default function TestRunner({ mode }: TestRunnerProps) {
       timePerQuestion,
       hintsUsed,
       mode,
+      assignmentId,
+      classId,
     };
 
     // Попытка сохранить результат с обработкой ошибок

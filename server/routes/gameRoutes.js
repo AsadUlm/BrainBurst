@@ -172,7 +172,7 @@ router.get('/:testId/questions', verifyToken, async (req, res) => {
 router.post('/:testId/session', verifyToken, async (req, res) => {
     try {
         const { testId } = req.params;
-        const { completedQuestionIds, moves, timeElapsed, cardCount } = req.body;
+        const { completedQuestionIds, moves, timeElapsed, cardCount, assignmentId, classId } = req.body;
         const userId = req.user.id;
 
         // Валидация
@@ -281,6 +281,8 @@ router.post('/:testId/session', verifyToken, async (req, res) => {
                         totalAttempts: totalSessions,
                         bestStreak: progress.bestStreak,
                         finalStreak: progress.currentStreak,
+                        assignmentId: assignmentId || undefined,
+                        classId: classId || undefined,
                         categoryStats: [], // Можно добавить позже
                         gameData: {
                             cardCount: cardCount,
@@ -306,6 +308,36 @@ router.post('/:testId/session', verifyToken, async (req, res) => {
                         totalTime: progress.totalTime,
                         sessions: totalSessions
                     });
+
+                    // Обновляем AssignmentProgress, если это выполнение назначения
+                    if (assignmentId && classId) {
+                        try {
+                            const AssignmentProgress = require('../models/AssignmentProgress');
+                            const progressDoc = await AssignmentProgress.findOne({
+                                assignmentId,
+                                studentId: userId
+                            });
+
+                            if (progressDoc) {
+                                // Оцениваем статус для блокировок
+                                const terminalStatuses = ['graded', 'excused', 'blocked'];
+                                if (!terminalStatuses.includes(progressDoc.status)) {
+                                    progressDoc.status = 'submitted';
+                                    progressDoc.attemptCount += 1;
+                                    progressDoc.submittedAt = new Date();
+                                    progressDoc.lastAttemptAt = new Date();
+
+                                    if (progressDoc.bestScore === null || totalCorrectAnswers > progressDoc.bestScore) {
+                                        progressDoc.bestScore = totalCorrectAnswers;
+                                    }
+
+                                    await progressDoc.save();
+                                }
+                            }
+                        } catch (progErr) {
+                            console.error('❌ Error updating AssignmentProgress:', progErr);
+                        }
+                    }
                 }
             } catch (saveError) {
                 console.error('❌ Error saving final game result:', saveError);

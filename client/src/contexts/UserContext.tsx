@@ -6,6 +6,12 @@ interface User {
     _id: string;
     email: string;
     gems: number;
+    name?: string;
+    nickname?: string;
+    role?: string;
+    organization?: string;
+    subject?: string;
+    studentId?: string;
 }
 
 interface UserContextType {

@@ -54,6 +54,7 @@ export default function AdminCreateTest() {
   const [submitting, setSubmitting] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [status, setStatus] = useState<'private' | 'class_only' | 'public'>('class_only');
 
   // Пагинация для вопросов
   const [currentPage, setCurrentPage] = useState(1);
@@ -83,7 +84,12 @@ export default function AdminCreateTest() {
 
   useEffect(() => {
     // Загрузка категорий
-    fetch('/api/categories')
+    const token = localStorage.getItem('token');
+    const headers: HeadersInit = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    fetch('/api/categories', { headers })
       .then((res) => res.json())
       .then((data) => setCategories(data))
       .catch((err) => console.error('Ошибка загрузки категорий:', err));
@@ -119,6 +125,7 @@ export default function AdminCreateTest() {
       title,
       questions,
       ...(selectedCategory && { category: selectedCategory }),
+      status,
       // Настройки для стандартного режима
       useStandardGlobalTimer,
       standardTimeLimit: useStandardGlobalTimer ? standardTimeLimit : null,
@@ -223,6 +230,31 @@ export default function AdminCreateTest() {
                       {cat.name}
                     </MenuItem>
                   ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            <Box sx={{ mb: 3 }}>
+              <Typography
+                variant="subtitle1"
+                sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}
+              >
+                <CategoryIcon />
+                Статус теста
+              </Typography>
+
+              <FormControl fullWidth>
+                <InputLabel size="small">Выберите статус</InputLabel>
+                <Select
+                  size="small"
+                  value={status}
+                  label="Выберите статус"
+                  onChange={(e) => setStatus(e.target.value as any)}
+                  sx={{ borderRadius: '8px' }}
+                >
+                  <MenuItem value="private">Приватный (Только Вы)</MenuItem>
+                  <MenuItem value="class_only">Только для классов (По умолчанию)</MenuItem>
+                  <MenuItem value="public">Публичный (Виден всем)</MenuItem>
                 </Select>
               </FormControl>
             </Box>

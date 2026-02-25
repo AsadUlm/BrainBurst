@@ -16,9 +16,12 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import LoginIcon from '@mui/icons-material/Login';
+import PersonIcon from '@mui/icons-material/Person';
 import InfoIcon from '@mui/icons-material/Info';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DiamondIcon from '@mui/icons-material/Diamond';
+import GroupIcon from '@mui/icons-material/Group';
+import SchoolIcon from '@mui/icons-material/School';
 import UserSettingsDialog from './UserSettingsDialog';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
@@ -29,7 +32,7 @@ export default function Header() {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, isAdmin, role } = useAuth();
+  const { isAuthenticated, isAdmin, role, isTeacher } = useAuth();
   const { user } = useUser();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
@@ -182,7 +185,13 @@ export default function Header() {
           <Stack direction="row" spacing={0.5} sx={{ flexGrow: 1 }}>
             <NavIconButton label={t('header.home')} path="/" icon={<HomeIcon />} />
 
-            <NavIconButton label={t('tests')} path="/tests" icon={<QuizIcon />} />
+            <NavIconButton label={t('header.library')} path="/tests" icon={<QuizIcon />} />
+
+            {isTeacher ? (
+              <NavIconButton label={t('header.myClasses')} path="/teacher/classes" icon={<GroupIcon />} />
+            ) : (
+              <NavIconButton label={t('header.myClasses')} path="/student/classes" icon={<SchoolIcon />} />
+            )}
 
             <NavIconButton label={t('header.history')} path="/myresults" icon={<ArticleIcon />} />
 
@@ -190,11 +199,6 @@ export default function Header() {
 
             {isAdmin && (
               <>
-                <NavIconButton
-                  label={t('header.admin')}
-                  path="/admin"
-                  icon={<AdminPanelSettingsIcon />}
-                />
                 <NavIconButton
                   label={t('header.results')}
                   path="/admin/results"
@@ -361,12 +365,36 @@ export default function Header() {
                         backgroundColor: theme.palette.action.hover
                       }
                     }}
+                    onClick={() => {
+                      navigate('/profile');
+                      handleMenuClose();
+                    }}
+                  >
+                    <Stack direction="row" alignItems="center" spacing={1.5}>
+                      <PersonIcon fontSize="small" color="action" />
+                      <Typography variant="body2" color="text.primary" fontWeight={500}>
+                        {t('header.myProfile', 'Мой профиль')}
+                      </Typography>
+                    </Stack>
+                  </MenuItem>
+
+                  <MenuItem
+                    sx={{
+                      py: 1.5,
+                      px: 2,
+                      borderRadius: '8px',
+                      mx: 1,
+                      my: 0.5,
+                      '&:hover': {
+                        backgroundColor: theme.palette.action.hover
+                      }
+                    }}
                     disabled
                   >
                     <Stack direction="row" alignItems="center" spacing={1.5}>
                       <InfoIcon fontSize="small" color="action" />
                       <Typography variant="body2" color="text.secondary">
-                        v4.4.3
+                        v5.0.0
                       </Typography>
                     </Stack>
                   </MenuItem>

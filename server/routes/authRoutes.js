@@ -54,6 +54,32 @@ router.get('/me', verifyToken, async (req, res) => {
     }
 });
 
+// Обновить профиль текущего пользователя
+router.put('/me', verifyToken, async (req, res) => {
+    try {
+        const { name, nickname, organization, subject, studentId } = req.body;
+
+        // Find user
+        const user = await User.findById(req.userId);
+        if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+
+        // Update fields if provided
+        if (name !== undefined) user.name = name;
+        if (nickname !== undefined) user.nickname = nickname;
+        if (organization !== undefined) user.organization = organization;
+        if (subject !== undefined) user.subject = subject;
+        if (studentId !== undefined) user.studentId = studentId;
+
+        await user.save();
+
+        // Return updated user without password
+        const updatedUser = await User.findById(req.userId).select('-password');
+        res.json(updatedUser);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Потратить гем (для подсказки)
 router.post('/spend-gem', verifyToken, async (req, res) => {
     try {

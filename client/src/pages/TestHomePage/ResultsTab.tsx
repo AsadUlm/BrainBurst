@@ -9,7 +9,9 @@ import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 import TouchAppIcon from '@mui/icons-material/TouchApp';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import TestResultDialog from '../MyHistory/components/TestResultDialog';
 import type { Result } from './types';
+import { useState } from 'react';
 
 interface ResultsTabProps {
     results: Result[];
@@ -22,6 +24,24 @@ interface ResultsTabProps {
 
 export default function ResultsTab({ results, loading, categoryColor, onLoadMore, hasMore, loadingMore }: ResultsTabProps) {
     const { t } = useTranslation();
+
+    const [selectedDetailedResult, setSelectedDetailedResult] = useState<any>(null);
+    const [detailedDialogOpen, setDetailedDialogOpen] = useState(false);
+
+    const handleOpenDetailedResult = async (resultId: string, isGame: boolean) => {
+        try {
+            const token = localStorage.getItem('token');
+            const url = isGame ? `/api/game-results/${resultId}` : `/api/results/${resultId}`;
+            const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+            if (!res.ok) throw new Error('Failed to load result details');
+            const data = await res.json();
+            setSelectedDetailedResult(data);
+            setDetailedDialogOpen(true);
+        } catch (e) {
+            console.error(e);
+            alert(t('errorLoadingDetails') || 'Ошибка загрузки деталей результата');
+        }
+    };
 
     if (loading && results.length === 0) {
         return (
@@ -46,6 +66,7 @@ export default function ResultsTab({ results, loading, categoryColor, onLoadMore
                             key={result._id}
                             result={result}
                             categoryColor={categoryColor}
+                            onClick={() => handleOpenDetailedResult(result._id, result.mode === 'game')}
                         />
                     ))}
 
@@ -72,6 +93,14 @@ export default function ResultsTab({ results, loading, categoryColor, onLoadMore
                         </Box>
                     )}
                 </Stack>
+            )}
+
+            {selectedDetailedResult && (
+                <TestResultDialog
+                    open={detailedDialogOpen}
+                    onClose={() => setDetailedDialogOpen(false)}
+                    result={selectedDetailedResult}
+                />
             )}
         </Box>
     );
@@ -102,7 +131,7 @@ function EmptyResults() {
     );
 }
 
-function ResultCard({ result, categoryColor }: { result: Result; categoryColor: string }) {
+function ResultCard({ result, categoryColor, onClick }: { result: Result; categoryColor: string; onClick?: () => void }) {
     const theme = useTheme();
     const { t } = useTranslation();
 
@@ -148,10 +177,12 @@ function ResultCard({ result, categoryColor }: { result: Result; categoryColor: 
     return (
         <Paper
             variant="outlined"
+            onClick={onClick}
             sx={{
                 p: 3,
                 borderRadius: '16px',
                 border: `1px solid ${theme.palette.divider}`,
+                cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 '&:hover': {
                     borderColor: categoryColor,

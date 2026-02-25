@@ -4,10 +4,11 @@ import Grid from '@mui/material/Grid';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '../../contexts/UserContext';
+import { useAuth } from '../../hooks/useAuth';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import HistoryIcon from '@mui/icons-material/History';
-import ArticleIcon from '@mui/icons-material/Article';
 import NewReleasesIcon from '@mui/icons-material/NewReleases';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import SchoolIcon from '@mui/icons-material/School';
@@ -105,7 +106,8 @@ export default function Dashboard() {
     const { t, i18n } = useTranslation();
     const theme = useTheme();
     const navigate = useNavigate();
-    const email = localStorage.getItem('email');
+    const { user } = useUser();
+    const { isTeacher } = useAuth();
     const [stats, setStats] = useState({ totalTests: 0, avgScore: 0, bestScore: 0 });
 
     useEffect(() => {
@@ -133,7 +135,7 @@ export default function Dashboard() {
     }, []);
 
     // Mock data - в будущем можно заменить на реальные данные
-    const userName = email?.split('@')[0];
+    const userName = user?.nickname || user?.name || user?.email?.split('@')[0];
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString(i18n.language || 'en-US', {
@@ -233,10 +235,26 @@ export default function Dashboard() {
                                 <Grid container spacing={3}>
                                     <Grid size={{ xs: 12, md: 6 }}>
                                         <NewsCard
+                                            title={t('dashboard.news.classAssignments')}
+                                            date={formatDate('2026-02-25')}
+                                            tag={t('dashboard.newFeature')}
+                                            color={theme.palette.success.main}
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <NewsCard
+                                            title={t('dashboard.news.publicLibrary')}
+                                            date={formatDate('2026-02-24')}
+                                            tag={t('dashboard.newFeature')}
+                                            color={theme.palette.info.main}
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <NewsCard
                                             title={t('dashboard.news.notifications')}
                                             date={formatDate('2026-02-20')}
                                             tag={t('dashboard.newFeature')}
-                                            color={theme.palette.success.main}
+                                            color={theme.palette.secondary.main}
                                         />
                                     </Grid>
                                     <Grid size={{ xs: 12, md: 6 }}>
@@ -312,8 +330,8 @@ export default function Dashboard() {
                                         variant="outlined"
                                         size="large"
                                         fullWidth
-                                        startIcon={<ArticleIcon />}
-                                        onClick={() => navigate('/tests')}
+                                        startIcon={<SchoolIcon />}
+                                        onClick={() => navigate(isTeacher ? '/teacher/classes' : '/student/classes')}
                                         sx={{
                                             justifyContent: 'flex-start',
                                             py: 1.5,
@@ -328,7 +346,7 @@ export default function Dashboard() {
                                             }
                                         }}
                                     >
-                                        {t('dashboard.startTest')}
+                                        {t('dashboard.myClasses')}
                                     </Button>
                                     <Button
                                         variant="outlined"

@@ -64,10 +64,15 @@ const TestSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Category',
     },
+    ownerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+    },
     // Настройки видимости
-    isVisible: {
-        type: Boolean,
-        default: true
+    status: {
+        type: String,
+        enum: ['private', 'class_only', 'public'],
+        default: 'class_only'
     },
     // Доступ по пользователям (если пусто - доступен всем)
     allowedUsers: [{

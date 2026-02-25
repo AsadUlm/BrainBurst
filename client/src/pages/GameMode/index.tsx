@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Container,
     Box,
@@ -26,6 +26,8 @@ export default function GameMode() {
     const navigate = useNavigate();
     const { t } = useTranslation();
     const theme = useTheme();
+    const [searchParams] = useSearchParams();
+    const assignmentId = searchParams.get('assignmentId');
 
     const [selectedCardCount, setSelectedCardCount] = useState<CardCount | null>(null);
     const [difficulty, setDifficulty] = useState<DifficultyMode>('closed');
@@ -81,7 +83,8 @@ export default function GameMode() {
 
     const handleStartGame = () => {
         if (!selectedCardCount) return;
-        navigate(`/test/${id}/game/play`, {
+        const navUrl = assignmentId ? `/test/${id}/game/play?assignmentId=${assignmentId}` : `/test/${id}/game/play`;
+        navigate(navUrl, {
             state: { cardCount: selectedCardCount, difficulty }
         });
     };
@@ -135,7 +138,10 @@ export default function GameMode() {
             {/* Header */}
             <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
                 <IconButton
-                    onClick={() => navigate(`/test/${id}`)}
+                    onClick={() => {
+                        const navUrl = assignmentId ? `/test/${id}?assignmentId=${assignmentId}` : `/test/${id}`;
+                        navigate(navUrl);
+                    }}
                     sx={{
                         borderRadius: 0,
                         border: `1px solid ${theme.palette.divider}`,

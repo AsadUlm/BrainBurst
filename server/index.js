@@ -10,6 +10,9 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const gameRoutes = require('./routes/gameRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const classRoutes = require('./routes/classRoutes');
+const assignmentRoutes = require('./routes/assignmentRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const createDefaultAdmin = require('./middleware/createDefaultAdmin');
 
 const app = express();
@@ -28,6 +31,9 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/classes', classRoutes);
+app.use('/api/assignments', assignmentRoutes);
+app.use('/api/admin', adminRoutes);
 createDefaultAdmin();
 
 const clientPath = path.join(__dirname, "./frontend/dist");
@@ -45,6 +51,6 @@ app.get(/^\/(?!api).*/, (req, res) => {
 app.listen(PORT, () => {
     console.log('==========================================');
     console.log(`Server started on http://localhost:${PORT}`);
-    console.log('📦 Project version: 4.4.3');
+    console.log('📦 Project version: 5.0.0');
     console.log('==========================================');
 });

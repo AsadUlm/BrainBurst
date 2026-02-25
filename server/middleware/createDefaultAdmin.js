@@ -18,20 +18,36 @@ module.exports = async function createDefaultAdmin() {
             console.log('ℹ️ Админ уже существует');
         }
 
-        // ---- Проверка / создание обычного пользователя ----
-        const userExists = await User.findOne({ email: 'user@example.com' });
+        // ---- Проверка / создание учителя ----
+        const teacherExists = await User.findOne({ email: 'teacher@example.com' });
 
-        if (!userExists) {
-            const user = new User({
-                email: 'user@example.com',
-                password: 'user123',
-                role: 'user',
+        if (!teacherExists) {
+            const teacher = new User({
+                email: 'teacher@example.com',
+                password: 'teacher123',
+                role: 'teacher',
             });
 
-            await user.save();
-            console.log('✅ Пользователь по умолчанию создан: user@example.com / user123');
+            await teacher.save();
+            console.log('✅ Учитель по умолчанию создан: teacher@example.com / teacher123');
         } else {
-            console.log('ℹ️ Пользователь user уже существует');
+            console.log('ℹ️ Учитель уже существует');
+        }
+
+        // ---- Проверка / создание студента ----
+        const studentExists = await User.findOne({ email: 'student@example.com' });
+
+        if (!studentExists) {
+            const student = new User({
+                email: 'student@example.com',
+                password: 'student123',
+                role: 'student',
+            });
+
+            await student.save();
+            console.log('✅ Студент по умолчанию создан: student@example.com / student123');
+        } else {
+            console.log('ℹ️ Студент уже существует');
         }
 
     } catch (err) {

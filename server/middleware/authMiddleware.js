@@ -27,7 +27,15 @@ function requireAdmin(req, res, next) {
     next();
 }
 
+function requireTeacher(req, res, next) {
+    if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Требуются права учителя или администратора' });
+    }
+    next();
+}
+
 module.exports = {
     verifyToken,
     requireAdmin,
+    requireTeacher
 };

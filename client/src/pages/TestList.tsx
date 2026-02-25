@@ -18,6 +18,9 @@ import ExtensionIcon from '@mui/icons-material/Extension';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import CloseIcon from '@mui/icons-material/Close';
 import { LoadingPage } from './Loading';
+import { useAuth } from '../hooks/useAuth';
+import AdminDashboard from './AdminDashboard';
+import { Tabs, Tab } from '@mui/material';
 
 interface Category {
   _id: string;
@@ -55,6 +58,9 @@ export default function TestList() {
   const [sortBy, setSortBy] = useState<'name' | 'questions' | 'time'>('name');
   const [showTimeLimitOnly, setShowTimeLimitOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
+
+  const { isTeacher } = useAuth();
 
   // Инициализируем выбор с "__all__" (все категории)
   const [selectedGroup, setSelectedGroup] = useState<string>('__all__');
@@ -177,337 +183,354 @@ export default function TestList() {
         sx={{
           fontWeight: 700,
           color: theme.palette.text.primary,
-          mb: 3,
+          mb: 1,
         }}
       >
         {t('test.availableTests')}
       </Typography>
 
-      {/* ═══════ Строка поиска + фильтры ═══════ */}
-      <Stack
-        direction="row"
-        alignItems="center"
-        spacing={1.5}
-        sx={{ mb: 3 }}
-      >
-        <TextField
-          fullWidth
-          size="small"
-          placeholder={t('test.searchTests')}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ color: theme.palette.text.secondary }} />
-              </InputAdornment>
-            ),
-            ...(searchQuery && {
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton size="small" onClick={() => setSearchQuery('')}>
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-                </InputAdornment>
-              )
-            })
-          }}
-          sx={{
-            maxWidth: 400,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: '8px',
-              '& fieldset': { borderColor: theme.palette.divider }
-            }
-          }}
-        />
-
-        <FormControl size="small" sx={{ minWidth: 160 }}>
-          <Select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'name' | 'questions' | 'time')}
-            displayEmpty
-            startAdornment={<SortIcon fontSize="small" sx={{ mr: 0.5, color: theme.palette.text.secondary }} />}
-            sx={{
-              borderRadius: '8px',
-              fontSize: '0.85rem',
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: theme.palette.divider }
-            }}
-          >
-            <MenuItem value="name">{t('test.sortByName')}</MenuItem>
-            <MenuItem value="questions">{t('test.sortByQuestions')}</MenuItem>
-            <MenuItem value="time">{t('test.sortByTime')}</MenuItem>
-          </Select>
-        </FormControl>
-
-        <IconButton
-          size="small"
-          onClick={() => setShowFilters(!showFilters)}
-          sx={{
-            border: `1px solid ${theme.palette.divider}`,
-            borderRadius: '8px',
-            width: 38,
-            height: 38
-          }}
+      {isTeacher && (
+        <Tabs
+          value={activeTab}
+          onChange={(_, newValue) => setActiveTab(newValue)}
+          sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
         >
-          <Badge color="primary" variant="dot" invisible={!showTimeLimitOnly}>
-            <FilterListIcon fontSize="small" />
-          </Badge>
-        </IconButton>
-      </Stack>
-
-      {/* Расширенные фильтры */}
-      {showFilters && (
-        <Box
-          sx={{
-            mb: 3,
-            p: 2,
-            border: `1px solid ${theme.palette.divider}`,
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2
-          }}
-        >
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
-            {t('test.withTimeLimit')}
-          </Typography>
-          <Switch
-            size="small"
-            checked={showTimeLimitOnly}
-            onChange={(e) => setShowTimeLimitOnly(e.target.checked)}
-          />
-        </Box>
+          <Tab label="Публичная Библиотека" />
+          <Tab label="Моя Библиотека" />
+        </Tabs>
       )}
 
-      {/* Счётчик */}
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.8rem' }}>
-        {filteredAndSortedTests.length} {t('test.testsFound')}
-      </Typography>
-
-      {filteredAndSortedTests.length === 0 ? (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Typography variant="h6" color="text.secondary">
-            {tests.length === 0 ? t('test.noTests') : t('test.noTestsMatchFilter')}
-          </Typography>
-        </Box>
-      ) : (
-        /* ═══════ Двухпанельный layout ═══════ */
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            border: `1px solid ${theme.palette.divider}`,
-            borderRadius: '8px',
-            overflow: 'hidden',
-            minHeight: 500
-          }}
-        >
-          {/* ── Левая панель: категории ── */}
-          <Box
-            sx={{
-              width: { xs: '100%', md: 240 },
-              flexShrink: 0,
-              borderRight: { xs: 'none', md: `1px solid ${theme.palette.divider}` },
-              borderBottom: { xs: `1px solid ${theme.palette.divider}`, md: 'none' },
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-              maxHeight: { xs: 200, md: 'none' }
-            }}
+      {activeTab === 0 ? (
+        <Box>
+          {/* ═══════ Строка поиска + фильтры ═══════ */}
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1.5}
+            sx={{ mb: 3 }}
           >
-            <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${theme.palette.divider}` }}>
-              <Typography
-                variant="body2"
-                sx={{ fontWeight: 600, fontSize: '0.8rem', color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+            <TextField
+              fullWidth
+              size="small"
+              placeholder={t('test.searchTests')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" sx={{ color: theme.palette.text.secondary }} />
+                  </InputAdornment>
+                ),
+                ...(searchQuery && {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={() => setSearchQuery('')}>
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                })
+              }}
+              sx={{
+                maxWidth: 400,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '8px',
+                  '& fieldset': { borderColor: theme.palette.divider }
+                }
+              }}
+            />
+
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <Select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'name' | 'questions' | 'time')}
+                displayEmpty
+                startAdornment={<SortIcon fontSize="small" sx={{ mr: 0.5, color: theme.palette.text.secondary }} />}
+                sx={{
+                  borderRadius: '8px',
+                  fontSize: '0.85rem',
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: theme.palette.divider }
+                }}
               >
-                {t('categories') || 'Категории'}
+                <MenuItem value="name">{t('test.sortByName')}</MenuItem>
+                <MenuItem value="questions">{t('test.sortByQuestions')}</MenuItem>
+                <MenuItem value="time">{t('test.sortByTime')}</MenuItem>
+              </Select>
+            </FormControl>
+
+            <IconButton
+              size="small"
+              onClick={() => setShowFilters(!showFilters)}
+              sx={{
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: '8px',
+                width: 38,
+                height: 38
+              }}
+            >
+              <Badge color="primary" variant="dot" invisible={!showTimeLimitOnly}>
+                <FilterListIcon fontSize="small" />
+              </Badge>
+            </IconButton>
+          </Stack>
+
+          {/* Расширенные фильтры */}
+          {showFilters && (
+            <Box
+              sx={{
+                mb: 3,
+                p: 2,
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}
+            >
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+                {t('test.withTimeLimit')}
+              </Typography>
+              <Switch
+                size="small"
+                checked={showTimeLimitOnly}
+                onChange={(e) => setShowTimeLimitOnly(e.target.checked)}
+              />
+            </Box>
+          )}
+
+          {/* Счётчик */}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.8rem' }}>
+            {filteredAndSortedTests.length} {t('test.testsFound')}
+          </Typography>
+
+          {filteredAndSortedTests.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <Typography variant="h6" color="text.secondary">
+                {tests.length === 0 ? t('test.noTests') : t('test.noTestsMatchFilter')}
               </Typography>
             </Box>
+          ) : (
+            /* ═══════ Двухпанельный layout ═══════ */
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', md: 'row' },
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: '8px',
+                overflow: 'hidden',
+                minHeight: 500
+              }}
+            >
+              {/* ── Левая панель: категории ── */}
+              <Box
+                sx={{
+                  width: { xs: '100%', md: 240 },
+                  flexShrink: 0,
+                  borderRight: { xs: 'none', md: `1px solid ${theme.palette.divider}` },
+                  borderBottom: { xs: `1px solid ${theme.palette.divider}`, md: 'none' },
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  maxHeight: { xs: 200, md: 'none' }
+                }}
+              >
+                <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${theme.palette.divider}` }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600, fontSize: '0.8rem', color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                  >
+                    {t('categories') || 'Категории'}
+                  </Typography>
+                </Box>
 
-            {/* "Все тесты" */}
-            <List disablePadding sx={{ flex: 1, overflow: 'auto', px: 1, py: 0.5 }}>
-              <ListItem disablePadding sx={{ mb: 0.3 }}>
-                <ListItemButton
-                  selected={selectedGroup === '__all__'}
-                  onClick={() => setSelectedGroup('__all__')}
+                {/* "Все тесты" */}
+                <List disablePadding sx={{ flex: 1, overflow: 'auto', px: 1, py: 0.5 }}>
+                  <ListItem disablePadding sx={{ mb: 0.3 }}>
+                    <ListItemButton
+                      selected={selectedGroup === '__all__'}
+                      onClick={() => setSelectedGroup('__all__')}
+                      sx={{
+                        borderRadius: '8px',
+                        py: 0.7,
+                        px: 1.5,
+                        minHeight: 38,
+                        transition: 'background-color 0.15s',
+                        '&.Mui-selected': {
+                          backgroundColor: theme.palette.mode === 'dark'
+                            ? 'rgba(255,255,255,0.08)'
+                            : 'rgba(0,0,0,0.06)',
+                          '&:hover': {
+                            backgroundColor: theme.palette.mode === 'dark'
+                              ? 'rgba(255,255,255,0.12)'
+                              : 'rgba(0,0,0,0.09)'
+                          }
+                        },
+                        '&:hover': {
+                          backgroundColor: theme.palette.mode === 'dark'
+                            ? 'rgba(255,255,255,0.05)'
+                            : 'rgba(0,0,0,0.04)'
+                        }
+                      }}
+                    >
+                      <ListItemIcon sx={{ minWidth: 30 }}>
+                        <ViewListIcon fontSize="small" sx={{ color: theme.palette.text.secondary }} />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={t('test.allCategories')}
+                        primaryTypographyProps={{
+                          fontSize: '0.85rem',
+                          fontWeight: selectedGroup === '__all__' ? 600 : 400,
+                          noWrap: true
+                        }}
+                      />
+                      <Chip
+                        label={filteredAndSortedTests.length}
+                        size="small"
+                        sx={{
+                          height: 20,
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          backgroundColor: alpha(theme.palette.text.secondary, 0.1)
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+
+                  {/* Категории */}
+                  {groups.map(group => (
+                    <ListItem key={group.key} disablePadding sx={{ mb: 0.3 }}>
+                      <ListItemButton
+                        selected={selectedGroup === group.key}
+                        onClick={() => setSelectedGroup(group.key)}
+                        sx={{
+                          borderRadius: '8px',
+                          py: 0.7,
+                          px: 1.5,
+                          minHeight: 38,
+                          transition: 'background-color 0.15s',
+                          '&.Mui-selected': {
+                            backgroundColor: theme.palette.mode === 'dark'
+                              ? 'rgba(255,255,255,0.08)'
+                              : 'rgba(0,0,0,0.06)',
+                            '&:hover': {
+                              backgroundColor: theme.palette.mode === 'dark'
+                                ? 'rgba(255,255,255,0.12)'
+                                : 'rgba(0,0,0,0.09)'
+                            }
+                          },
+                          '&:hover': {
+                            backgroundColor: theme.palette.mode === 'dark'
+                              ? 'rgba(255,255,255,0.05)'
+                              : 'rgba(0,0,0,0.04)'
+                          }
+                        }}
+                      >
+                        <ListItemIcon sx={{ minWidth: 30 }}>
+                          <Box
+                            sx={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: '50%',
+                              backgroundColor: group.color
+                            }}
+                          />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={group.name}
+                          primaryTypographyProps={{
+                            fontSize: '0.85rem',
+                            fontWeight: selectedGroup === group.key ? 600 : 400,
+                            noWrap: true
+                          }}
+                        />
+                        <Chip
+                          label={group.count}
+                          size="small"
+                          sx={{
+                            height: 20,
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            backgroundColor: alpha(group.color, 0.1),
+                            color: group.color
+                          }}
+                        />
+                      </ListItemButton>
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+
+              {/* ── Правая панель: тесты ── */}
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+
+                {/* Заголовок группы */}
+                <Box
                   sx={{
-                    borderRadius: '8px',
-                    py: 0.7,
-                    px: 1.5,
-                    minHeight: 38,
-                    transition: 'background-color 0.15s',
-                    '&.Mui-selected': {
-                      backgroundColor: theme.palette.mode === 'dark'
-                        ? 'rgba(255,255,255,0.08)'
-                        : 'rgba(0,0,0,0.06)',
-                      '&:hover': {
-                        backgroundColor: theme.palette.mode === 'dark'
-                          ? 'rgba(255,255,255,0.12)'
-                          : 'rgba(0,0,0,0.09)'
-                      }
-                    },
-                    '&:hover': {
-                      backgroundColor: theme.palette.mode === 'dark'
-                        ? 'rgba(255,255,255,0.05)'
-                        : 'rgba(0,0,0,0.04)'
+                    px: 3,
+                    py: 2,
+                    borderBottom: `1px solid ${theme.palette.divider}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5
+                  }}
+                >
+                  {activeGroup && selectedGroup !== '__all__' && (
+                    <Box
+                      sx={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: '50%',
+                        backgroundColor: activeGroup.color,
+                        flexShrink: 0
+                      }}
+                    />
+                  )}
+                  <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
+                    {selectedGroup === '__all__'
+                      ? t('test.allCategories')
+                      : activeGroup?.name || ''}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                    {selectedGroup === '__all__'
+                      ? `${filteredAndSortedTests.length} ${t('test.testsFound')}`
+                      : `${activeGroup?.count || 0} ${t('test.testsFound')}`}
+                  </Typography>
+                </Box>
+
+                {/* Контент: список тестов */}
+                <Box
+                  sx={{
+                    flex: 1,
+                    overflow: 'auto',
+                    p: 3,
+                    '&::-webkit-scrollbar': { width: 6 },
+                    '&::-webkit-scrollbar-thumb': {
+                      backgroundColor: theme.palette.divider,
+                      borderRadius: 3
                     }
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 30 }}>
-                    <ViewListIcon fontSize="small" sx={{ color: theme.palette.text.secondary }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={t('test.allCategories')}
-                    primaryTypographyProps={{
-                      fontSize: '0.85rem',
-                      fontWeight: selectedGroup === '__all__' ? 600 : 400,
-                      noWrap: true
-                    }}
-                  />
-                  <Chip
-                    label={filteredAndSortedTests.length}
-                    size="small"
-                    sx={{
-                      height: 20,
-                      fontSize: '0.7rem',
-                      fontWeight: 600,
-                      backgroundColor: alpha(theme.palette.text.secondary, 0.1)
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-
-              {/* Категории */}
-              {groups.map(group => (
-                <ListItem key={group.key} disablePadding sx={{ mb: 0.3 }}>
-                  <ListItemButton
-                    selected={selectedGroup === group.key}
-                    onClick={() => setSelectedGroup(group.key)}
-                    sx={{
-                      borderRadius: '8px',
-                      py: 0.7,
-                      px: 1.5,
-                      minHeight: 38,
-                      transition: 'background-color 0.15s',
-                      '&.Mui-selected': {
-                        backgroundColor: theme.palette.mode === 'dark'
-                          ? 'rgba(255,255,255,0.08)'
-                          : 'rgba(0,0,0,0.06)',
-                        '&:hover': {
-                          backgroundColor: theme.palette.mode === 'dark'
-                            ? 'rgba(255,255,255,0.12)'
-                            : 'rgba(0,0,0,0.09)'
+                  <Fade in key={selectedGroup || 'init'} timeout={400}>
+                    <Box>
+                      <TestGrid
+                        tests={
+                          selectedGroup === '__all__'
+                            ? filteredAndSortedTests
+                            : activeGroup?.tests || []
                         }
-                      },
-                      '&:hover': {
-                        backgroundColor: theme.palette.mode === 'dark'
-                          ? 'rgba(255,255,255,0.05)'
-                          : 'rgba(0,0,0,0.04)'
-                      }
-                    }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 30 }}>
-                      <Box
-                        sx={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: '50%',
-                          backgroundColor: group.color
-                        }}
+                        navigate={navigate}
+                        theme={theme}
+                        t={t}
                       />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={group.name}
-                      primaryTypographyProps={{
-                        fontSize: '0.85rem',
-                        fontWeight: selectedGroup === group.key ? 600 : 400,
-                        noWrap: true
-                      }}
-                    />
-                    <Chip
-                      label={group.count}
-                      size="small"
-                      sx={{
-                        height: 20,
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                        backgroundColor: alpha(group.color, 0.1),
-                        color: group.color
-                      }}
-                    />
-                  </ListItemButton>
-                </ListItem>
-              ))}
-            </List>
-          </Box>
-
-          {/* ── Правая панель: тесты ── */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-
-            {/* Заголовок группы */}
-            <Box
-              sx={{
-                px: 3,
-                py: 2,
-                borderBottom: `1px solid ${theme.palette.divider}`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5
-              }}
-            >
-              {activeGroup && selectedGroup !== '__all__' && (
-                <Box
-                  sx={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: '50%',
-                    backgroundColor: activeGroup.color,
-                    flexShrink: 0
-                  }}
-                />
-              )}
-              <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
-                {selectedGroup === '__all__'
-                  ? t('test.allCategories')
-                  : activeGroup?.name || ''}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                {selectedGroup === '__all__'
-                  ? `${filteredAndSortedTests.length} ${t('test.testsFound')}`
-                  : `${activeGroup?.count || 0} ${t('test.testsFound')}`}
-              </Typography>
-            </Box>
-
-            {/* Контент: список тестов */}
-            <Box
-              sx={{
-                flex: 1,
-                overflow: 'auto',
-                p: 3,
-                '&::-webkit-scrollbar': { width: 6 },
-                '&::-webkit-scrollbar-thumb': {
-                  backgroundColor: theme.palette.divider,
-                  borderRadius: 3
-                }
-              }}
-            >
-              <Fade in key={selectedGroup || 'init'} timeout={400}>
-                <Box>
-                  <TestGrid
-                    tests={
-                      selectedGroup === '__all__'
-                        ? filteredAndSortedTests
-                        : activeGroup?.tests || []
-                    }
-                    navigate={navigate}
-                    theme={theme}
-                    t={t}
-                  />
+                    </Box>
+                  </Fade>
                 </Box>
-              </Fade>
+              </Box>
             </Box>
-          </Box>
+          )}
         </Box>
+      ) : (
+        <AdminDashboard embedded />
       )}
     </Box>
   );

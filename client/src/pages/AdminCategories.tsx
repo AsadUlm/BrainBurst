@@ -58,7 +58,15 @@ export default function AdminCategories() {
 
     const loadCategories = async () => {
         try {
-            const res = await fetch('/api/categories');
+            const token = localStorage.getItem('token');
+            const headers: HeadersInit = {};
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+
+            const res = await fetch('/api/categories', {
+                headers
+            });
             const data = await res.json();
             setCategories(data);
         } catch (err) {

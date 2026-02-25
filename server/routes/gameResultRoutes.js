@@ -5,7 +5,7 @@ const GameResult = require('../models/GameResult');
 const Test = require('../models/Test');
 const User = require('../models/User');
 const Category = require('../models/Category');
-const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
+const { verifyToken, requireAdmin, requireTeacher } = require('../middleware/authMiddleware');
 
 // Сохранить результат игры
 router.post('/', verifyToken, async (req, res) => {
@@ -26,7 +26,9 @@ router.post('/', verifyToken, async (req, res) => {
             finalStreak,
             categoryStats,
             gameData,
-            questionDetails
+            questionDetails,
+            assignmentId,
+            classId
         } = req.body;
 
         const userId = req.user.userId;
@@ -67,7 +69,9 @@ router.post('/', verifyToken, async (req, res) => {
             finalStreak: finalStreak || 0,
             categoryStats: categoryStats || [],
             gameData: gameData || {},
-            questionDetails: questionDetails || []
+            questionDetails: questionDetails || [],
+            assignmentId,
+            classId
         });
 
         await newGameResult.save();
@@ -105,6 +109,21 @@ router.get('/', verifyToken, requireAdmin, async (req, res) => {
         res.json(results);
     } catch (error) {
         console.error('Error fetching game results:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Получить мои игровые результаты
+router.get('/assignment/:assignmentId', verifyToken, requireTeacher, async (req, res) => {
+    try {
+        const { assignmentId } = req.params;
+        const results = await GameResult.find({ assignmentId })
+            .populate({ path: 'userId', select: 'name email' })
+            .sort({ completedAt: -1 })
+            .lean();
+        res.json(results);
+    } catch (error) {
+        console.error('Error fetching game results for assignment:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -157,8 +176,22 @@ router.get('/:id', verifyToken, async (req, res) => {
             return res.status(404).json({ error: 'Game result not found' });
         }
 
+        let isTeacher = false;
+        if (result.assignmentId) {
+            const Assignment = require('../models/Assignment');
+            const ClassModel = require('../models/Class');
+            const assignment = await Assignment.findById(result.assignmentId);
+            if (assignment) {
+                const cls = await ClassModel.findById(assignment.classId);
+                const currentUserId = req.userId || (req.user && req.user.id);
+                if (cls && cls.teacherId && currentUserId && cls.teacherId.toString() === currentUserId.toString()) {
+                    isTeacher = true;
+                }
+            }
+        }
+
         // Проверка прав доступа
-        if (!isAdmin && result.userId.toString() !== userId.toString()) {
+        if (!isAdmin && !isTeacher && result.userId.toString() !== userId.toString()) {
             return res.status(403).json({ error: 'Access denied' });
         }
 

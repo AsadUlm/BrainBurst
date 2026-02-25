@@ -105,7 +105,12 @@ export default function AdminResults() {
 
   // Load categories
   useEffect(() => {
-    fetch('/api/categories')
+    const token = localStorage.getItem('token');
+    const headers: HeadersInit = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    fetch('/api/categories', { headers })
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setCategories(data);

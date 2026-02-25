@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Box, Paper, Typography, Stack, Tabs, Tab, useTheme } from '@mui/material';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { Box, Container, Typography, Tab, Tabs, Stack, Alert, Paper, useTheme, Divider } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 import AutoGraphIcon from '@mui/icons-material/AutoGraph';
 import { LoadingPage } from '../Loading';
 import TestHeader from './TestHeader';
@@ -14,6 +16,7 @@ import StandardModeCard from './StandardModeCard';
 import PracticeModeCard from './PracticeModeCard';
 import ExamModeCard from './ExamModeCard';
 import GameModeCard from './GameModeCard';
+import { canStartExam, getEffectiveStatus } from '../../utils/assignmentStatus';
 import type { Test, Result } from './types';
 
 export default function TestHomePage() {
@@ -21,8 +24,11 @@ export default function TestHomePage() {
     const navigate = useNavigate();
     const theme = useTheme();
     const { t } = useTranslation();
+    const [searchParams] = useSearchParams();
+    const assignmentId = searchParams.get('assignmentId');
 
     const [test, setTest] = useState<Test | null>(null);
+    const [assignment, setAssignment] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [userAttempts, setUserAttempts] = useState(0);
     const [canViewContent, setCanViewContent] = useState(true);
@@ -33,6 +39,10 @@ export default function TestHomePage() {
     const [practiceMessage, setPracticeMessage] = useState('');
     const [canAccessGame, setCanAccessGame] = useState(true);
     const [gameMessage, setGameMessage] = useState('');
+    const [canAccessExamMode, setCanAccessExamMode] = useState(true);
+    const [examMessage, setExamMessage] = useState('');
+    const [examRemainingAttempts, setExamRemainingAttempts] = useState<number | undefined>();
+    const [examMaxAttempts, setExamMaxAttempts] = useState<number | undefined>();
 
     // Tabs
     const [currentTab, setCurrentTab] = useState('content');
@@ -62,8 +72,27 @@ export default function TestHomePage() {
             try {
                 setLoading(true);
 
-                const testRes = await fetch(`/api/tests/${id}`);
-                const testData = await testRes.json();
+                let testData;
+                let fetchedAssignment = null;
+
+                if (assignmentId) {
+                    const assignRes = await fetch(`/api/assignments/${assignmentId}`, {
+                        headers: { Authorization: token ? `Bearer ${token}` : '' }
+                    });
+                    const assignData = await assignRes.json();
+                    if (assignRes.ok) {
+                        testData = assignData.test;
+                        fetchedAssignment = assignData;
+                        setAssignment(assignData);
+                    } else {
+                        // Fallback or error
+                        console.error('Ошибка загрузки назначения', assignData);
+                        return; // Stop loading if assignment fails
+                    }
+                } else {
+                    const testRes = await fetch(`/api/tests/${id}`);
+                    testData = await testRes.json();
+                }
 
                 let attempts = 0;
 
@@ -95,6 +124,21 @@ export default function TestHomePage() {
                     }
                 } else {
                     setCanViewContent(!testData.hideContent);
+                }
+
+                if (fetchedAssignment && fetchedAssignment.progress) {
+                    const examAction = canStartExam(fetchedAssignment.progress, fetchedAssignment);
+                    setCanAccessExamMode(examAction.canStart);
+                    setExamRemainingAttempts(examAction.remainingAttempts);
+                    setExamMaxAttempts(examAction.maxAttempts);
+                    if (!examAction.canStart && examAction.reason) {
+                        setExamMessage(examAction.reason);
+                    }
+                } else {
+                    setCanAccessExamMode(true);
+                    setExamMessage('');
+                    setExamRemainingAttempts(undefined);
+                    setExamMaxAttempts(undefined);
                 }
 
                 const practiceMode = testData.practiceMode || 'enabled';
@@ -200,10 +244,14 @@ export default function TestHomePage() {
     }, [resultsPage, resultsTotalPages, loadResults]);
 
     /* -------- Navigation callbacks -------- */
-    const handleStartStandard = useCallback(() => navigate(`/test/${id}/run`), [navigate, id]);
-    const handleStartPractice = useCallback(() => navigate(`/test/${id}/practice`), [navigate, id]);
-    const handleStartExam = useCallback(() => navigate(`/test/${id}/exam`), [navigate, id]);
-    const handleStartGame = useCallback(() => navigate(`/test/${id}/game`), [navigate, id]);
+    const getNavUrl = useCallback((base: string) => {
+        return assignmentId ? `${base}?assignmentId=${assignmentId}` : base;
+    }, [assignmentId]);
+
+    const handleStartStandard = useCallback(() => navigate(getNavUrl(`/test/${id}/run`)), [navigate, id, getNavUrl]);
+    const handleStartPractice = useCallback(() => navigate(getNavUrl(`/test/${id}/practice`)), [navigate, id, getNavUrl]);
+    const handleStartExam = useCallback(() => navigate(getNavUrl(`/test/${id}/exam`)), [navigate, id, getNavUrl]);
+    const handleStartGame = useCallback(() => navigate(getNavUrl(`/test/${id}/game`)), [navigate, id, getNavUrl]);
 
     const handleTabChange = useCallback((_: React.SyntheticEvent, newValue: string) => {
         setCurrentTab(newValue);
@@ -233,7 +281,7 @@ export default function TestHomePage() {
     /* -------- Render -------- */
     return (
         <Container maxWidth="xl" sx={{ py: 4 }}>
-            <TestHeader test={test} categoryColor={categoryColor} />
+            <TestHeader test={test} categoryColor={categoryColor} assignmentTitle={assignment?.title} />
 
             <Box sx={{ display: 'flex', gap: 4, flexDirection: { xs: 'column', md: 'row' } }}>
                 {/* Left column — Tabs (Content / Results) */}
@@ -321,26 +369,93 @@ export default function TestHomePage() {
                 {/* Right column — Mode cards */}
                 <Box sx={{ flex: { md: '1 1 42%' } }}>
                     <Stack spacing={3}>
-                        <StandardModeCard
-                            test={test}
-                            categoryColor={categoryColor}
-                            onStart={handleStartStandard}
-                        />
-                        <PracticeModeCard
-                            canAccessPractice={canAccessPractice}
-                            practiceMessage={practiceMessage}
-                            onStart={handleStartPractice}
-                        />
-                        <ExamModeCard
-                            test={test}
-                            onStart={handleStartExam}
-                        />
-                        <GameModeCard
-                            categoryColor={categoryColor}
-                            canAccessGame={canAccessGame}
-                            gameMessage={gameMessage}
-                            onStart={handleStartGame}
-                        />
+                        {assignment && (() => {
+                            const maxAttempts = assignment.effectiveSettings?.attemptsAllowed ?? assignment.settingsOverrides?.attemptsAllowed ?? assignment.attemptsAllowed;
+                            const progress = assignment.progress;
+                            const status = getEffectiveStatus(progress, assignment);
+                            const attemptsUsed = progress?.attemptCount || 0;
+
+                            return (
+                                <Paper elevation={0} sx={{ p: 3, borderRadius: '16px', border: `1px solid ${theme.palette.primary.main}`, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
+                                    <Typography variant="h6" color="primary.main" fontWeight={700} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <AssignmentIcon fontSize="small" /> Детали задания
+                                    </Typography>
+
+                                    <Stack spacing={1.5} mt={2}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Typography variant="body2" color="text.secondary">Дедлайн:</Typography>
+                                            <Typography variant="body2" fontWeight={600} color={status === 'overdue' ? 'error.main' : 'text.primary'}>
+                                                {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'Без срока'}
+                                            </Typography>
+                                        </Box>
+                                        <Divider />
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Typography variant="body2" color="text.secondary">Попыток использовано:</Typography>
+                                            <Typography variant="body2" fontWeight={600} color={maxAttempts && attemptsUsed >= maxAttempts ? 'error.main' : 'text.primary'}>
+                                                {attemptsUsed} / {maxAttempts || '∞'}
+                                            </Typography>
+                                        </Box>
+
+                                        {status === 'graded' && progress?.bestScore !== null && progress?.bestScore !== undefined && (
+                                            <Box sx={{ mt: 1, p: 1.5, borderRadius: '12px', bgcolor: alpha(theme.palette.success.main, 0.1), border: `1px dashed ${theme.palette.success.main}` }}>
+                                                <Typography variant="body2" color="success.main" fontWeight={700} textAlign="center">
+                                                    Оценка: {progress.bestScore} / {assignment.maxScore || 100}
+                                                </Typography>
+                                            </Box>
+                                        )}
+
+                                        {status === 'overdue' && (
+                                            <Box sx={{ mt: 1, p: 1.5, borderRadius: '12px', bgcolor: alpha(theme.palette.error.main, 0.1), border: `1px dashed ${theme.palette.error.main}` }}>
+                                                <Typography variant="caption" color="error.main" textAlign="center" display="block">
+                                                    Срок сдачи прошел. Свяжитесь с учителем, если есть вопросы.
+                                                </Typography>
+                                            </Box>
+                                        )}
+
+                                        {assignment.status === 'archived' && (
+                                            <Alert severity="warning" sx={{ '& .MuiAlert-message': { fontSize: '0.85rem' }, mt: 1, borderRadius: '10px' }}>
+                                                Задание находится в архиве. Больше недоступно для прохождения.
+                                            </Alert>
+                                        )}
+
+                                        {assignment.status !== 'archived' && (
+                                            <Alert severity="info" sx={{ '& .MuiAlert-message': { fontSize: '0.85rem' }, mt: 1, borderRadius: '10px' }}>
+                                                Только прохождение в режиме <b>«Экзамен»</b> учитывается для статуса задания. Тренировка доступна в других режимах.
+                                            </Alert>
+                                        )}
+                                    </Stack>
+                                </Paper>
+                            );
+                        })()}
+
+                        {(!assignment || assignment.status !== 'archived') && (
+                            <>
+                                <StandardModeCard
+                                    test={test}
+                                    categoryColor={categoryColor}
+                                    onStart={handleStartStandard}
+                                />
+                                <PracticeModeCard
+                                    canAccessPractice={canAccessPractice}
+                                    practiceMessage={practiceMessage}
+                                    onStart={handleStartPractice}
+                                />
+                                <ExamModeCard
+                                    test={test}
+                                    onStart={handleStartExam}
+                                    canAccessExam={canAccessExamMode}
+                                    examMessage={examMessage}
+                                    remainingAttempts={examRemainingAttempts}
+                                    maxAttempts={examMaxAttempts}
+                                />
+                                <GameModeCard
+                                    categoryColor={categoryColor}
+                                    canAccessGame={canAccessGame}
+                                    gameMessage={gameMessage}
+                                    onStart={handleStartGame}
+                                />
+                            </>
+                        )}
                     </Stack>
                 </Box>
             </Box>

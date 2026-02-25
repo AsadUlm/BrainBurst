@@ -5,7 +5,10 @@ const Result = require('../models/Result');
 const GameResult = require('../models/GameResult');
 const Test = require('../models/Test');
 const User = require('../models/User');
-const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
+const Assignment = require('../models/Assignment');
+const AssignmentProgress = require('../models/AssignmentProgress');
+const Notification = require('../models/Notification');
+const { verifyToken, requireAdmin, requireTeacher } = require('../middleware/authMiddleware');
 
 // Сохраняем результат
 router.post('/', async (req, res) => {
@@ -26,7 +29,9 @@ router.post('/', async (req, res) => {
             duration,
             timePerQuestion,
             hintsUsed,
-            mode
+            mode,
+            assignmentId,
+            classId
         } = req.body;
 
         if (!userEmail || !testId || !testTitle || !answers || !correctAnswers || !mistakes || !shuffledQuestions) {
@@ -62,11 +67,99 @@ router.post('/', async (req, res) => {
             duration,
             timePerQuestion,
             hintsUsed,
-            mode
+            mode,
+            assignmentId,
+            classId
         });
 
         await newResult.save();
         console.log('[ResultRoutes] Result saved successfully, clientResultId:', clientResultId);
+
+        // Обновляем AssignmentProgress, если это выполнение назначения
+        if (assignmentId && classId) {
+            try {
+                const user = await User.findOne({ email: userEmail });
+                const assignment = await Assignment.findById(assignmentId);
+
+                if (user && assignment) {
+                    const progress = await AssignmentProgress.findOne({
+                        assignmentId,
+                        studentId: user._id
+                    });
+
+                    if (progress && mode === 'exam') {
+                        // Оцениваем статус для блокировок (хотя фронтенд не должен дать отправить)
+                        const terminalStatuses = ['graded', 'excused', 'blocked'];
+                        if (!terminalStatuses.includes(progress.status)) {
+                            progress.status = 'submitted';
+                            progress.attemptCount += 1;
+                            progress.submittedAt = new Date();
+                            progress.lastAttemptAt = new Date();
+
+                            // Evaluate rewardPolicy BEFORE updating bestScore
+                            if (assignment.rewardPolicy && score !== undefined && total > 0) {
+                                const policy = assignment.rewardPolicy.trim();
+                                const match = policy.match(/(score|percentage)\s*(>=|>|==|=)\s*(\d+)(?:\s*\?\s*(\w+))?/i);
+
+                                if (match) {
+                                    const variable = match[1].toLowerCase();
+                                    const operator = match[2];
+                                    const threshold = parseInt(match[3], 10);
+                                    let rewardAmount = 0.1; // Default reward
+
+                                    if (match[4]) {
+                                        const parsedAmount = parseInt(match[4], 10);
+                                        if (!isNaN(parsedAmount)) rewardAmount = parsedAmount;
+                                    }
+
+                                    const currentValue = variable === 'score' ? score : (score / total) * 100;
+                                    const prevBestScore = progress.bestScore !== null ? progress.bestScore : -1;
+                                    const prevValue = variable === 'score' ? prevBestScore : (prevBestScore / total) * 100;
+
+                                    let currentMet = false;
+                                    let prevMet = false;
+
+                                    if (operator === '>') { currentMet = currentValue > threshold; prevMet = prevValue > threshold; }
+                                    else if (operator === '>=') { currentMet = currentValue >= threshold; prevMet = prevValue >= threshold; }
+                                    else if (operator === '==' || operator === '=') { currentMet = currentValue == threshold; prevMet = prevValue == threshold; }
+
+                                    // Give reward only if newly met (prev best score didn't meet it)
+                                    if (currentMet && !prevMet) {
+                                        user.gems = (user.gems || 0) + Math.max(0, rewardAmount);
+                                        await user.save();
+                                        console.log(`[ResultRoutes] Reward policy met: gave ${rewardAmount} gems to user ${user.email}`);
+
+                                        try {
+                                            await Notification.create({
+                                                user: user._id,
+                                                type: 'gem',
+                                                title: 'Награда получена!',
+                                                message: `Вы получили ${rewardAmount} гемов за тест "${testTitle}"!`,
+                                                relatedId: assignment._id
+                                            });
+                                        } catch (notifyErr) {
+                                            console.error('Ошибка создания уведомления о награде:', notifyErr);
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Если в тесте есть счет, обновляем bestScore
+                            if (score !== undefined) {
+                                if (progress.bestScore === null || score > progress.bestScore) {
+                                    progress.bestScore = score;
+                                }
+                            }
+
+                            await progress.save();
+                        }
+                    }
+                }
+            } catch (progErr) {
+                console.error('[ResultRoutes] Error updating AssignmentProgress:', progErr);
+            }
+        }
+
         res.status(201).json({ message: 'Result saved successfully', resultId: newResult._id });
     } catch (error) {
         console.error('Error saving result:', error);
@@ -871,11 +964,32 @@ router.get('/:id', verifyToken, async (req, res) => {
         // Проверяем, скрыто ли содержимое и нужно ли проверять количество попыток
         // Админы всегда имеют доступ к результатам
         const isAdmin = req.user.role === 'admin';
+        const userEmail = req.user.email;
+        let isTeacher = false;
+
+        if (result.assignmentId) {
+            const Assignment = require('../models/Assignment');
+            const ClassModel = require('../models/Class');
+            const assignment = await Assignment.findById(result.assignmentId);
+            if (assignment) {
+                const cls = await ClassModel.findById(assignment.classId);
+                const currentUserId = req.userId || (req.user && req.user.id);
+                if (cls && cls.teacherId && currentUserId && cls.teacherId.toString() === currentUserId.toString()) {
+                    isTeacher = true;
+                }
+            }
+        }
+
+        // Проверяем принадлежность
+        if (!isAdmin && !isTeacher && result.userEmail !== userEmail) {
+            return res.status(403).json({ error: 'Доступ запрещен' });
+        }
+
         let canViewDetails = true;
         let currentAttempts = 0;
 
-        if (!isAdmin && test.hideContent && test.attemptsToUnlock > 0) {
-            const userEmail = req.user.email;
+        // Только для студента проверяем условия hideContent
+        if (!isAdmin && !isTeacher && test.hideContent && test.attemptsToUnlock > 0) {
             currentAttempts = await Result.countDocuments({
                 userEmail,
                 testId: test._id,
@@ -925,6 +1039,20 @@ router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
     } catch (error) {
         console.error('Error deleting result:', error);
         res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+/**
+ * [Teacher] Получить результаты конкретного назначения (Assignment)
+ */
+router.get('/assignment/:assignmentId', verifyToken, requireTeacher, async (req, res) => {
+    try {
+        const { assignmentId } = req.params;
+        const results = await Result.find({ assignmentId }).sort({ createdAt: -1 });
+        res.json(results);
+    } catch (err) {
+        console.error('Ошибка получения результатов назначения:', err);
+        res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
